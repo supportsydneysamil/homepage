@@ -1,5 +1,6 @@
 import type { GetStaticPaths, GetStaticProps, NextPage } from 'next';
 import eventsData from '../../content/events.json';
+import { useLanguage } from '../../lib/LanguageContext';
 
 type Event = {
   slug: string;
@@ -19,37 +20,42 @@ const toEmbedUrl = (url?: string) => {
   return url.replace('watch?v=', 'embed/');
 };
 
-const EventDetail: NextPage<EventDetailProps> & { meta?: { title?: string; description?: string } } = ({ event }) => (
-  <section className="section">
-    <div className="section__header">
-      <p className="pill">Event</p>
-      <h1>{event.title}</h1>
-      <p className="muted">{new Date(event.date).toLocaleDateString()}</p>
-    </div>
-    <p>{event.description}</p>
+const EventDetail: NextPage<EventDetailProps> & { meta?: { title?: string; description?: string } } = ({ event }) => {
+  const { lang } = useLanguage();
+  const isKo = lang === 'ko';
 
-    {event.images.length > 0 && (
-      <div className="gallery">
-        {event.images.map((image) => (
-          <div key={image} className="gallery__item">
-            <img src={image} alt={event.title} />
-          </div>
-        ))}
+  return (
+    <section className="section">
+      <div className="section__header">
+        <p className="pill">{isKo ? '이벤트' : 'Event'}</p>
+        <h1>{event.title}</h1>
+        <p className="muted">{new Date(event.date).toLocaleDateString()}</p>
       </div>
-    )}
+      <p>{event.description}</p>
 
-    {event.youtubeUrl && (
-      <div className="video-wrapper">
-        <iframe
-          src={toEmbedUrl(event.youtubeUrl)}
-          title={event.title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-    )}
-  </section>
-);
+      {event.images.length > 0 && (
+        <div className="gallery">
+          {event.images.map((image) => (
+            <div key={image} className="gallery__item">
+              <img src={image} alt={event.title} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {event.youtubeUrl && (
+        <div className="video-wrapper">
+          <iframe
+            src={toEmbedUrl(event.youtubeUrl)}
+            title={event.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      )}
+    </section>
+  );
+};
 
 EventDetail.meta = {
   title: 'Event Detail',
