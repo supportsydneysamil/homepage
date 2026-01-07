@@ -16,15 +16,19 @@ type EventsPageProps = {
 };
 
 const EventsPage: NextPage<EventsPageProps> & { meta?: { title?: string; description?: string } } = ({ events }) => (
-  <section>
-    <h1>Events</h1>
+  <section className="section">
+    <div className="section__header">
+      <p className="pill">What&apos;s happening</p>
+      <h1>Events</h1>
+      <p className="muted">Gatherings that help you connect, grow, and serve together.</p>
+    </div>
     <div className="card-grid">
       {events.map((event) => (
         <div key={event.slug} className="card">
+          <div className="card__eyebrow">{new Date(event.date).toLocaleDateString()}</div>
           <h3>{event.title}</h3>
-          <p className="muted">{new Date(event.date).toLocaleDateString()}</p>
           <p>{event.description}</p>
-          <Link href={`/events/${event.slug}`} className="button secondary">
+          <Link href={`/events/${event.slug}`} className="button text">
             View Details
           </Link>
         </div>

@@ -20,9 +20,12 @@ const toEmbedUrl = (url?: string) => {
 };
 
 const EventDetail: NextPage<EventDetailProps> & { meta?: { title?: string; description?: string } } = ({ event }) => (
-  <section>
-    <h1>{event.title}</h1>
-    <p className="muted">{new Date(event.date).toLocaleDateString()}</p>
+  <section className="section">
+    <div className="section__header">
+      <p className="pill">Event</p>
+      <h1>{event.title}</h1>
+      <p className="muted">{new Date(event.date).toLocaleDateString()}</p>
+    </div>
     <p>{event.description}</p>
 
     {event.images.length > 0 && (

@@ -1,21 +1,29 @@
 import type { NextPage } from 'next';
 
 const Worship: NextPage & { meta?: { title?: string; description?: string } } = () => (
-  <section>
-    <h1>Worship Gatherings</h1>
+  <section className="section">
+    <div className="section__header">
+      <p className="pill">Worship with us</p>
+      <h1>Gather every week</h1>
+      <p className="muted">Come early for coffee, stay to connect. Everyone is welcome.</p>
+    </div>
     <div className="info-list">
-      <div>
-        <h3>Sunday Services</h3>
-        <p>9:00 AM | 11:00 AM</p>
+      <div className="card">
+        <div className="card__eyebrow">Sunday Services</div>
+        <h3>9:00 AM | 11:00 AM</h3>
+        <p className="muted">Kids ministry available at both gatherings.</p>
       </div>
-      <div>
-        <h3>Midweek Prayer</h3>
-        <p>Wednesdays at 7:00 PM</p>
+      <div className="card">
+        <div className="card__eyebrow">Midweek Prayer</div>
+        <h3>Wednesdays 7:00 PM</h3>
+        <p className="muted">Seek God together with worship and prayer.</p>
       </div>
-      <div>
-        <h3>Address</h3>
-        <p>123 Main Street, Your City, ST 00000</p>
-        <a href="https://maps.google.com" target="_blank" rel="noreferrer" className="link">View on Google Maps</a>
+      <div className="card">
+        <div className="card__eyebrow">Location</div>
+        <h3>123 Main Street, Your City, ST 00000</h3>
+        <a href="https://maps.google.com" target="_blank" rel="noreferrer" className="link">
+          Open in Google Maps
+        </a>
       </div>
     </div>
   </section>

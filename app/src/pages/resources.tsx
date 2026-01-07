@@ -11,11 +11,15 @@ type ResourcesPageProps = {
 };
 
 const Resources: NextPage<ResourcesPageProps> & { meta?: { title?: string; description?: string } } = ({ resources }) => (
-  <section>
-    <h1>Resources</h1>
+  <section className="section">
+    <div className="section__header">
+      <p className="pill">Tools for your week</p>
+      <h1>Resources</h1>
+      <p className="muted">Download guides, bulletins, and helpful links.</p>
+    </div>
     <ul className="link-list">
       {resources.map((resource) => (
-        <li key={resource.url}>
+        <li key={resource.url} className="card card--inline">
           <a href={resource.url} target="_blank" rel="noreferrer" className="link">
             {resource.title}
           </a>

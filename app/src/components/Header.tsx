@@ -12,7 +12,15 @@ const navItems = [
 
 const Header = () => (
   <header className="header">
-    <div className="header__brand">Community Church</div>
+    <div className="header__brand">
+      <Link href="/" className="brand-link">
+        <span className="brand-mark">CC</span>
+        <span className="brand-text">
+          <span className="brand-title">Community Church</span>
+          <span className="brand-subtitle">Sydney</span>
+        </span>
+      </Link>
+    </div>
     <nav>
       <ul className="nav">
         {navItems.map((item) => (

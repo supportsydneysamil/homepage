@@ -15,8 +15,12 @@ type SermonsPageProps = {
 const toEmbedUrl = (url: string) => url.replace('watch?v=', 'embed/');
 
 const Sermons: NextPage<SermonsPageProps> & { meta?: { title?: string; description?: string } } = ({ sermons }) => (
-  <section>
-    <h1>Sermons</h1>
+  <section className="section">
+    <div className="section__header">
+      <p className="pill">Listen in</p>
+      <h1>Sermons</h1>
+      <p className="muted">Messages from our pastors to encourage and challenge you.</p>
+    </div>
     <div className="sermon-list">
       {sermons.map((sermon) => (
         <article key={`${sermon.date}-${sermon.title}`} className="sermon-card">
