@@ -5,8 +5,7 @@ import { useLanguage } from '../lib/LanguageContext';
 const Home: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
-  const pastorImage =
-    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=1000&q=80';
+  const pastorImage = '/pastor.jpg';
 
   return (
     <>
