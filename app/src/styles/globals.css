@@ -207,6 +207,46 @@ p {
   border-radius: inherit;
 }
 
+.motion-bg {
+  filter: hue-rotate(2deg);
+}
+
+.blob {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.6;
+  mix-blend-mode: screen;
+  animation: float 18s ease-in-out infinite;
+}
+
+.blob--one {
+  background: #4f8bff;
+  top: -10%;
+  left: -6%;
+}
+
+.blob--two {
+  background: #c084fc;
+  bottom: -12%;
+  right: 10%;
+  animation-delay: -6s;
+}
+
+.blob--three {
+  background: #7dd3fc;
+  top: 30%;
+  right: -8%;
+  animation-delay: -3s;
+}
+
+.hero__bg-image {
+  position: absolute;
+  inset: 0;
+}
+
 .hero__bg img {
   width: 100%;
   height: 100%;
@@ -251,6 +291,30 @@ p {
 .stat__label {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .card-grid {
@@ -538,6 +602,58 @@ p {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), var(--accent));
   display: inline-block;
+}
+
+.pastor-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.4rem;
+  align-items: center;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 1.4rem;
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.32);
+}
+
+.pastor-card__image img {
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.36);
+}
+
+.pastor-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.pastor-card__links {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@keyframes float {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(12px, -18px, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 @media (max-width: 860px) {
