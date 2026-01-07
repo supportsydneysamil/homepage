@@ -1,0 +1,23 @@
+[
+  {
+    "slug": "christmas-service-2025",
+    "date": "2025-12-25",
+    "title": "Christmas Service",
+    "description": "Christmas worship service",
+    "images": [
+      "https://example.com/image1.jpg",
+      "https://example.com/image2.jpg"
+    ],
+    "youtubeUrl": "https://www.youtube.com/watch?v=VIDEO_ID_3"
+  },
+  {
+    "slug": "youth-retreat-2025",
+    "date": "2025-08-15",
+    "title": "Youth Summer Retreat",
+    "description": "A weekend retreat focused on fellowship and discipleship.",
+    "images": [
+      "https://example.com/retreat1.jpg"
+    ],
+    "youtubeUrl": ""
+  }
+]
