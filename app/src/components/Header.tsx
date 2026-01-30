@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { useLanguage } from '../lib/LanguageContext';
+import AuthButton from './AuthButton';
 
 const navItems = [
   { href: '/', labelEn: 'Home', labelKo: '홈' },
@@ -37,6 +38,9 @@ const Header = () => {
             <button type="button" className="lang-toggle" onClick={toggleLang} aria-label="Toggle language">
               {isKo ? 'EN' : '한/영'}
             </button>
+          </li>
+          <li className="nav__item">
+            <AuthButton />
           </li>
         </ul>
       </nav>
