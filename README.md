@@ -62,6 +62,52 @@ npm run build
 ```
 This produces a static export in the `out` directory (because `output: "export"` in `next.config.js`). Configure Azure Static Web Apps to serve from `out`.
 
+## Entra ID tenant-only login (required for church accounts only)
+To restrict sign-in to your church tenant, use custom Entra ID auth:
+
+1) `app/staticwebapp.config.json` includes:
+```json
+"auth": {
+  "identityProviders": {
+    "azureActiveDirectory": {
+      "registration": {
+        "openIdIssuer": "https://login.microsoftonline.com/<TENANT_ID>/v2.0",
+        "clientIdSettingName": "AZURE_CLIENT_ID",
+        "clientSecretSettingName": "AZURE_CLIENT_SECRET"
+      }
+    }
+  }
+}
+```
+
+2) In Static Web Apps → Configuration → Application settings:
+- `AZURE_CLIENT_ID` = Entra app client ID
+- `AZURE_CLIENT_SECRET` = Entra app client secret
+
+3) In Entra ID:
+- App registration must be **single-tenant**
+- Enterprise application → Properties → **User assignment required = Yes**
+- Assign only church users/groups
+
+## Entra group sync (GitHub Actions, optional)
+To keep app access aligned with a specific Entra group without paid group assignment,
+this repo includes a scheduled GitHub Actions workflow that syncs group members to app assignments.
+
+### Required GitHub Secrets
+- `GRAPH_TENANT_ID`
+- `GRAPH_CLIENT_ID`
+- `GRAPH_CLIENT_SECRET`
+- `ENTRA_GROUP_ID` (Entra group Object ID)
+- `ENTRA_APP_SP_ID` (Enterprise application Object ID)
+
+### Graph app permissions (application)
+Grant admin consent for:
+- `Group.Read.All`
+- `AppRoleAssignment.ReadWrite.All`
+- `Application.Read.All`
+
+The workflow runs weekly on `ubuntu-latest` and can be triggered manually.
+
 ## Folder Structure
 - `app/next.config.js` — Next.js configured for static export and unoptimized images.
 - `app/package.json` — Project metadata and scripts.

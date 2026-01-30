@@ -1,0 +1,57 @@
+name: Entra Group Assignment Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * 0" # weekly (Sun 18:00 UTC) to minimize usage
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.GRAPH_TENANT_ID != '' && secrets.GRAPH_CLIENT_ID != '' && secrets.GRAPH_CLIENT_SECRET != '' && secrets.ENTRA_GROUP_ID != '' && secrets.ENTRA_APP_SP_ID != '' }}
+    steps:
+      - name: Install Microsoft Graph PowerShell
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
+          Install-Module Microsoft.Graph -Scope CurrentUser -Force
+      - name: Sync group members to app assignments
+        shell: pwsh
+        env:
+          GRAPH_TENANT_ID: ${{ secrets.GRAPH_TENANT_ID }}
+          GRAPH_CLIENT_ID: ${{ secrets.GRAPH_CLIENT_ID }}
+          GRAPH_CLIENT_SECRET: ${{ secrets.GRAPH_CLIENT_SECRET }}
+          ENTRA_GROUP_ID: ${{ secrets.ENTRA_GROUP_ID }}
+          ENTRA_APP_SP_ID: ${{ secrets.ENTRA_APP_SP_ID }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $secureSecret = ConvertTo-SecureString $env:GRAPH_CLIENT_SECRET -AsPlainText -Force
+          Connect-MgGraph -TenantId $env:GRAPH_TENANT_ID -ClientId $env:GRAPH_CLIENT_ID -ClientSecret $secureSecret -NoWelcome
+
+          $groupId   = $env:ENTRA_GROUP_ID
+          $spId      = $env:ENTRA_APP_SP_ID
+          $appRoleId = "00000000-0000-0000-0000-000000000000" # Default Access
+
+          $members = Get-MgGroupMember -GroupId $groupId -All |
+            Where-Object { $_.AdditionalProperties['@odata.type'] -eq "#microsoft.graph.user" }
+          $memberIds = $members | ForEach-Object { $_.Id }
+
+          $assigned = Get-MgServicePrincipalAppRoleAssignedTo -ServicePrincipalId $spId -All |
+            Where-Object { $_.PrincipalType -eq "User" -and $_.AppRoleId -eq $appRoleId }
+          $assignedIds = $assigned | ForEach-Object { $_.PrincipalId }
+
+          $toAdd = $memberIds | Where-Object { $_ -notin $assignedIds }
+          $toRemove = $assigned | Where-Object { $_.PrincipalId -notin $memberIds }
+
+          Write-Host "To add: $($toAdd.Count) / To remove: $($toRemove.Count)"
+
+          foreach ($userId in $toAdd) {
+            New-MgUserAppRoleAssignment -UserId $userId -AppRoleId $appRoleId -ResourceId $spId -PrincipalId $userId | Out-Null
+            Write-Host "Assigned: $userId"
+          }
+
+          foreach ($assignment in $toRemove) {
+            Remove-MgServicePrincipalAppRoleAssignedTo -ServicePrincipalId $spId -AppRoleAssignmentId $assignment.Id
+            Write-Host "Removed: $($assignment.PrincipalId)"
+          }
