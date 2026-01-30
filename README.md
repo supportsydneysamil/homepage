@@ -56,6 +56,11 @@ with user consent. Once those endpoints exist, the UI will sync automatically.
 - Deploy the Functions in `/api` alongside the static app so `/api/profile` and `/api/profile/photo` are reachable.
 - The functions expect an access token in `x-ms-token-aad-access-token` (SWA injects this when auth is configured).
 
+### Profile photo updates (optional)
+To allow users to update their own Entra ID photo from `/profile`:
+- Add delegated Microsoft Graph permission `User.ReadWrite` **or** `ProfilePhoto.ReadWrite.All`.
+- Grant admin consent.
+
 ## Build for Azure Static Web Apps
 ```bash
 npm run build

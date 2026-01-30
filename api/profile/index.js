@@ -1,4 +1,5 @@
-const GRAPH_ME_ENDPOINT = 'https://graph.microsoft.com/v1.0/me';
+const GRAPH_ME_ENDPOINT =
+  'https://graph.microsoft.com/v1.0/me?$select=displayName,jobTitle,department,officeLocation,mobilePhone,mail,userPrincipalName';
 
 const getBearerToken = (req) => {
   const headerToken =
@@ -44,6 +45,8 @@ module.exports = async function (context, req) {
         department: data.department || '',
         officeLocation: data.officeLocation || '',
         mobilePhone: data.mobilePhone || '',
+        mail: data.mail || '',
+        userPrincipalName: data.userPrincipalName || '',
       },
     };
   } catch (error) {

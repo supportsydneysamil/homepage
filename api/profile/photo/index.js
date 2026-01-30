@@ -22,6 +22,45 @@ module.exports = async function (context, req) {
   }
 
   try {
+    if (req.method && req.method.toUpperCase() === 'PUT') {
+      const contentType = req.headers['content-type'] || req.headers['Content-Type'] || 'image/jpeg';
+      const body =
+        req.rawBody ||
+        (Buffer.isBuffer(req.body)
+          ? req.body
+          : typeof req.body === 'string'
+          ? Buffer.from(req.body, 'binary')
+          : req.body && req.body.type === 'Buffer'
+          ? Buffer.from(req.body.data)
+          : null);
+
+      if (!body) {
+        context.res = { status: 400, body: { error: 'Missing photo bytes in request body.' } };
+        return;
+      }
+
+      const putRes = await fetch(GRAPH_PHOTO_ENDPOINT, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': contentType,
+        },
+        body,
+      });
+
+      if (!putRes.ok) {
+        const text = await putRes.text();
+        context.res = {
+          status: putRes.status,
+          body: { error: 'Graph photo update failed.', detail: text.slice(0, 200) },
+        };
+        return;
+      }
+
+      context.res = { status: 204 };
+      return;
+    }
+
     const response = await fetch(GRAPH_PHOTO_ENDPOINT, {
       headers: { Authorization: `Bearer ${token}` },
     });

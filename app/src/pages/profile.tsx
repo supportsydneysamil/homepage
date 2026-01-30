@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { useRequireAuth } from '../lib/swaAuth';
 
 const GRAPH_PROFILE_ENDPOINT = '/api/profile';
@@ -30,6 +30,7 @@ const ProfilePage = () => {
   const [profile, setProfile] = useState<ProfileData>(emptyProfile);
   const [error, setError] = useState<string | null>(null);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [photoStatus, setPhotoStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -47,6 +48,7 @@ const ProfilePage = () => {
             officeLocation?: string;
             mobilePhone?: string;
             mail?: string;
+            userPrincipalName?: string;
           };
           if (!isMounted) return;
           setProfile({
@@ -55,12 +57,13 @@ const ProfilePage = () => {
             ministryTeam: data.department || '',
             campus: data.officeLocation || '',
             phone: data.mobilePhone || '',
-            email: data.mail || user?.userDetails || '',
+            email: data.mail || data.userPrincipalName || user?.userDetails || '',
             bio: '',
           });
         } else {
           if (!isMounted) return;
-          setError('Unable to load profile from Entra ID.');
+          const detail = await profileRes.text();
+          setError(`Unable to load profile from Entra ID. (${profileRes.status}) ${detail.slice(0, 120)}`);
         }
       } catch (profileError) {
         if (!isMounted) return;
@@ -110,6 +113,40 @@ const ProfilePage = () => {
     return null;
   }
 
+  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Please keep the image under 2MB.');
+      return;
+    }
+
+    setError(null);
+    setPhotoStatus(null);
+    try {
+      const res = await fetch(GRAPH_PHOTO_ENDPOINT, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        setError(`Photo update failed. (${res.status}) ${detail.slice(0, 120)}`);
+        return;
+      }
+      setPhotoStatus('Photo updated in Entra ID.');
+      const newAvatar = URL.createObjectURL(file);
+      setAvatar(newAvatar);
+    } catch (uploadError) {
+      setError('Photo update failed.');
+    }
+  };
+
   return (
     <section className="profile-page">
       <div className="section__header">
@@ -127,8 +164,15 @@ const ProfilePage = () => {
             ) : (
               <div className="profile-avatar profile-avatar--placeholder">No photo from Entra ID</div>
             )}
+            <div className="avatar-actions">
+              <label className="button ghost">
+                Upload new photo
+                <input type="file" accept="image/*" onChange={handlePhotoUpload} hidden />
+              </label>
+            </div>
             <p className="muted">Source: Microsoft Entra ID (Graph)</p>
             {error ? <p className="error-text">{error}</p> : null}
+            {photoStatus ? <p className="success-text">{photoStatus}</p> : null}
             {lastSynced ? <p className="muted">Last synced: {lastSynced}</p> : null}
           </div>
         </article>
@@ -142,7 +186,7 @@ const ProfilePage = () => {
             </div>
             <div>
               <span className="muted">Display name</span>
-              <p>{profile.displayName || '-'}</p>
+              <p>{profile.displayName || user?.userDetails || '-'}</p>
             </div>
             <div>
               <span className="muted">Title / role</span>
