@@ -18,6 +18,44 @@ npm run dev
 ```
 The site will be available at http://localhost:3000.
 
+## Local Auth (Azure Static Web Apps)
+Azure Static Web Apps authentication endpoints (/.auth/*) are not available in plain `next dev`.
+To test login locally, use the SWA emulator:
+
+```bash
+npm i -g @azure/static-web-apps-cli
+cd app
+npm run dev:swa
+```
+
+This starts the Next.js dev server and proxies through the SWA emulator so `/.auth/login/aad` works.
+
+### Dev Bypass (default in development)
+Auth is bypassed by default when running `next dev`. To disable the bypass and test real auth,
+set `NEXT_PUBLIC_DEV_AUTH_BYPASS=0`.
+
+```bash
+cd app
+NEXT_PUBLIC_DEV_AUTH_BYPASS=0 npm run dev
+```
+
+This bypass is development-only and will not apply in production builds.
+
+## Entra ID Profile + Photo (optional)
+The profile page can pull a user's Entra ID details and avatar if you provide backend endpoints:
+
+- `GET /api/profile` → JSON with `displayName`, `jobTitle`, `mobilePhone`
+- `GET /api/profile/photo` → raw image bytes
+
+These should be implemented in Azure Functions (or another backend) that proxies Microsoft Graph
+with user consent. Once those endpoints exist, the UI will sync automatically.
+
+### Azure Functions + Microsoft Graph setup (minimal)
+- Add delegated Microsoft Graph permission `User.Read` to the Entra ID app used by SWA.
+- Grant admin consent for the permission.
+- Deploy the Functions in `/api` alongside the static app so `/api/profile` and `/api/profile/photo` are reachable.
+- The functions expect an access token in `x-ms-token-aad-access-token` (SWA injects this when auth is configured).
+
 ## Build for Azure Static Web Apps
 ```bash
 npm run build

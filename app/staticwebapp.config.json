@@ -1,0 +1,38 @@
+{
+  "routes": [
+    {
+      "route": "/profile/*",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/api/profile/*",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    }
+  ],
+  "responseOverrides": {
+    "401": {
+      "redirect": "/login",
+      "statusCode": 302
+    },
+    "403": {
+      "redirect": "/login",
+      "statusCode": 302
+    }
+  },
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/assets/*",
+      "/favicon.ico",
+      "/images/*",
+      "/icons/*",
+      "/*.css",
+      "/*.js",
+      "/.auth/*"
+    ]
+  }
+}
