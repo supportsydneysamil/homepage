@@ -2,16 +2,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getLoginUrl, getLogoutUrl, useSwaAuth } from '../lib/swaAuth';
 
-const AVATAR_STORAGE_KEY = 'swa:avatar';
-const AVATAR_CHECK_KEY = 'swa:avatar:checked';
 const GRAPH_PHOTO_ENDPOINT = '/api/profile/photo';
-
-const clearProfileCache = () => {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(AVATAR_STORAGE_KEY);
-  window.localStorage.removeItem(AVATAR_CHECK_KEY);
-  window.localStorage.removeItem('swa:profile');
-};
 
 const getInitials = (label: string) => {
   const trimmed = label.trim();
@@ -31,38 +22,31 @@ const AuthButton = () => {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated || typeof window === 'undefined') return;
-    setAvatar(window.localStorage.getItem(AVATAR_STORAGE_KEY));
+    if (!isAuthenticated) return;
 
-    const maybeLoadRemoteAvatar = async () => {
-      const alreadyChecked = window.localStorage.getItem(AVATAR_CHECK_KEY);
-      if (alreadyChecked || window.localStorage.getItem(AVATAR_STORAGE_KEY)) {
-        return;
-      }
+    const loadAvatar = async () => {
       try {
         const res = await fetch(GRAPH_PHOTO_ENDPOINT, { credentials: 'include' });
-        if (!res.ok) return;
+        if (!res.ok) {
+          setAvatar(null);
+          return;
+        }
         const blob = await res.blob();
-        if (!blob.type.startsWith('image/')) return;
+        if (!blob.type.startsWith('image/')) {
+          setAvatar(null);
+          return;
+        }
         const reader = new FileReader();
         reader.onload = () => {
           const result = typeof reader.result === 'string' ? reader.result : null;
-          if (result) {
-            window.localStorage.setItem(AVATAR_STORAGE_KEY, result);
-            window.dispatchEvent(new Event('swa-avatar-updated'));
-          }
+          setAvatar(result);
         };
         reader.readAsDataURL(blob);
       } catch (error) {
-        // Ignore missing backend in local dev.
-      } finally {
-        window.localStorage.setItem(AVATAR_CHECK_KEY, '1');
+        setAvatar(null);
       }
     };
 
-    const handleAvatarUpdate = () => {
-      setAvatar(window.localStorage.getItem(AVATAR_STORAGE_KEY));
-    };
     const handleOutsideClick = (event: MouseEvent) => {
       if (!menuRef.current) return;
       if (!menuRef.current.contains(event.target as Node)) {
@@ -70,12 +54,10 @@ const AuthButton = () => {
       }
     };
 
-    window.addEventListener('swa-avatar-updated', handleAvatarUpdate as EventListener);
     document.addEventListener('mousedown', handleOutsideClick);
-    void maybeLoadRemoteAvatar();
+    void loadAvatar();
 
     return () => {
-      window.removeEventListener('swa-avatar-updated', handleAvatarUpdate as EventListener);
       document.removeEventListener('mousedown', handleOutsideClick);
     };
   }, [isAuthenticated]);
@@ -120,7 +102,6 @@ const AuthButton = () => {
             type="button"
             className="dropdown-link"
             onClick={() => {
-              clearProfileCache();
               if (devBypass) {
                 window.location.href = '/';
                 return;
