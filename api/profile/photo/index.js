@@ -1,4 +1,7 @@
 const GRAPH_PHOTO_ENDPOINT = 'https://graph.microsoft.com/v1.0/me/photo/$value';
+const GRAPH_SCOPE = 'https://graph.microsoft.com/.default';
+
+const getEnv = (name) => process.env[name] || '';
 
 const getBearerToken = (req) => {
   const headerToken =
@@ -22,6 +25,47 @@ module.exports = async function (context, req) {
   }
 
   try {
+    const tenantId = getEnv('AZURE_TENANT_ID');
+    const clientId = getEnv('AZURE_CLIENT_ID');
+    const clientSecret = getEnv('AZURE_CLIENT_SECRET');
+
+    if (!tenantId || !clientId || !clientSecret) {
+      context.res = {
+        status: 500,
+        body: { error: 'Missing AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET in app settings.' },
+      };
+      return;
+    }
+
+    const tokenRes = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        requested_token_use: 'on_behalf_of',
+        scope: GRAPH_SCOPE,
+        assertion: token,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const text = await tokenRes.text();
+      context.res = {
+        status: tokenRes.status,
+        body: { error: 'Graph token exchange failed.', detail: text.slice(0, 200) },
+      };
+      return;
+    }
+
+    const tokenJson = await tokenRes.json();
+    const graphToken = tokenJson.access_token;
+    if (!graphToken) {
+      context.res = { status: 500, body: { error: 'Missing access token from OBO exchange.' } };
+      return;
+    }
+
     if (req.method && req.method.toUpperCase() === 'PUT') {
       const contentType = req.headers['content-type'] || req.headers['Content-Type'] || 'image/jpeg';
       const body =
@@ -42,7 +86,7 @@ module.exports = async function (context, req) {
       const putRes = await fetch(GRAPH_PHOTO_ENDPOINT, {
         method: 'PUT',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${graphToken}`,
           'Content-Type': contentType,
         },
         body,
@@ -62,7 +106,7 @@ module.exports = async function (context, req) {
     }
 
     const response = await fetch(GRAPH_PHOTO_ENDPOINT, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${graphToken}` },
     });
 
     if (response.status === 404) {

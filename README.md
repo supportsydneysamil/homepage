@@ -55,6 +55,7 @@ with user consent. Once those endpoints exist, the UI will sync automatically.
 - Grant admin consent for the permission.
 - Deploy the Functions in `/api` alongside the static app so `/api/profile` and `/api/profile/photo` are reachable.
 - The functions expect an access token in `x-ms-token-aad-access-token` (SWA injects this when auth is configured).
+- Add `AZURE_TENANT_ID` to Static Web Apps environment variables so Functions can perform OBO token exchange.
 
 ### Profile photo updates (optional)
 To allow users to update their own Entra ID photo from `/profile`:
