@@ -1,8 +1,19 @@
-const GRAPH_ME_ENDPOINT =
-  'https://graph.microsoft.com/v1.0/me?$select=displayName,jobTitle,department,officeLocation,mobilePhone,mail,userPrincipalName';
 const GRAPH_SCOPE = 'https://graph.microsoft.com/.default';
+const GRAPH_SELECT =
+  'displayName,jobTitle,department,officeLocation,mobilePhone,mail,userPrincipalName';
 
 const getEnv = (name) => process.env[name] || '';
+
+const getClientPrincipal = (req) => {
+  const encoded = req.headers['x-ms-client-principal'];
+  if (!encoded) return null;
+  try {
+    const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+    return JSON.parse(decoded);
+  } catch (error) {
+    return null;
+  }
+};
 
 const getBearerToken = (req) => {
   const headerToken =
@@ -16,11 +27,11 @@ const getBearerToken = (req) => {
 };
 
 module.exports = async function (context, req) {
-  const token = getBearerToken(req);
-  if (!token) {
+  const principal = getClientPrincipal(req);
+  if (!principal?.userDetails && !principal?.userId) {
     context.res = {
       status: 401,
-      body: { error: 'Missing access token. Configure Entra ID + Graph permissions.' },
+      body: { error: 'Missing authenticated user context.' },
     };
     return;
   }
@@ -44,10 +55,8 @@ module.exports = async function (context, req) {
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
-        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        requested_token_use: 'on_behalf_of',
+        grant_type: 'client_credentials',
         scope: GRAPH_SCOPE,
-        assertion: token,
       }),
     });
 
@@ -63,11 +72,12 @@ module.exports = async function (context, req) {
     const tokenJson = await tokenRes.json();
     const graphToken = tokenJson.access_token;
     if (!graphToken) {
-      context.res = { status: 500, body: { error: 'Missing access token from OBO exchange.' } };
+      context.res = { status: 500, body: { error: 'Missing access token from client credentials.' } };
       return;
     }
 
-    const response = await fetch(GRAPH_ME_ENDPOINT, {
+    const userKey = encodeURIComponent(principal.userDetails || principal.userId);
+    const response = await fetch(`https://graph.microsoft.com/v1.0/users/${userKey}?$select=${GRAPH_SELECT}`, {
       headers: { Authorization: `Bearer ${graphToken}` },
     });
 

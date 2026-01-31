@@ -1,25 +1,24 @@
-const GRAPH_PHOTO_ENDPOINT = 'https://graph.microsoft.com/v1.0/me/photo/$value';
 const GRAPH_SCOPE = 'https://graph.microsoft.com/.default';
 
 const getEnv = (name) => process.env[name] || '';
 
-const getBearerToken = (req) => {
-  const headerToken =
-    req.headers['x-ms-token-aad-access-token'] ||
-    req.headers['X-MS-TOKEN-AAD-ACCESS-TOKEN'] ||
-    req.headers.authorization ||
-    req.headers.Authorization;
-  if (!headerToken) return null;
-  if (headerToken.startsWith('Bearer ')) return headerToken.slice(7);
-  return headerToken;
+const getClientPrincipal = (req) => {
+  const encoded = req.headers['x-ms-client-principal'];
+  if (!encoded) return null;
+  try {
+    const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+    return JSON.parse(decoded);
+  } catch (error) {
+    return null;
+  }
 };
 
 module.exports = async function (context, req) {
-  const token = getBearerToken(req);
-  if (!token) {
+  const principal = getClientPrincipal(req);
+  if (!principal?.userDetails && !principal?.userId) {
     context.res = {
       status: 401,
-      body: { error: 'Missing access token. Configure Entra ID + Graph permissions.' },
+      body: { error: 'Missing authenticated user context.' },
     };
     return;
   }
@@ -43,10 +42,8 @@ module.exports = async function (context, req) {
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
-        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        requested_token_use: 'on_behalf_of',
+        grant_type: 'client_credentials',
         scope: GRAPH_SCOPE,
-        assertion: token,
       }),
     });
 
@@ -62,9 +59,12 @@ module.exports = async function (context, req) {
     const tokenJson = await tokenRes.json();
     const graphToken = tokenJson.access_token;
     if (!graphToken) {
-      context.res = { status: 500, body: { error: 'Missing access token from OBO exchange.' } };
+      context.res = { status: 500, body: { error: 'Missing access token from client credentials.' } };
       return;
     }
+
+    const userKey = encodeURIComponent(principal.userDetails || principal.userId);
+    const photoEndpoint = `https://graph.microsoft.com/v1.0/users/${userKey}/photo/$value`;
 
     if (req.method && req.method.toUpperCase() === 'PUT') {
       const contentType = req.headers['content-type'] || req.headers['Content-Type'] || 'image/jpeg';
@@ -83,7 +83,7 @@ module.exports = async function (context, req) {
         return;
       }
 
-      const putRes = await fetch(GRAPH_PHOTO_ENDPOINT, {
+      const putRes = await fetch(photoEndpoint, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${graphToken}`,
@@ -105,7 +105,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const response = await fetch(GRAPH_PHOTO_ENDPOINT, {
+    const response = await fetch(photoEndpoint, {
       headers: { Authorization: `Bearer ${graphToken}` },
     });
 

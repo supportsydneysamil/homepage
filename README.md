@@ -62,6 +62,12 @@ To allow users to update their own Entra ID photo from `/profile`:
 - Add delegated Microsoft Graph permission `User.ReadWrite` **or** `ProfilePhoto.ReadWrite.All`.
 - Grant admin consent.
 
+### App-only Graph access (recommended for SWA Functions)
+The Functions use app-only (client credentials) to call Graph for the signed-in user.
+Grant **Application** permissions and admin consent:
+- `User.Read.All` (read user profile fields)
+- `ProfilePhoto.ReadWrite.All` (upload profile photo) or `User.ReadWrite.All`
+
 ## Build for Azure Static Web Apps
 ```bash
 npm run build
