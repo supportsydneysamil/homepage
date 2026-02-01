@@ -69,6 +69,7 @@ Grant **Application** permissions and admin consent:
 - `ProfilePhoto.ReadWrite.All` (upload profile photo) or `User.ReadWrite.All`
 - `Group.Read.All` (read group memberships)
 - `AppRoleAssignment.Read.All` or `Directory.Read.All` (read app role assignments)
+- `Directory.Read.All` (required to read directory roles)
 
 ## Build for Azure Static Web Apps
 ```bash

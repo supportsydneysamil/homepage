@@ -5,6 +5,7 @@ const GRAPH_PROFILE_ENDPOINT = '/api/profile';
 const GRAPH_PHOTO_ENDPOINT = '/api/profile/photo';
 const GRAPH_GROUPS_ENDPOINT = '/api/profile/groups';
 const GRAPH_ROLES_ENDPOINT = '/api/profile/roles';
+const GRAPH_DIRECTORY_ROLES_ENDPOINT = '/api/profile/directory-roles';
 
 type ProfileData = {
   displayName: string;
@@ -35,6 +36,7 @@ const ProfilePage = () => {
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
   const [groupNames, setGroupNames] = useState<string[]>([]);
   const [roleNames, setRoleNames] = useState<string[]>([]);
+  const [directoryRoleNames, setDirectoryRoleNames] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -118,6 +120,18 @@ const ProfilePage = () => {
         }
       } catch (roleError) {
         if (isMounted) setRoleNames([]);
+      }
+
+      try {
+        const dirRolesRes = await fetch(GRAPH_DIRECTORY_ROLES_ENDPOINT, { credentials: 'include' });
+        if (dirRolesRes.ok) {
+          const data = (await dirRolesRes.json()) as { roles?: Array<{ displayName: string }> };
+          const names =
+            data.roles?.map((role) => role.displayName).filter(Boolean) ?? [];
+          if (isMounted) setDirectoryRoleNames(names);
+        }
+      } catch (dirRoleError) {
+        if (isMounted) setDirectoryRoleNames([]);
       }
 
       if (isMounted) {
@@ -246,6 +260,10 @@ const ProfilePage = () => {
             <div>
               <span className="muted">App roles</span>
               <p>{roleNames.length ? roleNames.join(', ') : '-'}</p>
+            </div>
+            <div>
+              <span className="muted">Directory roles</span>
+              <p>{directoryRoleNames.length ? directoryRoleNames.join(', ') : '-'}</p>
             </div>
           </div>
         </article>
