@@ -68,17 +68,33 @@ module.exports = async function (context, req) {
 
     if (req.method && req.method.toUpperCase() === 'PUT') {
       const contentType = req.headers['content-type'] || req.headers['Content-Type'] || 'image/jpeg';
-      const body =
+      const isImage = contentType.startsWith('image/');
+      if (!isImage) {
+        context.res = { status: 400, body: { error: 'Invalid content type. Use image/jpeg or image/png.' } };
+        return;
+      }
+
+      const raw =
         req.rawBody ||
         (Buffer.isBuffer(req.body)
           ? req.body
-          : typeof req.body === 'string'
-          ? Buffer.from(req.body, 'binary')
           : req.body && req.body.type === 'Buffer'
           ? Buffer.from(req.body.data)
           : null);
 
-      if (!body) {
+      let body = raw;
+      if (!body && typeof req.body === 'string') {
+        const trimmed = req.body.trim();
+        if (trimmed.startsWith('data:')) {
+          const base64 = trimmed.split(',')[1] || '';
+          body = Buffer.from(base64, 'base64');
+        } else {
+          const isBase64 = /^[A-Za-z0-9+/=]+$/.test(trimmed) && trimmed.length % 4 === 0;
+          body = Buffer.from(trimmed, isBase64 ? 'base64' : 'binary');
+        }
+      }
+
+      if (!body || body.length === 0) {
         context.res = { status: 400, body: { error: 'Missing photo bytes in request body.' } };
         return;
       }
