@@ -71,6 +71,9 @@ Grant **Application** permissions and admin consent:
 - `AppRoleAssignment.Read.All` or `Directory.Read.All` (read app role assignments)
 - `Directory.Read.All` (required to read directory roles)
 
+### Profile summary endpoint
+`GET /api/profile/summary` returns profile + groups + app roles + directory roles in one call.
+
 ## Build for Azure Static Web Apps
 ```bash
 npm run build

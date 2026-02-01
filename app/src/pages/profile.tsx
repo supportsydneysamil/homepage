@@ -1,11 +1,8 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { useRequireAuth } from '../lib/swaAuth';
 
-const GRAPH_PROFILE_ENDPOINT = '/api/profile';
+const GRAPH_PROFILE_ENDPOINT = '/api/profile/summary';
 const GRAPH_PHOTO_ENDPOINT = '/api/profile/photo';
-const GRAPH_GROUPS_ENDPOINT = '/api/profile/groups';
-const GRAPH_ROLES_ENDPOINT = '/api/profile/roles';
-const GRAPH_DIRECTORY_ROLES_ENDPOINT = '/api/profile/directory-roles';
 
 type ProfileData = {
   displayName: string;
@@ -48,24 +45,41 @@ const ProfilePage = () => {
         const profileRes = await fetch(GRAPH_PROFILE_ENDPOINT, { credentials: 'include' });
         if (profileRes.ok) {
           const data = (await profileRes.json()) as {
-            displayName?: string;
-            jobTitle?: string;
-            department?: string;
-            officeLocation?: string;
-            mobilePhone?: string;
-            mail?: string;
-            userPrincipalName?: string;
+            profile?: {
+              displayName?: string;
+              jobTitle?: string;
+              department?: string;
+              officeLocation?: string;
+              mobilePhone?: string;
+              mail?: string;
+              userPrincipalName?: string;
+            };
+            groups?: Array<{ displayName: string }>;
+            appRoles?: Array<{ resourceDisplayName: string }>;
+            directoryRoles?: Array<{ displayName: string }>;
           };
+
+          const profileData = data.profile || {};
           if (!isMounted) return;
           setProfile({
-            displayName: data.displayName || '',
-            title: data.jobTitle || '',
-            ministryTeam: data.department || '',
-            campus: data.officeLocation || '',
-            phone: data.mobilePhone || '',
-            email: data.mail || data.userPrincipalName || user?.userDetails || '',
+            displayName: profileData.displayName || '',
+            title: profileData.jobTitle || '',
+            ministryTeam: profileData.department || '',
+            campus: profileData.officeLocation || '',
+            phone: profileData.mobilePhone || '',
+            email: profileData.mail || profileData.userPrincipalName || user?.userDetails || '',
             bio: '',
           });
+
+          setGroupNames(
+            data.groups?.map((group) => group.displayName).filter(Boolean) ?? []
+          );
+          setRoleNames(
+            data.appRoles?.map((role) => role.resourceDisplayName).filter(Boolean) ?? []
+          );
+          setDirectoryRoleNames(
+            data.directoryRoles?.map((role) => role.displayName).filter(Boolean) ?? []
+          );
         } else {
           if (!isMounted) return;
           const detail = await profileRes.text();
@@ -97,41 +111,6 @@ const ProfilePage = () => {
         }
       } catch (photoError) {
         if (isMounted) setAvatar(null);
-      }
-
-      try {
-        const groupsRes = await fetch(GRAPH_GROUPS_ENDPOINT, { credentials: 'include' });
-        if (groupsRes.ok) {
-          const data = (await groupsRes.json()) as { groups?: Array<{ displayName: string }> };
-          const names = data.groups?.map((group) => group.displayName).filter(Boolean) ?? [];
-          if (isMounted) setGroupNames(names);
-        }
-      } catch (groupError) {
-        if (isMounted) setGroupNames([]);
-      }
-
-      try {
-        const rolesRes = await fetch(GRAPH_ROLES_ENDPOINT, { credentials: 'include' });
-        if (rolesRes.ok) {
-          const data = (await rolesRes.json()) as { roles?: Array<{ resourceDisplayName: string }> };
-          const names =
-            data.roles?.map((role) => role.resourceDisplayName).filter(Boolean) ?? [];
-          if (isMounted) setRoleNames(names);
-        }
-      } catch (roleError) {
-        if (isMounted) setRoleNames([]);
-      }
-
-      try {
-        const dirRolesRes = await fetch(GRAPH_DIRECTORY_ROLES_ENDPOINT, { credentials: 'include' });
-        if (dirRolesRes.ok) {
-          const data = (await dirRolesRes.json()) as { roles?: Array<{ displayName: string }> };
-          const names =
-            data.roles?.map((role) => role.displayName).filter(Boolean) ?? [];
-          if (isMounted) setDirectoryRoleNames(names);
-        }
-      } catch (dirRoleError) {
-        if (isMounted) setDirectoryRoleNames([]);
       }
 
       if (isMounted) {

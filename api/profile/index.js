@@ -26,6 +26,31 @@ const getBearerToken = (req) => {
   return headerToken;
 };
 
+const getGraphToken = async (tenantId, clientId, clientSecret) => {
+  const tokenRes = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: 'client_credentials',
+      scope: GRAPH_SCOPE,
+    }),
+  });
+
+  if (!tokenRes.ok) {
+    const text = await tokenRes.text();
+    return { error: { status: tokenRes.status, detail: text.slice(0, 200) } };
+  }
+
+  const tokenJson = await tokenRes.json();
+  if (!tokenJson.access_token) {
+    return { error: { status: 500, detail: 'Missing access token from client credentials.' } };
+  }
+
+  return { token: tokenJson.access_token };
+};
+
 module.exports = async function (context, req) {
   const principal = getClientPrincipal(req);
   if (!principal?.userDetails && !principal?.userId) {
@@ -49,32 +74,15 @@ module.exports = async function (context, req) {
   }
 
   try {
-    const tokenRes = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        grant_type: 'client_credentials',
-        scope: GRAPH_SCOPE,
-      }),
-    });
-
-    if (!tokenRes.ok) {
-      const text = await tokenRes.text();
+    const tokenResult = await getGraphToken(tenantId, clientId, clientSecret);
+    if (tokenResult.error) {
       context.res = {
-        status: tokenRes.status,
-        body: { error: 'Graph token exchange failed.', detail: text.slice(0, 200) },
+        status: tokenResult.error.status || 500,
+        body: { error: 'Graph token exchange failed.', detail: tokenResult.error.detail },
       };
       return;
     }
-
-    const tokenJson = await tokenRes.json();
-    const graphToken = tokenJson.access_token;
-    if (!graphToken) {
-      context.res = { status: 500, body: { error: 'Missing access token from client credentials.' } };
-      return;
-    }
+    const graphToken = tokenResult.token;
 
     const userKey = encodeURIComponent(principal.userDetails || principal.userId);
     const response = await fetch(`https://graph.microsoft.com/v1.0/users/${userKey}?$select=${GRAPH_SELECT}`, {
@@ -110,3 +118,5 @@ module.exports = async function (context, req) {
     };
   }
 };
+
+module.exports.getGraphToken = getGraphToken;
