@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getLoginUrl, getLogoutUrl, useSwaAuth } from '../lib/swaAuth';
+import { useLanguage } from '../lib/LanguageContext';
 
 const AVATAR_STORAGE_KEY = 'swa:avatar';
 const AVATAR_CHECK_KEY = 'swa:avatar:checked';
@@ -23,9 +24,17 @@ const getInitials = (label: string) => {
 
 const AuthButton = () => {
   const { user, isAuthenticated, isLoading } = useSwaAuth();
+  const { lang } = useLanguage();
+  const isKo = lang === 'ko';
   const devBypass =
     process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS !== '0';
   const userLabel = user?.userDetails || 'Account';
+  const labels = {
+    login: isKo ? '로그인' : 'Login',
+    profile: isKo ? '프로필' : 'Profile',
+    logout: isKo ? '로그아웃' : 'Logout',
+    checking: isKo ? '확인 중...' : 'Checking...',
+  };
   const [open, setOpen] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -83,7 +92,7 @@ const AuthButton = () => {
   if (isLoading) {
     return (
       <button type="button" className="auth-button" disabled>
-        Checking...
+        {labels.checking}
       </button>
     );
   }
@@ -91,7 +100,7 @@ const AuthButton = () => {
   if (!isAuthenticated) {
     return (
       <button type="button" className="auth-button" onClick={() => (window.location.href = getLoginUrl())}>
-        Login
+        {labels.login}
       </button>
     );
   }
@@ -106,15 +115,17 @@ const AuthButton = () => {
             {getInitials(userLabel)}
           </span>
         )}
-        <span className="user-name">{userLabel}</span>
         <span className="chevron" aria-hidden="true">
           ▾
         </span>
       </button>
       {open ? (
         <div className="user-dropdown" role="menu" aria-label="Account menu">
+          <div className="dropdown-label" aria-hidden="true">
+            {userLabel}
+          </div>
           <Link className="dropdown-link" href="/profile" role="menuitem" onClick={() => setOpen(false)}>
-            Profile
+            {labels.profile}
           </Link>
           <button
             type="button"
@@ -128,7 +139,7 @@ const AuthButton = () => {
               window.location.href = getLogoutUrl();
             }}
           >
-            Logout
+            {labels.logout}
           </button>
         </div>
       ) : null}

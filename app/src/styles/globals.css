@@ -105,6 +105,7 @@ a:hover {
   list-style: none;
   margin: 0;
   padding: 0;
+  align-items: center;
 }
 
 .nav__item a {
@@ -124,6 +125,11 @@ a:hover {
   padding: 0.4rem 0.6rem;
   border-radius: 8px;
   transition: all 0.2s ease;
+}
+
+.nav__item {
+  display: flex;
+  align-items: center;
 }
 
 .nav__item a:hover {
@@ -458,6 +464,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
+  padding: 0.35rem 0.6rem;
 }
 
 .avatar {
@@ -476,13 +483,6 @@ p {
   font-size: 0.75rem;
   color: #fff;
   background: rgba(255, 255, 255, 0.14);
-}
-
-.user-name {
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .chevron {
@@ -514,7 +514,17 @@ p {
   padding: 0.6rem 0.85rem;
   border-radius: 10px;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
+}
+
+.dropdown-label {
+  padding: 0.6rem 0.85rem 0.4rem;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.25rem;
 }
 
 .dropdown-link:hover {
