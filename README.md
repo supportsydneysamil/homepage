@@ -67,6 +67,8 @@ The Functions use app-only (client credentials) to call Graph for the signed-in 
 Grant **Application** permissions and admin consent:
 - `User.Read.All` (read user profile fields)
 - `ProfilePhoto.ReadWrite.All` (upload profile photo) or `User.ReadWrite.All`
+- `Group.Read.All` (read group memberships)
+- `AppRoleAssignment.Read.All` or `Directory.Read.All` (read app role assignments)
 
 ## Build for Azure Static Web Apps
 ```bash

@@ -3,6 +3,8 @@ import { useRequireAuth } from '../lib/swaAuth';
 
 const GRAPH_PROFILE_ENDPOINT = '/api/profile';
 const GRAPH_PHOTO_ENDPOINT = '/api/profile/photo';
+const GRAPH_GROUPS_ENDPOINT = '/api/profile/groups';
+const GRAPH_ROLES_ENDPOINT = '/api/profile/roles';
 
 type ProfileData = {
   displayName: string;
@@ -31,6 +33,8 @@ const ProfilePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
+  const [groupNames, setGroupNames] = useState<string[]>([]);
+  const [roleNames, setRoleNames] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -91,6 +95,29 @@ const ProfilePage = () => {
         }
       } catch (photoError) {
         if (isMounted) setAvatar(null);
+      }
+
+      try {
+        const groupsRes = await fetch(GRAPH_GROUPS_ENDPOINT, { credentials: 'include' });
+        if (groupsRes.ok) {
+          const data = (await groupsRes.json()) as { groups?: Array<{ displayName: string }> };
+          const names = data.groups?.map((group) => group.displayName).filter(Boolean) ?? [];
+          if (isMounted) setGroupNames(names);
+        }
+      } catch (groupError) {
+        if (isMounted) setGroupNames([]);
+      }
+
+      try {
+        const rolesRes = await fetch(GRAPH_ROLES_ENDPOINT, { credentials: 'include' });
+        if (rolesRes.ok) {
+          const data = (await rolesRes.json()) as { roles?: Array<{ resourceDisplayName: string }> };
+          const names =
+            data.roles?.map((role) => role.resourceDisplayName).filter(Boolean) ?? [];
+          if (isMounted) setRoleNames(names);
+        }
+      } catch (roleError) {
+        if (isMounted) setRoleNames([]);
       }
 
       if (isMounted) {
@@ -211,6 +238,14 @@ const ProfilePage = () => {
             <div>
               <span className="muted">Roles</span>
               <p>{user?.userRoles?.join(', ') || '-'}</p>
+            </div>
+            <div>
+              <span className="muted">Entra groups</span>
+              <p>{groupNames.length ? groupNames.join(', ') : '-'}</p>
+            </div>
+            <div>
+              <span className="muted">App roles</span>
+              <p>{roleNames.length ? roleNames.join(', ') : '-'}</p>
             </div>
           </div>
         </article>
