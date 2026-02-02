@@ -12,6 +12,13 @@
   },
   "routes": [
     {
+      "route": "/api/contact",
+      "allowedRoles": [
+        "anonymous",
+        "authenticated"
+      ]
+    },
+    {
       "route": "/profile/*",
       "allowedRoles": [
         "authenticated"

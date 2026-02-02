@@ -2,7 +2,7 @@ import type { NextPage } from 'next';
 import { FormEvent, useState } from 'react';
 import { useLanguage } from '../lib/LanguageContext';
 
-const CONTACT_ENDPOINT = 'https://formsubmit.co/ajax/support@sydneysamil.org';
+const CONTACT_ENDPOINT = '/api/contact';
 
 const Contact: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { lang } = useLanguage();
@@ -15,14 +15,20 @@ const Contact: NextPage & { meta?: { title?: string; description?: string } } = 
 
     const form = event.currentTarget;
     const formData = new FormData(form);
+    const payload = {
+      name: (formData.get('name') || '').toString(),
+      email: (formData.get('email') || '').toString(),
+      message: (formData.get('message') || '').toString(),
+    };
 
     try {
       const res = await fetch(CONTACT_ENDPOINT, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {

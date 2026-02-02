@@ -138,3 +138,10 @@ The workflow runs weekly on `ubuntu-latest` and can be triggered manually.
 - Rendering uses static generation only; no API routes or server-side rendering.
 - Media assets are loaded from external URLs (e.g., Azure Blob Storage, YouTube).
 - Content can be updated by editing the JSON files under `src/content/`.
+
+## Contact form (SendGrid)
+The contact form posts to `/api/contact`. Configure these Static Web Apps environment variables:
+- `SENDGRID_API_KEY`
+- `CONTACT_FROM` (must be a verified sender in SendGrid)
+- `CONTACT_TO` (recipient email)
+- `CONTACT_FROM_NAME` (optional display name)
