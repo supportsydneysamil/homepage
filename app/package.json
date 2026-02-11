@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:swa": "swa start http://localhost:3000 --run \"npm run dev\" --api-location \"\"",
+    "dev:swa": "swa start http://localhost:3000 --run \"npm run dev\" --api-location ../api",
     "build": "next build && cp staticwebapp.config.json out/staticwebapp.config.json",
     "start": "next start"
   },

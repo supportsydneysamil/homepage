@@ -2,6 +2,7 @@ import Head from 'next/head';
 import { ReactNode } from 'react';
 import Header from './Header';
 import Footer from './Footer';
+import { useTheme } from '../lib/ThemeContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,6 +13,7 @@ interface LayoutProps {
 const Layout = ({ children, title, description }: LayoutProps) => {
   const pageTitle = title ? `${title} | Community Church` : 'Community Church';
   const pageDescription = description || 'Welcome to our church community website.';
+  const { themeId } = useTheme();
 
   return (
     <>
@@ -19,7 +21,7 @@ const Layout = ({ children, title, description }: LayoutProps) => {
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
       </Head>
-      <div className="layout">
+      <div className={`layout theme-${themeId}`}>
         <Header />
         <main className="content">{children}</main>
         <Footer />

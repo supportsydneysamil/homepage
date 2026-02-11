@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app';
 import Layout from '../components/Layout';
 import { LanguageProvider } from '../lib/LanguageContext';
+import { ThemeProvider } from '../lib/ThemeContext';
 import '../styles/globals.css';
 
 type PageWithMeta = AppProps['Component'] & {
@@ -16,9 +17,11 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <LanguageProvider>
-      <Layout title={meta.title} description={meta.description}>
-        <PageComponent {...pageProps} />
-      </Layout>
+      <ThemeProvider>
+        <Layout title={meta.title} description={meta.description}>
+          <PageComponent {...pageProps} />
+        </Layout>
+      </ThemeProvider>
     </LanguageProvider>
   );
 }

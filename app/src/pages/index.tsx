@@ -8,7 +8,7 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
   const pastorImage = '/pastor.jpg';
 
   return (
-    <>
+    <div className="home-page">
       <section className="hero hero--art">
         <div className="hero__bg motion-bg">
           <div className="blob blob--one" />
@@ -229,7 +229,7 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 };
 

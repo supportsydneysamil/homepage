@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getLoginUrl, getLogoutUrl, useSwaAuth } from '../lib/swaAuth';
 import { useLanguage } from '../lib/LanguageContext';
+import { useGlobalAdmin } from '../lib/useGlobalAdmin';
 
 const GRAPH_PHOTO_ENDPOINT = '/api/profile/photo';
 
@@ -19,10 +20,12 @@ const AuthButton = () => {
   const isKo = lang === 'ko';
   const devBypass =
     process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS !== '0';
+  const { isGlobalAdmin } = useGlobalAdmin(isAuthenticated);
   const userLabel = user?.userDetails || 'Account';
   const labels = {
     login: isKo ? '로그인' : 'Login',
     profile: isKo ? '프로필' : 'Profile',
+    settings: isKo ? '설정' : 'Settings',
     logout: isKo ? '로그아웃' : 'Logout',
     checking: isKo ? '확인 중...' : 'Checking...',
   };
@@ -109,6 +112,11 @@ const AuthButton = () => {
           <Link className="dropdown-link" href="/profile" role="menuitem" onClick={() => setOpen(false)}>
             {labels.profile}
           </Link>
+          {isGlobalAdmin ? (
+            <Link className="dropdown-link" href="/settings" role="menuitem" onClick={() => setOpen(false)}>
+              {labels.settings}
+            </Link>
+          ) : null}
           <button
             type="button"
             className="dropdown-link"

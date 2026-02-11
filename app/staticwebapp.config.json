@@ -19,7 +19,20 @@
       ]
     },
     {
+      "route": "/api/site-settings",
+      "allowedRoles": [
+        "anonymous",
+        "authenticated"
+      ]
+    },
+    {
       "route": "/profile/*",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/settings",
       "allowedRoles": [
         "authenticated"
       ]
