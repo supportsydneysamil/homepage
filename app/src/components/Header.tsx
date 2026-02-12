@@ -6,6 +6,7 @@ const navItems = [
   { href: '/', labelEn: 'Home', labelKo: '홈' },
   { href: '/about', labelEn: 'About', labelKo: '소개' },
   { href: '/worship', labelEn: 'Worship', labelKo: '예배' },
+  { href: '/groups', labelEn: 'Groups', labelKo: '그룹' },
   { href: '/events', labelEn: 'Events', labelKo: '이벤트' },
   { href: '/sermons', labelEn: 'Sermons', labelKo: '설교' },
   { href: '/resources', labelEn: 'Resources', labelKo: '자료실' },

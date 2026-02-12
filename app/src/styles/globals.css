@@ -1033,6 +1033,119 @@ p {
   align-items: center;
 }
 
+.groups-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.groups-submenu {
+  position: sticky;
+  top: 6.3rem;
+}
+
+.groups-submenu h2 {
+  margin-bottom: 0.7rem;
+}
+
+.groups-submenu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.groups-submenu__button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.groups-submenu__button:hover {
+  background: var(--nav-hover);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.groups-submenu__button--active,
+.groups-submenu__button--active:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary-dark);
+}
+
+.groups-main {
+  display: grid;
+  gap: 1rem;
+}
+
+.groups-people {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.groups-people-list {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.groups-member-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.groups-member-tags .badge {
+  text-transform: none;
+}
+
+.groups-announcement-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.groups-announcement-list h3 {
+  margin: 0;
+}
+
+.groups-announcement-list p {
+  margin: 0.2rem 0;
+}
+
+.groups-resource-item {
+  gap: 0.75rem;
+}
+
+.groups-resource-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+.groups-upload-card {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.groups-upload-card h3 {
+  margin: 0;
+}
+
+.groups-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .sermon-list {
   display: flex;
   flex-direction: column;
@@ -1270,6 +1383,24 @@ p {
 
   .hero {
     padding: 2rem;
+  }
+
+  .groups-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .groups-submenu {
+    position: static;
+  }
+
+  .groups-submenu__list {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+  }
+
+  .groups-submenu__button {
+    white-space: nowrap;
   }
 }
 
