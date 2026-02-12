@@ -94,11 +94,21 @@ const hasGlobalAdminRole = async (principal, graphToken) => {
   return { isGlobalAdmin };
 };
 
-const getSqlConfig = () => {
-  const connectionString = getEnv('AZURE_SQL_CONNECTION_STRING');
-  if (connectionString) {
+const parseBool = (value, defaultValue) => {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes'].includes(normalized)) return true;
+  if (['false', '0', 'no'].includes(normalized)) return false;
+  return defaultValue;
+};
+
+const parseSqlConnectionString = (connectionString) => {
+  const raw = String(connectionString || '').trim();
+  if (!raw) return null;
+
+  if (raw.startsWith('mssql://') || raw.startsWith('sqlserver://')) {
     return {
-      connectionString,
+      connectionString: raw,
       options: {
         encrypt: true,
         trustServerCertificate: false,
@@ -109,6 +119,94 @@ const getSqlConfig = () => {
         idleTimeoutMillis: 30000,
       },
     };
+  }
+
+  const map = {};
+  for (const segment of raw.split(';')) {
+    if (!segment.trim()) continue;
+    const idx = segment.indexOf('=');
+    if (idx < 0) continue;
+    const key = segment.slice(0, idx).trim().toLowerCase();
+    const value = segment.slice(idx + 1).trim();
+    map[key] = value;
+  }
+
+  const serverToken =
+    map.server ||
+    map['data source'] ||
+    map.addr ||
+    map.address ||
+    map['network address'] ||
+    '';
+
+  let server = serverToken;
+  let port;
+
+  if (server.startsWith('tcp:')) {
+    server = server.slice(4);
+  }
+  if (server.includes(',')) {
+    const [host, maybePort] = server.split(',', 2);
+    server = host;
+    const parsedPort = Number.parseInt(maybePort, 10);
+    if (Number.isFinite(parsedPort)) {
+      port = parsedPort;
+    }
+  }
+
+  const explicitPort = Number.parseInt(map.port || '', 10);
+  if (Number.isFinite(explicitPort)) {
+    port = explicitPort;
+  }
+
+  const database = map.database || map['initial catalog'] || '';
+  const user = map.user || map.uid || map['user id'] || '';
+  const password = map.password || map.pwd || '';
+  const encrypt = parseBool(map.encrypt, true);
+  const trustServerCertificate = parseBool(map.trustservercertificate, false);
+  const connectTimeoutSeconds = Number.parseInt(
+    map['connection timeout'] || map.connecttimeout || map.timeout || '',
+    10
+  );
+
+  if (!server) {
+    return null;
+  }
+
+  const config = {
+    server,
+    database,
+    user,
+    password,
+    options: {
+      encrypt,
+      trustServerCertificate,
+    },
+    pool: {
+      max: 5,
+      min: 0,
+      idleTimeoutMillis: 30000,
+    },
+  };
+
+  if (port) {
+    config.port = port;
+  }
+
+  if (Number.isFinite(connectTimeoutSeconds) && connectTimeoutSeconds > 0) {
+    config.connectionTimeout = connectTimeoutSeconds * 1000;
+  }
+
+  return config;
+};
+
+const getSqlConfig = () => {
+  const connectionString = getEnv('AZURE_SQL_CONNECTION_STRING');
+  if (connectionString) {
+    const parsed = parseSqlConnectionString(connectionString);
+    if (parsed) {
+      return parsed;
+    }
   }
 
   const server = getEnv('AZURE_SQL_SERVER');
