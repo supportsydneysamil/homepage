@@ -103,7 +103,14 @@ const parseBool = (value, defaultValue) => {
 };
 
 const parseSqlConnectionString = (connectionString) => {
-  const raw = String(connectionString || '').trim();
+  let raw = String(connectionString || '').trim();
+  if (!raw) return null;
+  if (
+    (raw.startsWith('"') && raw.endsWith('"')) ||
+    (raw.startsWith("'") && raw.endsWith("'"))
+  ) {
+    raw = raw.slice(1, -1).trim();
+  }
   if (!raw) return null;
 
   if (raw.startsWith('mssql://') || raw.startsWith('sqlserver://')) {
