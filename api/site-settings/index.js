@@ -10,15 +10,40 @@ let schemaReadyPromise;
 
 const getEnv = (name) => process.env[name] || '';
 
+const toSingleHeader = (value) => {
+  if (Array.isArray(value)) {
+    return value[0] || '';
+  }
+  return typeof value === 'string' ? value : '';
+};
+
 const getClientPrincipal = (req) => {
-  const encoded = req.headers['x-ms-client-principal'];
-  if (!encoded) return null;
-  try {
-    const decoded = Buffer.from(encoded, 'base64').toString('utf8');
-    return JSON.parse(decoded);
-  } catch (error) {
+  const headers = req.headers || {};
+  const encoded = toSingleHeader(headers['x-ms-client-principal']);
+  if (encoded) {
+    try {
+      const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+      const parsed = JSON.parse(decoded);
+      if (parsed?.userDetails || parsed?.userId) {
+        return parsed;
+      }
+    } catch (error) {
+      // Fall through to individual headers.
+    }
+  }
+
+  const userId = toSingleHeader(headers['x-ms-client-principal-id']);
+  const userDetails = toSingleHeader(headers['x-ms-client-principal-name']);
+  if (!userId && !userDetails) {
     return null;
   }
+
+  return {
+    userId,
+    userDetails,
+    identityProvider: toSingleHeader(headers['x-ms-client-principal-idp']),
+    userRoles: [],
+  };
 };
 
 const getGraphToken = async (tenantId, clientId, clientSecret) => {

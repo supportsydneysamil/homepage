@@ -20,6 +20,18 @@
     },
     {
       "route": "/api/site-settings",
+      "methods": [
+        "PUT"
+      ],
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/api/site-settings",
+      "methods": [
+        "GET"
+      ],
       "allowedRoles": [
         "anonymous",
         "authenticated"
