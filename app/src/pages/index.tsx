@@ -1,6 +1,7 @@
 import type { NextPage } from 'next';
 import ChurchPillars from '../components/home/ChurchPillars';
 import HomeHero from '../components/home/HomeHero';
+import NextSteps from '../components/home/NextSteps';
 import PastorFeature from '../components/home/PastorFeature';
 import QuickInfo from '../components/home/QuickInfo';
 import VisitOverview from '../components/home/VisitOverview';
@@ -20,6 +21,7 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
       <ChurchPillars lang={lang} />
       <WeeklyHighlights items={items} lang={lang} />
       <VisitOverview lang={lang} />
+      <NextSteps lang={lang} />
       <PastorFeature lang={lang} />
     </div>
   );

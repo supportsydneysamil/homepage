@@ -4,6 +4,10 @@ node_modules/
 # Next.js build outputs
 .next/
 out/
+*.tsbuildinfo
+
+# Local visual brainstorming artifacts
+.superpowers/
 
 # Logs
 npm-debug.log*
