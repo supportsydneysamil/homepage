@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../lib/LanguageContext';
 import AuthButton from './AuthButton';
 
@@ -14,35 +16,64 @@ const navItems = [
 
 const Header = () => {
   const { lang, toggleLang } = useLanguage();
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
   const isKo = lang === 'ko';
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [router.asPath]);
+
+  const isActive = (href: string) =>
+    href === '/' ? router.pathname === '/' : router.pathname.startsWith(href);
 
   return (
     <header className="header">
-      <div className="header__brand">
-        <Link href="/" className="brand-link">
-          <span className="brand-mark">SC</span>
-          <span className="brand-text">
-            <span className="brand-title">Sydney Samil Church</span>
-            <span className="brand-subtitle">시드니 삼일 교회</span>
-          </span>
-        </Link>
-      </div>
-      <nav>
+      <Link href="/" className="brand-link" aria-label={isKo ? '홈으로' : 'Home'}>
+        <span className="brand-mark" aria-hidden="true">S</span>
+        <span className="brand-text">
+          <span className="brand-title">Sydney Samil</span>
+          <span className="brand-subtitle">시드니 삼일교회</span>
+        </span>
+      </Link>
+
+      <button
+        type="button"
+        className="nav-toggle"
+        aria-expanded={isOpen}
+        aria-controls="site-navigation"
+        aria-label={isKo ? '메뉴 열기' : 'Open menu'}
+        onClick={() => setIsOpen((value) => !value)}
+      >
+        <span />
+        <span />
+      </button>
+
+      <nav id="site-navigation" className={isOpen ? 'site-nav site-nav--open' : 'site-nav'}>
         <ul className="nav">
           {navItems.map((item) => (
             <li key={item.href} className="nav__item">
-              <Link href={item.href}>{isKo ? item.labelKo : item.labelEn}</Link>
+              <Link
+                href={item.href}
+                className={isActive(item.href) ? 'nav__link nav__link--active' : 'nav__link'}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+              >
+                {isKo ? item.labelKo : item.labelEn}
+              </Link>
             </li>
           ))}
-          <li className="nav__item">
-            <button type="button" className="lang-toggle" onClick={toggleLang} aria-label="Toggle language">
-              {isKo ? 'EN' : '한/영'}
-            </button>
-          </li>
-          <li className="nav__item">
-            <AuthButton />
-          </li>
         </ul>
+        <div className="site-nav__controls">
+          <button
+            type="button"
+            className="lang-toggle"
+            onClick={toggleLang}
+            aria-label={isKo ? '영어로 보기' : '한국어로 보기'}
+          >
+            {isKo ? 'EN' : '한'}
+          </button>
+          <AuthButton />
+        </div>
       </nav>
     </header>
   );
