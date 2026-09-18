@@ -9,6 +9,8 @@ WEEKLY_COMPONENT_PATH = (
 PROFILE_SOURCE = ROOT / "app" / "src" / "pages" / "profile.tsx"
 SETTINGS_SOURCE = ROOT / "app" / "src" / "pages" / "settings.tsx"
 SCROLL_SOURCE = ROOT / "app" / "src" / "components" / "ScrollActivity.tsx"
+LANGUAGE_SOURCE = ROOT / "app" / "src" / "lib" / "LanguageContext.tsx"
+GLOBAL_CSS = ROOT / "app" / "src" / "styles" / "globals.css"
 
 
 def require(content: str, value: str, source: str) -> None:
@@ -65,6 +67,9 @@ for route in ("events/christmas-service-2025.html", "events/youth-retreat-2025.h
 require(PROFILE_SOURCE.read_text(), "profile-page", "profile source")
 require(SETTINGS_SOURCE.read_text(), "settings-page", "settings source")
 require(SCROLL_SOURCE.read_text(), "is-scrolling", "scroll activity source")
+require(LANGUAGE_SOURCE.read_text(), "document.documentElement.lang = lang", "language context")
+require(GLOBAL_CSS.read_text(), "html:lang(ko)", "global styles")
+require(GLOBAL_CSS.read_text(), "word-break: keep-all", "global styles")
 
 for exported_file in OUT.rglob("*.html"):
     exported = exported_file.read_text()

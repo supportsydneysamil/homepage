@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import ScrollActivity from './ScrollActivity';
+import { useLanguage } from '../lib/LanguageContext';
 import { useTheme } from '../lib/ThemeContext';
 
 interface LayoutProps {
@@ -19,6 +20,7 @@ const Layout = ({ children, title, description }: LayoutProps) => {
   const pageDescription =
     description || 'Worship, community, and faith for everyday life in Sydney.';
   const { themeId } = useTheme();
+  const { lang } = useLanguage();
 
   return (
     <>
@@ -26,7 +28,7 @@ const Layout = ({ children, title, description }: LayoutProps) => {
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
       </Head>
-      <div className={`layout theme-${themeId}`}>
+      <div className={`layout theme-${themeId}`} lang={lang}>
         <ScrollActivity />
         <Header />
         <main className="content">{children}</main>
