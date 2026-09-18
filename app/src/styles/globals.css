@@ -1396,11 +1396,14 @@ p {
 }
 
 .home-page::before {
+  position: absolute;
+  z-index: -1;
   background:
     radial-gradient(circle at 8% 8%, rgba(169, 218, 202, 0.7), transparent 25rem),
     radial-gradient(circle at 95% 18%, rgba(221, 169, 90, 0.16), transparent 22rem),
     var(--organic-canvas);
   background-attachment: scroll;
+  pointer-events: none;
 }
 
 .home-page::after {

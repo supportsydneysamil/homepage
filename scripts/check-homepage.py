@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -70,8 +71,14 @@ require(PROFILE_SOURCE.read_text(), "profile-page", "profile source")
 require(SETTINGS_SOURCE.read_text(), "settings-page", "settings source")
 require(SCROLL_SOURCE.read_text(), "is-scrolling", "scroll activity source")
 require(LANGUAGE_SOURCE.read_text(), "document.documentElement.lang = lang", "language context")
-require(GLOBAL_CSS.read_text(), "html:lang(ko)", "global styles")
-require(GLOBAL_CSS.read_text(), "word-break: keep-all", "global styles")
+global_css = GLOBAL_CSS.read_text()
+require(global_css, "html:lang(ko)", "global styles")
+require(global_css, "word-break: keep-all", "global styles")
+assert re.search(
+    r"\.home-page::before\s*\{[^}]*position:\s*absolute",
+    global_css,
+    re.DOTALL,
+), "home background must stay inside the homepage stacking context"
 
 for exported_file in OUT.rglob("*.html"):
     exported = exported_file.read_text()
