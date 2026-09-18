@@ -15,7 +15,10 @@ export const isPlaceholderUrl = (value?: string) => {
   if (!value) return true;
   try {
     const url = new URL(value);
-    return url.hostname === 'example.com' || value.includes('VIDEO_ID');
+    return (
+      (url.hostname === 'example.com' || url.hostname.endsWith('.example.com')) ||
+      value.includes('VIDEO_ID')
+    );
   } catch {
     return true;
   }

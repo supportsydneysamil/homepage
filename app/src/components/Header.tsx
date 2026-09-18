@@ -24,6 +24,15 @@ const Header = () => {
     setIsOpen(false);
   }, [router.asPath]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   const isActive = (href: string) =>
     href === '/' ? router.pathname === '/' : router.pathname.startsWith(href);
 
@@ -42,7 +51,11 @@ const Header = () => {
         className="nav-toggle"
         aria-expanded={isOpen}
         aria-controls="site-navigation"
-        aria-label={isKo ? '메뉴 열기' : 'Open menu'}
+        aria-label={
+          isOpen
+            ? (isKo ? '메뉴 닫기' : 'Close menu')
+            : (isKo ? '메뉴 열기' : 'Open menu')
+        }
         onClick={() => setIsOpen((value) => !value)}
       >
         <span />

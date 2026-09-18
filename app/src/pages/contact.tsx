@@ -62,7 +62,7 @@ const Contact: NextPage & { meta?: { title?: string; description?: string } } = 
             <p>Corner Bellamy St &amp; Boundary Rd<br />Pennant Hills NSW 2120</p>
           </div>
           <p className="contact-intro__note">
-            {isKo ? '보통 1–2일 안에 답변드립니다.' : 'We usually reply within one or two days.'}
+            {isKo ? '남겨주신 내용을 확인한 뒤 연락드리겠습니다.' : 'We will review your message and get back to you.'}
           </p>
         </aside>
 

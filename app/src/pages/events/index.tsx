@@ -27,7 +27,7 @@ const EventsPage: NextPage<EventsPageProps> & {
     <article className="site-page events-page">
       <PageHero
         eyebrow={isKo ? '함께하는 시간' : 'Life together'}
-        title={isKo ? '다가오는 모임과 행사' : 'Gather, grow, and serve together'}
+        title={isKo ? '함께 모이고, 자라고, 섬겨요' : 'Gather, grow, and serve together'}
         description={
           isKo
             ? '예배 밖에서도 관계를 맺고, 함께 배우고, 이웃을 섬기는 자리에 초대합니다.'

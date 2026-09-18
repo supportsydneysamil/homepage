@@ -30,6 +30,7 @@ test('rejects invalid and placeholder video URLs', () => {
 
 test('detects missing and example placeholder URLs', () => {
   assert.equal(isPlaceholderUrl('https://example.com/image.jpg'), true);
+  assert.equal(isPlaceholderUrl('https://www.example.com/image.jpg'), true);
   assert.equal(isPlaceholderUrl(''), true);
   assert.equal(isPlaceholderUrl('https://sydneysamil.org/file.pdf'), false);
 });

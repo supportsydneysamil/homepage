@@ -2681,15 +2681,17 @@ body {
     margin-left: auto;
   }
 
-  .site-nav {
+  .header .site-nav {
     position: absolute;
     top: calc(100% + 0.5rem);
     right: 1rem;
     left: 1rem;
     display: none;
+    width: auto;
     max-height: calc(100vh - 6rem);
     flex-direction: column;
     align-items: stretch;
+    overflow-x: hidden;
     overflow-y: auto;
     padding: 1rem;
     border: 1px solid var(--site-line);
@@ -2699,7 +2701,7 @@ body {
     backdrop-filter: blur(18px);
   }
 
-  .site-nav--open {
+  .header .site-nav--open {
     display: flex;
   }
 
@@ -3388,4 +3390,24 @@ body {
 
 .settings-page > .site-empty-state {
   margin-top: 4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .site-page *,
+  .site-page *::before,
+  .site-page *::after,
+  .header *,
+  .header *::before,
+  .header *::after,
+  .footer *,
+  .footer *::before,
+  .footer *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
