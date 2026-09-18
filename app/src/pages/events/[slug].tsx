@@ -1,6 +1,14 @@
+import Head from 'next/head';
+import Link from 'next/link';
 import type { GetStaticPaths, GetStaticProps, NextPage } from 'next';
+import EmptyState from '../../components/EmptyState';
 import eventsData from '../../content/events.json';
 import { useLanguage } from '../../lib/LanguageContext';
+import {
+  formatDisplayDate,
+  isPlaceholderUrl,
+  toYouTubeEmbedUrl,
+} from '../../lib/presentation';
 
 type Event = {
   slug: string;
@@ -11,83 +19,72 @@ type Event = {
   youtubeUrl?: string;
 };
 
-type EventDetailProps = {
-  event: Event;
-};
+type EventDetailProps = { event: Event };
 
-const toEmbedUrl = (url?: string) => {
-  if (!url) return '';
-  return url.replace('watch?v=', 'embed/');
-};
-
-const EventDetail: NextPage<EventDetailProps> & { meta?: { title?: string; description?: string } } = ({ event }) => {
+const EventDetail: NextPage<EventDetailProps> & {
+  meta?: { title?: string; description?: string };
+} = ({ event }) => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const images = event.images.filter((image) => !isPlaceholderUrl(image));
+  const embedUrl = toYouTubeEmbedUrl(event.youtubeUrl);
 
   return (
-    <section className="section">
-      <div className="section__header">
-        <p className="pill">{isKo ? '이벤트' : 'Event'}</p>
+    <article className="site-page event-detail-page">
+      <Head>
+        <title>{event.title} | Sydney Samil Church</title>
+        <meta name="description" content={event.description} />
+      </Head>
+
+      <header className="event-detail-hero">
+        <Link href="/events" className="site-text-link">← {isKo ? '모든 이벤트' : 'All events'}</Link>
+        <p className="site-kicker">{formatDisplayDate(event.date, lang)}</p>
         <h1>{event.title}</h1>
-        <p className="muted">{new Date(event.date).toLocaleDateString()}</p>
-      </div>
-      <p>{event.description}</p>
+        <p>{event.description}</p>
+      </header>
 
-      {event.images.length > 0 && (
-        <div className="gallery">
-          {event.images.map((image) => (
-            <div key={image} className="gallery__item">
-              <img src={image} alt={event.title} />
-            </div>
+      {images.length ? (
+        <section className="event-gallery">
+          {images.map((image) => (
+            <img src={image} alt={event.title} key={image} />
           ))}
-        </div>
-      )}
+        </section>
+      ) : null}
 
-      {event.youtubeUrl && (
-        <div className="video-wrapper">
+      {embedUrl ? (
+        <div className="site-video">
           <iframe
-            src={toEmbedUrl(event.youtubeUrl)}
+            src={embedUrl}
             title={event.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
         </div>
+      ) : (
+        <EmptyState
+          title={isKo ? '관련 미디어를 준비 중입니다' : 'Event media is coming soon'}
+          description={isKo ? '사진과 영상을 정리해 곧 업데이트하겠습니다.' : 'Photos and video will be added when they are ready.'}
+          href="/events"
+          linkLabel={isKo ? '이벤트 목록으로' : 'Back to events'}
+        />
       )}
-    </section>
+    </article>
   );
 };
 
 EventDetail.meta = {
-  title: 'Event Detail',
-  description: 'Details for a church event.',
+  title: 'Event',
+  description: 'Event details from Sydney Samil Church.',
 };
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  const paths = eventsData.map((event) => ({
-    params: { slug: event.slug },
-  }));
-
-  return {
-    paths,
-    fallback: false,
-  };
-};
+export const getStaticPaths: GetStaticPaths = async () => ({
+  paths: eventsData.map((event) => ({ params: { slug: event.slug } })),
+  fallback: false,
+});
 
 export const getStaticProps: GetStaticProps<EventDetailProps> = async ({ params }) => {
-  const slug = params?.slug;
-  const event = eventsData.find((item) => item.slug === slug);
-
-  if (!event) {
-    return {
-      notFound: true,
-    };
-  }
-
-  return {
-    props: {
-      event,
-    },
-  };
+  const event = eventsData.find((item) => item.slug === params?.slug);
+  return event ? { props: { event } } : { notFound: true };
 };
 
 export default EventDetail;

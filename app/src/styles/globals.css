@@ -3051,3 +3051,211 @@ body {
     min-height: 220px;
   }
 }
+
+/* Events, sermons, and resources */
+.content-list {
+  border-top: 1px solid var(--site-line);
+}
+
+.content-row {
+  display: grid;
+  grid-template-columns: 52px 150px minmax(0, 1fr) auto;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  align-items: center;
+  padding: clamp(1.5rem, 4vw, 2.6rem) 0;
+  border-bottom: 1px solid var(--site-line);
+}
+
+.content-row__index,
+.content-row time {
+  color: var(--site-muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.content-row__body h2 {
+  margin: 0 0 0.4rem;
+  color: var(--site-ink);
+  font-size: clamp(1.35rem, 2.6vw, 2.15rem);
+  letter-spacing: -0.04em;
+}
+
+.content-row__body p {
+  margin: 0;
+  color: var(--site-muted);
+}
+
+.event-detail-hero {
+  max-width: 900px;
+  padding: clamp(2rem, 5vw, 4rem) 0;
+}
+
+.event-detail-hero .site-kicker {
+  margin-top: 3rem;
+}
+
+.event-detail-hero h1 {
+  margin: 0;
+  color: var(--site-ink);
+  font-size: clamp(2.7rem, 6vw, 5.5rem);
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+
+.event-detail-hero > p:last-child {
+  max-width: 720px;
+  margin-top: 1.4rem;
+  color: var(--site-muted);
+  font-size: 1.08rem;
+  line-height: 1.8;
+}
+
+.event-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.event-gallery img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 1.4rem;
+  object-fit: cover;
+}
+
+.site-video {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 1.3rem;
+  background: var(--site-surface-soft);
+}
+
+.site-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.sermon-editorial-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.sermon-editorial-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+  gap: clamp(1.5rem, 5vw, 4rem);
+  align-items: center;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid var(--site-line);
+  border-radius: 1.6rem;
+  background: var(--site-surface);
+  box-shadow: var(--site-shadow);
+}
+
+.sermon-editorial-card__copy > span {
+  color: var(--site-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.sermon-editorial-card__copy time {
+  display: block;
+  margin: 1.8rem 0 0.65rem;
+  color: var(--site-muted);
+  font-size: 0.8rem;
+}
+
+.sermon-editorial-card__copy h2 {
+  color: var(--site-ink);
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  letter-spacing: -0.045em;
+}
+
+.sermon-editorial-card__copy p {
+  color: var(--site-muted);
+}
+
+.media-unavailable {
+  display: grid;
+  min-height: 280px;
+  place-content: center;
+  border-radius: 1.3rem;
+  background:
+    radial-gradient(circle at 70% 25%, color-mix(in srgb, var(--site-gold) 24%, transparent), transparent 10rem),
+    var(--site-surface-soft);
+  color: var(--site-muted);
+  text-align: center;
+}
+
+.media-unavailable > span {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 1rem;
+  border: 1px solid var(--site-line);
+  border-radius: 50%;
+}
+
+.resource-list {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--site-line);
+  list-style: none;
+}
+
+.resource-list li {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.6rem 0;
+  border-bottom: 1px solid var(--site-line);
+}
+
+.resource-list li > span {
+  color: var(--site-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.resource-list strong {
+  overflow-wrap: anywhere;
+  color: var(--site-ink);
+  font-size: 1.08rem;
+}
+
+.resource-list a {
+  color: var(--site-accent);
+  font-weight: 750;
+}
+
+@media (max-width: 760px) {
+  .content-row {
+    grid-template-columns: 42px 1fr;
+  }
+
+  .content-row time,
+  .content-row > a {
+    grid-column: 2;
+  }
+
+  .sermon-editorial-card,
+  .event-gallery {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .resource-list li {
+    grid-template-columns: 38px 1fr;
+  }
+
+  .resource-list a {
+    grid-column: 2;
+  }
+}

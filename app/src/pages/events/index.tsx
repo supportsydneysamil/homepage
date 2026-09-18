@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import type { GetStaticProps, NextPage } from 'next';
+import EmptyState from '../../components/EmptyState';
+import PageHero from '../../components/PageHero';
 import eventsData from '../../content/events.json';
 import { useLanguage } from '../../lib/LanguageContext';
+import { formatDisplayDate } from '../../lib/presentation';
 
 type Event = {
   slug: string;
@@ -12,50 +15,59 @@ type Event = {
   youtubeUrl?: string;
 };
 
-type EventsPageProps = {
-  events: Event[];
-};
+type EventsPageProps = { events: Event[] };
 
-const EventsPage: NextPage<EventsPageProps> & { meta?: { title?: string; description?: string } } = ({ events }) => {
+const EventsPage: NextPage<EventsPageProps> & {
+  meta?: { title?: string; description?: string };
+} = ({ events }) => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
 
   return (
-    <section className="section">
-      <div className="section__header">
-        <p className="pill">{isKo ? '다가오는 일정' : "What's happening"}</p>
-        <h1>{isKo ? '이벤트' : 'Events'}</h1>
-        <p className="muted">
-          {isKo ? '함께 연결되고 성장하며 섬길 수 있는 모든 모임.' : 'Gatherings that help you connect, grow, and serve together.'}
-        </p>
-      </div>
-      <div className="card-grid">
-        {events.map((event) => (
-          <div key={event.slug} className="card">
-            <div className="card__eyebrow">{new Date(event.date).toLocaleDateString()}</div>
-            <h3>{event.title}</h3>
-            <p>{event.description}</p>
-            <Link href={`/events/${event.slug}`} className="button text">
-              {isKo ? '자세히 보기' : 'View Details'}
-            </Link>
-          </div>
-        ))}
-      </div>
-    </section>
+    <article className="site-page events-page">
+      <PageHero
+        eyebrow={isKo ? '함께하는 시간' : 'Life together'}
+        title={isKo ? '다가오는 모임과 행사' : 'Gather, grow, and serve together'}
+        description={
+          isKo
+            ? '예배 밖에서도 관계를 맺고, 함께 배우고, 이웃을 섬기는 자리에 초대합니다.'
+            : 'Discover gatherings where you can build relationships, grow in faith, and serve our neighbours.'
+        }
+      />
+
+      {events.length ? (
+        <section className="content-list">
+          {events.map((event, index) => (
+            <article className="content-row" key={event.slug}>
+              <div className="content-row__index">0{index + 1}</div>
+              <time dateTime={event.date}>{formatDisplayDate(event.date, lang)}</time>
+              <div className="content-row__body">
+                <h2>{event.title}</h2>
+                <p>{event.description}</p>
+              </div>
+              <Link href={`/events/${event.slug}`} className="site-text-link">
+                {isKo ? '자세히 보기' : 'View details'} <span aria-hidden="true">→</span>
+              </Link>
+            </article>
+          ))}
+        </section>
+      ) : (
+        <EmptyState
+          title={isKo ? '새로운 행사를 준비 중입니다' : 'New gatherings are on the way'}
+          description={isKo ? '곧 새로운 소식으로 찾아뵙겠습니다.' : 'Please check back soon for updates.'}
+        />
+      )}
+    </article>
   );
 };
 
 EventsPage.meta = {
   title: 'Events',
-  description: 'Upcoming events at Community Church.',
+  description: 'Events and gatherings at Sydney Samil Church.',
 };
 
-export const getStaticProps: GetStaticProps<EventsPageProps> = async () => {
-  return {
-    props: {
-      events: eventsData,
-    },
-  };
-};
+export const getStaticProps: GetStaticProps<EventsPageProps> = async () => ({
+  props: { events: eventsData },
+});
 
 export default EventsPage;

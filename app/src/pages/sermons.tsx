@@ -1,6 +1,9 @@
 import type { GetStaticProps, NextPage } from 'next';
+import EmptyState from '../components/EmptyState';
+import PageHero from '../components/PageHero';
 import sermonsData from '../content/sermons.json';
 import { useLanguage } from '../lib/LanguageContext';
+import { formatDisplayDate, toYouTubeEmbedUrl } from '../lib/presentation';
 
 type Sermon = {
   date: string;
@@ -9,59 +12,74 @@ type Sermon = {
   youtubeUrl: string;
 };
 
-type SermonsPageProps = {
-  sermons: Sermon[];
-};
+type SermonsPageProps = { sermons: Sermon[] };
 
-const toEmbedUrl = (url: string) => url.replace('watch?v=', 'embed/');
-
-const Sermons: NextPage<SermonsPageProps> & { meta?: { title?: string; description?: string } } = ({ sermons }) => {
+const Sermons: NextPage<SermonsPageProps> & {
+  meta?: { title?: string; description?: string };
+} = ({ sermons }) => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
 
   return (
-    <section className="section">
-      <div className="section__header">
-        <p className="pill">{isKo ? '설교' : 'Listen in'}</p>
-        <h1>{isKo ? '최근 설교' : 'Sermons'}</h1>
-        <p className="muted">
-          {isKo ? '당신을 격려하고 도전하는 설교를 만나보세요.' : 'Messages from our pastors to encourage and challenge you.'}
-        </p>
-      </div>
-      <div className="sermon-list">
-        {sermons.map((sermon) => (
-          <article key={`${sermon.date}-${sermon.title}`} className="sermon-card">
-            <div>
-              <p className="muted">{new Date(sermon.date).toLocaleDateString()}</p>
-              <h3>{sermon.title}</h3>
-              <p className="muted">{isKo ? `설교자: ${sermon.speaker}` : `Speaker: ${sermon.speaker}`}</p>
-            </div>
-            <div className="video-wrapper">
-              <iframe
-                src={toEmbedUrl(sermon.youtubeUrl)}
-                title={sermon.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
+    <article className="site-page sermons-page">
+      <PageHero
+        eyebrow={isKo ? '말씀 듣기' : 'Listen in'}
+        title={isKo ? '일상을 위한 말씀' : 'Messages for everyday faith'}
+        description={
+          isKo
+            ? '한 주의 삶을 격려하고 믿음의 방향을 세워주는 말씀을 만나보세요.'
+            : 'Listen to messages that encourage your week and help shape a faith you can live.'
+        }
+      />
+
+      {sermons.length ? (
+        <section className="sermon-editorial-list">
+          {sermons.map((sermon, index) => {
+            const embedUrl = toYouTubeEmbedUrl(sermon.youtubeUrl);
+            return (
+              <article className="sermon-editorial-card" key={`${sermon.date}-${sermon.title}`}>
+                <div className="sermon-editorial-card__copy">
+                  <span>0{index + 1}</span>
+                  <time dateTime={sermon.date}>{formatDisplayDate(sermon.date, lang)}</time>
+                  <h2>{sermon.title}</h2>
+                  <p>{isKo ? `설교자 · ${sermon.speaker}` : `Speaker · ${sermon.speaker}`}</p>
+                </div>
+                {embedUrl ? (
+                  <div className="site-video">
+                    <iframe
+                      src={embedUrl}
+                      title={sermon.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <div className="media-unavailable">
+                    <span aria-hidden="true" />
+                    <p>{isKo ? '영상 준비 중' : 'Video coming soon'}</p>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </section>
+      ) : (
+        <EmptyState
+          title={isKo ? '설교를 준비 중입니다' : 'Messages are on the way'}
+          description={isKo ? '새로운 말씀으로 곧 찾아뵙겠습니다.' : 'New messages will be available soon.'}
+        />
+      )}
+    </article>
   );
 };
 
 Sermons.meta = {
   title: 'Sermons',
-  description: 'Watch recent sermons from Community Church.',
+  description: 'Recent messages from Sydney Samil Church.',
 };
 
-export const getStaticProps: GetStaticProps<SermonsPageProps> = async () => {
-  return {
-    props: {
-      sermons: sermonsData,
-    },
-  };
-};
+export const getStaticProps: GetStaticProps<SermonsPageProps> = async () => ({
+  props: { sermons: sermonsData },
+});
 
 export default Sermons;
