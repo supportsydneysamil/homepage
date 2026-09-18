@@ -12,9 +12,10 @@ interface LayoutProps {
 }
 
 const Layout = ({ children, title, description }: LayoutProps) => {
-  const pageTitle = title
-    ? `${title} | Sydney Samil Church`
-    : 'Sydney Samil Church';
+  const pageTitle =
+    !title || title === 'Sydney Samil Church'
+      ? 'Sydney Samil Church'
+      : `${title} | Sydney Samil Church`;
   const pageDescription =
     description || 'Worship, community, and faith for everyday life in Sydney.';
   const { themeId } = useTheme();

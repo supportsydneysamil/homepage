@@ -2744,6 +2744,7 @@ body {
 
 /* Sitewide public pages */
 .site-page {
+  container-type: inline-size;
   color: var(--site-ink);
 }
 
