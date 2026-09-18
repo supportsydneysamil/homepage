@@ -5,6 +5,7 @@ node_modules/
 .next/
 out/
 *.tsbuildinfo
+app/next-env.d.ts
 
 # Local visual brainstorming artifacts
 .superpowers/

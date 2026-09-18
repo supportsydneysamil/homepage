@@ -1,6 +1,6 @@
 # Azure Static Web Apps Runtime Update Plan
 
-**Status:** Validated
+**Status:** Validated — Next.js 16 Migration
 
 ## Scope
 
@@ -80,3 +80,31 @@ Revert the package/configuration changes and reinstall from the prior lockfiles.
   - Workflow paths unchanged and valid
 - Static RBAC verification
   - No Bicep/Terraform or role assignments changed; existing SWA route roles remain unchanged
+
+## Next.js 16 Migration
+
+**Approved target:** Next.js `16.3.5` with React/ReactDOM `18.2.0` retained.
+
+1. Change the frontend Node engine to `>=20.9.0 <21`.
+2. Upgrade only Next.js and its lockfile dependencies.
+3. Set the Turbopack root to the `app` directory to avoid multi-lockfile root detection.
+4. Accept Next-generated TypeScript settings required by Next.js 16.
+5. Run clean install, tests, TypeScript, static export, sitewide smoke checks, and production dependency audit under Node 20.
+6. Keep Azure Functions on `node:20`; do not change API behavior.
+7. Do not deploy, commit, or push unless separately requested.
+
+### Next.js 16 Validation Proof
+
+- Node `20.20.2`, Next.js `16.3.5`, React/ReactDOM `18.2.0`.
+- Clean `npm ci` completed with 0 frontend vulnerabilities.
+- Utility tests passed 4/4.
+- TypeScript passed before and after Next-generated configuration updates.
+- Turbopack production build and static export passed for all 14 page units.
+- 13 HTML files exported and `staticwebapp.config.json` copied unchanged.
+- Sitewide smoke checks passed.
+- `turbopack.root` removed the multi-lockfile warning.
+- `agentRules: false` prevents Next.js from generating repository instruction files.
+- `next-env.d.ts` is ignored as a generated file; `npm run typecheck` runs `next typegen` before TypeScript.
+- Chromium desktop and WebKit mobile render checks passed.
+- Azure Functions runtime and source remain unchanged on Node 20.
+- No deployment, commit, or push was performed.
