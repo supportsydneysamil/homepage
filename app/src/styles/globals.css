@@ -1379,6 +1379,8 @@ p {
 
 /* Organic modern homepage */
 .home-page {
+  position: static;
+  z-index: auto;
   --organic-canvas: #f4faf6;
   --organic-surface: #ffffff;
   --organic-mint: #d9eee6;
@@ -1391,19 +1393,12 @@ p {
   --organic-border: rgba(30, 84, 73, 0.14);
   display: grid;
   gap: 1.25rem;
-  overflow-x: clip;
+  overflow-x: visible;
   color: var(--organic-ink);
 }
 
 .home-page::before {
-  position: absolute;
-  z-index: -1;
-  background:
-    radial-gradient(circle at 8% 8%, rgba(169, 218, 202, 0.7), transparent 25rem),
-    radial-gradient(circle at 95% 18%, rgba(221, 169, 90, 0.16), transparent 22rem),
-    var(--organic-canvas);
-  background-attachment: scroll;
-  pointer-events: none;
+  content: none;
 }
 
 .home-page::after {
@@ -1698,6 +1693,10 @@ p {
     left: 0;
     width: 68px;
     height: 68px;
+  }
+
+  .home-hero__shape--round {
+    right: 0;
   }
 }
 

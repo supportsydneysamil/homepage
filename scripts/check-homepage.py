@@ -75,10 +75,15 @@ global_css = GLOBAL_CSS.read_text()
 require(global_css, "html:lang(ko)", "global styles")
 require(global_css, "word-break: keep-all", "global styles")
 assert re.search(
-    r"\.home-page::before\s*\{[^}]*position:\s*absolute",
+    r"\.home-page::before\s*\{[^}]*content:\s*none",
     global_css,
     re.DOTALL,
-), "home background must stay inside the homepage stacking context"
+), "homepage must use the shared page background"
+assert re.search(
+    r"\.home-page\s*\{[^}]*position:\s*static;[^}]*z-index:\s*auto;[^}]*overflow-x:\s*visible",
+    global_css,
+    re.DOTALL,
+), "homepage must not clip floating content at its container edge"
 
 for exported_file in OUT.rglob("*.html"):
     exported = exported_file.read_text()
