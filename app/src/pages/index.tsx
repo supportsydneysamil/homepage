@@ -1,43 +1,18 @@
 import Link from 'next/link';
 import type { NextPage } from 'next';
 import { FormEvent, useState } from 'react';
+import WeeklyHighlights from '../components/home/WeeklyHighlights';
+import type { WeeklyItem } from '../components/home/homeContent';
 import weeklyData from '../content/weekly.json';
 import { useLanguage } from '../lib/LanguageContext';
-
-type WeeklyItem = {
-  id: string;
-  type: 'event' | 'sermon' | 'bulletin';
-  titleEn: string;
-  titleKo: string;
-  summaryEn: string;
-  summaryKo: string;
-  date: string;
-  url: string;
-  expiresAt: string;
-};
 
 type FormStatus = 'idle' | 'submitting' | 'success' | 'error';
 
 const FORM_ENDPOINT = 'https://formsubmit.co/ajax/support@sydneysamil.org';
 
-const toLocalDate = (value: string, locale: string) => {
-  const date = new Date(`${value}T00:00:00`);
-  return date.toLocaleDateString(locale, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
-const isActiveItem = (item: WeeklyItem, now: Date) => {
-  const expires = new Date(`${item.expiresAt}T23:59:59`);
-  return expires.getTime() >= now.getTime();
-};
-
 const Home: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
-  const locale = isKo ? 'ko-KR' : 'en-AU';
   const pastorImage = '/pastor.jpg';
 
   const [visitStatus, setVisitStatus] = useState<FormStatus>('idle');
@@ -78,16 +53,7 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
     }
   };
 
-  const now = new Date();
   const items = weeklyData.items as WeeklyItem[];
-  const activeItems = items
-    .filter((item) => isActiveItem(item, now))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 3);
-  const pastItems = items
-    .filter((item) => !isActiveItem(item, now))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3);
 
   return (
     <div className="home-page">
@@ -347,44 +313,7 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
         </div>
       </section>
 
-      <section className="section" id="this-week">
-        <div className="section__header">
-          <p className="eyebrow">{isKo ? '이번 주' : 'This week'}</p>
-          <h2>{isKo ? '주간 소식' : 'Weekly highlights'}</h2>
-          <p className="muted">
-            {isKo
-              ? '이번 주 3가지 소식만 확인하면 됩니다.'
-              : 'Just three updates to stay in the loop this week.'}
-          </p>
-        </div>
-        <div className="card-grid">
-          {activeItems.map((item) => (
-            <div key={item.id} className="card">
-              <div className="card__eyebrow">{toLocalDate(item.date, locale)}</div>
-              <h3>{isKo ? item.titleKo : item.titleEn}</h3>
-              <p>{isKo ? item.summaryKo : item.summaryEn}</p>
-              <a href={item.url} className="button text">
-                {isKo ? '자세히 보기' : 'View details'}
-              </a>
-            </div>
-          ))}
-        </div>
-        {pastItems.length > 0 && (
-          <div className="past-list">
-            <p className="card__eyebrow">{isKo ? '지난 소식' : 'Past updates'}</p>
-            <ul className="link-list">
-              {pastItems.map((item) => (
-                <li key={item.id} className="card card--inline">
-                  <span>{isKo ? item.titleKo : item.titleEn}</span>
-                  <a href={item.url} className="link">
-                    {isKo ? '다시보기' : 'View'}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
+      <WeeklyHighlights items={items} lang={lang} />
 
       <section className="section" id="connect">
         <div className="section__header">
