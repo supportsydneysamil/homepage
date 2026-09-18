@@ -1,4 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
+import PageHero from '../components/PageHero';
 import { useRequireAuth } from '../lib/swaAuth';
 import { useLanguage } from '../lib/LanguageContext';
 
@@ -158,7 +159,7 @@ const ProfilePage = () => {
   }, [isAuthenticated, user]);
 
   if (isLoading) {
-    return <p>{labels.checking}</p>;
+    return <p className="account-state">{labels.checking}</p>;
   }
 
   if (!isAuthenticated) {
@@ -200,12 +201,12 @@ const ProfilePage = () => {
   };
 
   return (
-    <section className="profile-page">
-      <div className="section__header">
-        <span className="eyebrow">{labels.profile}</span>
-        <h1>{labels.accountTitle}</h1>
-        <p className="lead">{labels.accountSubtitle}</p>
-      </div>
+    <article className="site-page profile-page">
+      <PageHero
+        eyebrow={labels.profile}
+        title={labels.accountTitle}
+        description={labels.accountSubtitle}
+      />
 
       <div className="profile-grid">
         <article className="card profile-card">
@@ -280,7 +281,7 @@ const ProfilePage = () => {
         </article>
       </div>
 
-    </section>
+    </article>
   );
 };
 

@@ -1,5 +1,6 @@
 import type { NextPage } from 'next';
 import { useEffect, useMemo, useState } from 'react';
+import PageHero from '../components/PageHero';
 import { THEME_OPTIONS, type ThemeId, useTheme } from '../lib/ThemeContext';
 import { useRequireAuth } from '../lib/swaAuth';
 import { useLanguage } from '../lib/LanguageContext';
@@ -38,7 +39,7 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   );
 
   if (isLoading || isChecking) {
-    return <p>{labels.loading}</p>;
+    return <p className="account-state">{labels.loading}</p>;
   }
 
   if (!isAuthenticated) {
@@ -47,8 +48,8 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
 
   if (!isGlobalAdmin) {
     return (
-      <section className="section">
-        <div className="card settings-card">
+      <section className="site-page settings-page">
+        <div className="site-empty-state settings-card">
           <h1>{labels.title}</h1>
           <p className="error-text">{labels.forbidden}</p>
         </div>
@@ -69,12 +70,12 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   };
 
   return (
-    <section className="section settings-page">
-      <div className="section__header">
-        <p className="pill">{labels.title}</p>
-        <h1>{labels.title}</h1>
-        <p className="muted">{labels.subtitle}</p>
-      </div>
+    <article className="site-page settings-page">
+      <PageHero
+        eyebrow={isKo ? '관리자' : 'Administration'}
+        title={labels.title}
+        description={labels.subtitle}
+      />
 
       <div className="settings-theme-grid">
         {THEME_OPTIONS.map((option) => {
@@ -107,7 +108,7 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
         </button>
         {status ? <p className={status === labels.saveOk ? 'success-text' : 'error-text'}>{status}</p> : null}
       </div>
-    </section>
+    </article>
   );
 };
 
