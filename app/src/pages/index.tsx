@@ -1,11 +1,93 @@
 import Link from 'next/link';
 import type { NextPage } from 'next';
+import { FormEvent, useState } from 'react';
+import weeklyData from '../content/weekly.json';
 import { useLanguage } from '../lib/LanguageContext';
+
+type WeeklyItem = {
+  id: string;
+  type: 'event' | 'sermon' | 'bulletin';
+  titleEn: string;
+  titleKo: string;
+  summaryEn: string;
+  summaryKo: string;
+  date: string;
+  url: string;
+  expiresAt: string;
+};
+
+type FormStatus = 'idle' | 'submitting' | 'success' | 'error';
+
+const FORM_ENDPOINT = 'https://formsubmit.co/ajax/support@sydneysamil.org';
+
+const toLocalDate = (value: string, locale: string) => {
+  const date = new Date(`${value}T00:00:00`);
+  return date.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const isActiveItem = (item: WeeklyItem, now: Date) => {
+  const expires = new Date(`${item.expiresAt}T23:59:59`);
+  return expires.getTime() >= now.getTime();
+};
 
 const Home: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const locale = isKo ? 'ko-KR' : 'en-AU';
   const pastorImage = '/pastor.jpg';
+
+  const [visitStatus, setVisitStatus] = useState<FormStatus>('idle');
+  const [connectStatus, setConnectStatus] = useState<FormStatus>('idle');
+  const [matchStatus, setMatchStatus] = useState<FormStatus>('idle');
+  const [prayerStatus, setPrayerStatus] = useState<FormStatus>('idle');
+
+  const submitForm = async (
+    event: FormEvent<HTMLFormElement>,
+    setStatus: (status: FormStatus) => void,
+    formType: string,
+  ) => {
+    event.preventDefault();
+    setStatus('submitting');
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    formData.append('formType', formType);
+    formData.append('lang', lang);
+
+    try {
+      const res = await fetch(FORM_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to submit');
+      }
+
+      setStatus('success');
+      form.reset();
+    } catch (err) {
+      setStatus('error');
+    }
+  };
+
+  const now = new Date();
+  const items = weeklyData.items as WeeklyItem[];
+  const activeItems = items
+    .filter((item) => isActiveItem(item, now))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 3);
+  const pastItems = items
+    .filter((item) => !isActiveItem(item, now))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 3);
 
   return (
     <div className="home-page">
@@ -24,18 +106,18 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
         </div>
         <div className="hero__content">
           <p className="pill">{isKo ? '시드니 삼일 교회' : 'Sydney Samil Church'}</p>
-          <h1 className="hero-title">{isKo ? '도시를 위한 따뜻한 교회' : 'A church for the city'}</h1>
+          <h1 className="hero-title">{isKo ? '처음 방문이신가요? 편하게 오세요.' : 'Visiting for the first time? You are welcome here.'}</h1>
           <p className="lead">
             {isKo
-              ? '현대적인 예배와 진짜 공동체, 그리고 시드를 사랑하는 담대한 사명. 예수님을 높이고 이웃을 섬기는 시드니 삼일 교회에 함께하세요.'
-              : 'Modern worship, authentic community, and a bold mission to love Sydney. Join us as we lift up Jesus and serve our neighbors with creativity and compassion.'}
+              ? '예배 흐름, 주차, 아이 체크인까지 30초 요약과 간단한 방문 등록으로 준비해 드립니다.'
+              : 'Get a 30-second overview of service flow, parking, and kids check-in, plus a quick visit registration.'}
           </p>
           <div className="hero__actions">
-            <Link href="/worship" className="button">
-              {isKo ? '예배 안내' : 'Plan a Visit'}
+            <Link href="/#visit-intro" className="button">
+              {isKo ? 'Plan a Visit' : 'Plan a Visit'}
             </Link>
-            <Link href="/events" className="button ghost">
-              {isKo ? '일정 보기' : "See What's On"}
+            <Link href="/#visit-map" className="button ghost">
+              {isKo ? '길찾기' : 'Get Directions'}
             </Link>
           </div>
           <div className="hero__stats">
@@ -53,6 +135,122 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="section" id="visit-intro">
+        <div className="section__header">
+          <p className="eyebrow">{isKo ? '처음 방문 안내' : 'Plan your visit'}</p>
+          <h2>{isKo ? '방문 핵심 정보' : 'Visit essentials'}</h2>
+          <p className="muted">
+            {isKo
+              ? '예배 소요시간, 복장, 예배 분위기부터 주차와 아이 체크인까지 한 번에 안내합니다.'
+              : 'From service length and dress code to parking and kids check-in, here is what to expect.'}
+          </p>
+        </div>
+        <div className="visit-grid">
+          <div className="card visit-card">
+            <h3>{isKo ? '예배 요약' : 'Service snapshot'}</h3>
+            <ul className="visit-list">
+              <li>{isKo ? '소요시간: 약 75~90분' : 'Length: about 75-90 minutes'}</li>
+              <li>{isKo ? '복장: 편안한 복장' : 'Dress: come as you are'}</li>
+              <li>{isKo ? '분위기: 현대적 찬양과 말씀 중심' : 'Atmosphere: modern worship, Bible-centered'}</li>
+            </ul>
+          </div>
+          <div className="card visit-card" id="visit-map">
+            <h3>{isKo ? '주차 및 입구' : 'Parking and entry'}</h3>
+            <p className="muted">
+              {isKo
+                ? '주차 위치와 입구 안내를 확인하세요. 사진 안내는 곧 추가됩니다.'
+                : 'Check parking and entry details. Photo guidance will be added soon.'}
+            </p>
+            <div className="map-embed">
+              <iframe
+                title="Church location"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                src="https://www.google.com/maps?q=Corner%20Bellamy%20St%20%26%20Boundary%20Rd%20Pennant%20Hills%20NSW%202120&output=embed"
+              />
+            </div>
+            <div className="visit-actions">
+              <p className="muted">Corner Bellamy St & Boundary Rd Pennant Hills NSW 2120</p>
+              <a className="button text" href="https://maps.google.com/?q=Corner%20Bellamy%20St%20%26%20Boundary%20Rd%20Pennant%20Hills%20NSW%202120" target="_blank" rel="noreferrer">
+                {isKo ? '길찾기' : 'Get directions'}
+              </a>
+            </div>
+            <div className="visit-photo-placeholder">{isKo ? '입구 사진 자리' : 'Entry photo placeholder'}</div>
+          </div>
+          <div className="card visit-card">
+            <h3>{isKo ? 'Kids 안내' : 'Kids check-in'}</h3>
+            <ul className="visit-list">
+              <li>{isKo ? '체크인: 예배 시작 15분 전 권장' : 'Check-in: arrive 15 minutes early'}</li>
+              <li>{isKo ? '픽업: 예배 종료 후 안내에 따라' : 'Pick-up: follow host guidance after service'}</li>
+              <li>{isKo ? '연령대: 유아~초등 (상세 업데이트 예정)' : 'Ages: toddlers to elementary (details soon)'}</li>
+            </ul>
+          </div>
+          <div className="card visit-card">
+            <h3>{isKo ? '언어 안내' : 'Language support'}</h3>
+            <ul className="visit-list">
+              <li>{isKo ? '예배: 한국어 중심' : 'Service: primarily Korean'}</li>
+              <li>{isKo ? '영어 안내: 환영/안내 지원' : 'English help available for hosts'}</li>
+              <li>{isKo ? '통역 여부: 추후 업데이트 예정' : 'Interpretation: details coming soon'}</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="section" id="visit-form">
+        <div className="section__header">
+          <p className="eyebrow">{isKo ? '방문 등록' : 'Plan a visit'}</p>
+          <h2>{isKo ? '30초 방문 등록' : '30-second visit form'}</h2>
+          <p className="muted">
+            {isKo
+              ? '간단히 알려주시면 예배 안내와 체크인을 미리 준비해 둘게요.'
+              : 'Let us know you are coming and we will prepare to welcome you.'}
+          </p>
+        </div>
+        <form className="form card" onSubmit={(event) => submitForm(event, setVisitStatus, 'visit')}>
+          <label className="form__field">
+            <span>{isKo ? '이름' : 'Name'}</span>
+            <input type="text" name="name" placeholder={isKo ? '이름을 입력하세요' : 'Your name'} required />
+          </label>
+          <label className="form__field">
+            <span>{isKo ? '연락처' : 'Contact'}</span>
+            <input type="text" name="contact" placeholder={isKo ? '전화번호 또는 이메일' : 'Phone or email'} required />
+          </label>
+          <label className="form__field">
+            <span>{isKo ? '방문 예정 예배' : 'Planned service'}</span>
+            <select name="service" required>
+              <option value="">{isKo ? '선택해주세요' : 'Select one'}</option>
+              <option value="9:30">{isKo ? '9:30 예배' : '9:30 service'}</option>
+              <option value="11:00">{isKo ? '11:00 예배' : '11:00 service'}</option>
+            </select>
+          </label>
+          <label className="form__field">
+            <span>{isKo ? '아이 동반 여부' : 'Bringing kids?'}</span>
+            <select name="kids">
+              <option value="">{isKo ? '선택해주세요' : 'Select one'}</option>
+              <option value="yes">{isKo ? '네' : 'Yes'}</option>
+              <option value="no">{isKo ? '아니요' : 'No'}</option>
+            </select>
+          </label>
+          <label className="form__field">
+            <span>{isKo ? '문의사항' : 'Questions'}</span>
+            <textarea name="message" rows={4} placeholder={isKo ? '궁금한 점을 알려주세요' : 'Let us know how we can help'} />
+          </label>
+          <button type="submit" className="button" disabled={visitStatus === 'submitting'}>
+            {visitStatus === 'submitting' ? (isKo ? '보내는 중...' : 'Sending...') : isKo ? '방문 등록하기' : 'Submit visit' }
+          </button>
+          {visitStatus === 'success' && (
+            <p className="success-text">
+              {isKo
+                ? '등록이 완료되었습니다. 전화/이메일로 안내드리며, 추후 카톡 안내도 제공 예정입니다.'
+                : 'Thanks! We will follow up via phone or email, and KakaoTalk updates will be available soon.'}
+            </p>
+          )}
+          {visitStatus === 'error' && (
+            <p className="error-text">{isKo ? '전송에 실패했습니다. 다시 시도해주세요.' : 'Something went wrong. Please try again.'}</p>
+          )}
+        </form>
       </section>
 
       <section className="section">
@@ -149,38 +347,175 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
         </div>
       </section>
 
-      <section className="section section--split">
+      <section className="section" id="this-week">
         <div className="section__header">
-          <p className="eyebrow">{isKo ? '이번 주' : 'Stay in the flow'}</p>
-          <h2>{isKo ? '주중에도 함께' : 'Resources for your week'}</h2>
+          <p className="eyebrow">{isKo ? '이번 주' : 'This week'}</p>
+          <h2>{isKo ? '주간 소식' : 'Weekly highlights'}</h2>
           <p className="muted">
-            {isKo ? '주보, 가이드, 영상으로 매일을 격려합니다.' : 'Bulletins, guides, and videos to keep you encouraged.'}
+            {isKo
+              ? '이번 주 3가지 소식만 확인하면 됩니다.'
+              : 'Just three updates to stay in the loop this week.'}
           </p>
-          <div className="section__actions">
-            <Link href="/resources" className="button">
-              {isKo ? '자료 보기' : 'Browse Resources'}
-            </Link>
-            <Link href="/contact" className="button ghost">
-              {isKo ? '담임목사에게 문의' : 'Talk to a pastor'}
-            </Link>
-          </div>
         </div>
-        <div className="glass-card">
-          <h3 className="muted">{isKo ? '하이라이트' : 'This week'}</h3>
-          <ul className="highlight-list">
-            <li>
-              <span className="dot" />
-              <span>{isKo ? '성탄 예배 — 12월 25일' : 'Christmas Service — Dec 25'}</span>
-            </li>
-            <li>
-              <span className="dot" />
-              <span>{isKo ? '새 설교: 믿음과 삶' : 'New sermon: Faith and Life'}</span>
-            </li>
-            <li>
-              <span className="dot" />
-              <span>{isKo ? '주보 다운로드' : 'Download the weekly bulletin'}</span>
-            </li>
-          </ul>
+        <div className="card-grid">
+          {activeItems.map((item) => (
+            <div key={item.id} className="card">
+              <div className="card__eyebrow">{toLocalDate(item.date, locale)}</div>
+              <h3>{isKo ? item.titleKo : item.titleEn}</h3>
+              <p>{isKo ? item.summaryKo : item.summaryEn}</p>
+              <a href={item.url} className="button text">
+                {isKo ? '자세히 보기' : 'View details'}
+              </a>
+            </div>
+          ))}
+        </div>
+        {pastItems.length > 0 && (
+          <div className="past-list">
+            <p className="card__eyebrow">{isKo ? '지난 소식' : 'Past updates'}</p>
+            <ul className="link-list">
+              {pastItems.map((item) => (
+                <li key={item.id} className="card card--inline">
+                  <span>{isKo ? item.titleKo : item.titleEn}</span>
+                  <a href={item.url} className="link">
+                    {isKo ? '다시보기' : 'View'}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      <section className="section" id="connect">
+        <div className="section__header">
+          <p className="eyebrow">{isKo ? '함께 연결' : 'Get connected'}</p>
+          <h2>{isKo ? '참여도 안내' : 'Next steps for you'}</h2>
+          <p className="muted">
+            {isKo
+              ? '새가족 안내, 목장/소그룹 연결, 기도 요청까지 바로 신청하세요.'
+              : 'Request newcomer info, small group matching, or prayer support in minutes.'}
+          </p>
+        </div>
+        <div className="cta-grid">
+          <div className="card cta-card">
+            <h3>{isKo ? '새가족 안내 받기' : 'Newcomer info'}</h3>
+            <p className="muted">{isKo ? '처음 오신 분들을 위한 안내를 보내드립니다.' : 'We will send you a quick guide to help you feel at home.'}</p>
+            <form className="form" onSubmit={(event) => submitForm(event, setConnectStatus, 'connect')}>
+              <label className="form__field">
+                <span>{isKo ? '이름' : 'Name'}</span>
+                <input type="text" name="name" required />
+              </label>
+              <label className="form__field">
+                <span>{isKo ? '연락처' : 'Contact'}</span>
+                <input type="text" name="contact" required />
+              </label>
+              <label className="form__field">
+                <span>{isKo ? '궁금한 점' : 'Questions'}</span>
+                <textarea name="message" rows={3} />
+              </label>
+              <button type="submit" className="button" disabled={connectStatus === 'submitting'}>
+                {connectStatus === 'submitting' ? (isKo ? '보내는 중...' : 'Sending...') : isKo ? '안내 요청' : 'Request info'}
+              </button>
+              {connectStatus === 'success' && (
+                <p className="success-text">
+                  {isKo
+                    ? '요청이 접수되었습니다. 전화/이메일로 안내드리며, 추후 카톡 안내도 제공 예정입니다.'
+                    : 'Request received. We will follow up by phone or email, with KakaoTalk updates soon.'}
+                </p>
+              )}
+              {connectStatus === 'error' && (
+                <p className="error-text">{isKo ? '전송에 실패했습니다. 다시 시도해주세요.' : 'Something went wrong. Please try again.'}</p>
+              )}
+            </form>
+          </div>
+
+          <div className="card cta-card">
+            <h3>{isKo ? '목장/소그룹 연결 요청' : 'Small group matching'}</h3>
+            <p className="muted">{isKo ? '지역/연령/관심사에 맞는 모임을 연결합니다.' : 'We will match you by location, age, and interests.'}</p>
+            <form className="form" onSubmit={(event) => submitForm(event, setMatchStatus, 'matching')}>
+              <label className="form__field">
+                <span>{isKo ? '이름' : 'Name'}</span>
+                <input type="text" name="name" required />
+              </label>
+              <label className="form__field">
+                <span>{isKo ? '연락처' : 'Contact'}</span>
+                <input type="text" name="contact" required />
+              </label>
+              <label className="form__field">
+                <span>{isKo ? '지역' : 'Region'}</span>
+                <select name="region" required>
+                  <option value="">{isKo ? '선택해주세요' : 'Select one'}</option>
+                  <option value="north">{isKo ? '북부' : 'North'}</option>
+                  <option value="central">{isKo ? '중부' : 'Central'}</option>
+                  <option value="south">{isKo ? '남부' : 'South'}</option>
+                  <option value="other">{isKo ? '기타' : 'Other'}</option>
+                </select>
+              </label>
+              <label className="form__field">
+                <span>{isKo ? '연령대' : 'Age range'}</span>
+                <select name="age" required>
+                  <option value="">{isKo ? '선택해주세요' : 'Select one'}</option>
+                  <option value="20s">20s</option>
+                  <option value="30s">30s</option>
+                  <option value="40s">40s</option>
+                  <option value="50s">50s+</option>
+                </select>
+              </label>
+              <label className="form__field">
+                <span>{isKo ? '관심사' : 'Interests'}</span>
+                <input type="text" name="interests" placeholder={isKo ? '예: 육아, 찬양, 청년' : 'e.g., families, worship, youth'} />
+              </label>
+              <button type="submit" className="button" disabled={matchStatus === 'submitting'}>
+                {matchStatus === 'submitting' ? (isKo ? '보내는 중...' : 'Sending...') : isKo ? '연결 요청' : 'Request match'}
+              </button>
+              {matchStatus === 'success' && (
+                <p className="success-text">
+                  {isKo
+                    ? '요청이 접수되었습니다. 전화/이메일로 안내드리며, 추후 카톡 안내도 제공 예정입니다.'
+                    : 'Request received. We will follow up by phone or email, with KakaoTalk updates soon.'}
+                </p>
+              )}
+              {matchStatus === 'error' && (
+                <p className="error-text">{isKo ? '전송에 실패했습니다. 다시 시도해주세요.' : 'Something went wrong. Please try again.'}</p>
+              )}
+            </form>
+          </div>
+
+          <div className="card cta-card">
+            <h3>{isKo ? '기도 요청' : 'Prayer request'}</h3>
+            <p className="muted">{isKo ? '익명으로도 요청할 수 있습니다.' : 'Anonymous requests are welcome.'}</p>
+            <form className="form" onSubmit={(event) => submitForm(event, setPrayerStatus, 'prayer')}>
+              <label className="form__field">
+                <span>{isKo ? '이름 (선택)' : 'Name (optional)'}</span>
+                <input type="text" name="name" />
+              </label>
+              <label className="form__field">
+                <span>{isKo ? '연락처 (선택)' : 'Contact (optional)'}</span>
+                <input type="text" name="contact" />
+              </label>
+              <label className="form__field checkbox">
+                <input type="checkbox" name="anonymous" value="yes" />
+                <span>{isKo ? '익명으로 요청합니다' : 'Request anonymously'}</span>
+              </label>
+              <label className="form__field">
+                <span>{isKo ? '기도 제목' : 'Prayer request'}</span>
+                <textarea name="message" rows={4} required />
+              </label>
+              <button type="submit" className="button" disabled={prayerStatus === 'submitting'}>
+                {prayerStatus === 'submitting' ? (isKo ? '보내는 중...' : 'Sending...') : isKo ? '기도 요청하기' : 'Submit request'}
+              </button>
+              {prayerStatus === 'success' && (
+                <p className="success-text">
+                  {isKo
+                    ? '요청이 접수되었습니다. 전화/이메일로 안내드리며, 추후 카톡 안내도 제공 예정입니다.'
+                    : 'Request received. We will follow up by phone or email, with KakaoTalk updates soon.'}
+                </p>
+              )}
+              {prayerStatus === 'error' && (
+                <p className="error-text">{isKo ? '전송에 실패했습니다. 다시 시도해주세요.' : 'Something went wrong. Please try again.'}</p>
+              )}
+            </form>
+          </div>
         </div>
       </section>
 
@@ -219,11 +554,11 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
               </div>
             </div>
             <div className="pastor-card__links">
-              <Link href="/contact" className="button">
-                {isKo ? '문의하기' : 'Contact us'}
+              <Link href="/#visit-form" className="button">
+                {isKo ? '연락하기' : 'Contact'}
               </Link>
-              <Link href="/worship" className="button ghost">
-                {isKo ? '예배 안내' : 'Visit us'}
+              <Link href="/#visit-intro" className="button ghost">
+                {isKo ? '방문 안내' : 'Plan a visit'}
               </Link>
             </div>
           </div>
