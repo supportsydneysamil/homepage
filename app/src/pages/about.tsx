@@ -1,54 +1,71 @@
 import type { NextPage } from 'next';
+import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
 
 const About: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const values = [
+    {
+      number: '01',
+      title: isKo ? '우리의 이야기' : 'Our story',
+      body: isKo
+        ? '작은 모임에서 시작해 예수님을 함께 따르는 다세대 공동체로 성장했습니다.'
+        : 'We began as a small gathering and grew into a multi-generational community following Jesus together.',
+    },
+    {
+      number: '02',
+      title: isKo ? '우리의 비전' : 'Our vision',
+      body: isKo
+        ? '그리스도를 중심으로 시드니와 열방에 복음의 소망을 비추는 공동체를 꿈꿉니다.'
+        : 'We envision a Christ-centred community shining gospel hope across Sydney and beyond.',
+    },
+    {
+      number: '03',
+      title: isKo ? '우리의 사명' : 'Our mission',
+      body: isKo
+        ? '영혼을 구원하고 제자를 세우며, 진실한 관계 속에서 복음을 일상으로 살아냅니다.'
+        : 'We make disciples, nurture authentic relationships, and live the gospel in everyday life.',
+    },
+  ];
 
   return (
-    <section className="section">
-      <div className="section__header">
-        <p className="pill">{isKo ? '우리는 누구인가' : 'Who we are'}</p>
-        <h1>{isKo ? '교회 소개' : 'About Our Church'}</h1>
-        <p className="muted">
+    <article className="site-page about-page">
+      <PageHero
+        eyebrow={isKo ? '우리는 누구인가' : 'Who we are'}
+        title={isKo ? '함께 믿고, 함께 자라는 교회' : 'A church growing in faith, together'}
+        description={
+          isKo
+            ? '예배와 가정교회, 다음 세대를 세우는 일로 시드니를 섬기는 공동체입니다.'
+            : 'We serve Sydney through worship, home-church community, and faith for the next generation.'
+        }
+      />
+
+      <section className="site-editorial-grid" aria-label={isKo ? '교회 가치' : 'Church values'}>
+        {values.map((value) => (
+          <div className="site-editorial-item" key={value.number}>
+            <span>{value.number}</span>
+            <h2>{value.title}</h2>
+            <p>{value.body}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="site-quote-panel">
+        <p className="site-kicker">{isKo ? '우리의 고백' : 'Our heartbeat'}</p>
+        <blockquote>
           {isKo
-            ? '예배와 제자도, 그리고 시드니를 섬기는 마음으로 함께 자라나는 다세대 공동체입니다.'
-            : 'A multi-generational church with a heart for worship, discipleship, and serving Sydney.'}
-        </p>
-      </div>
-      <div className="card-grid three-col">
-        <div className="card">
-          <div className="card__eyebrow">{isKo ? '스토리' : 'Our story'}</div>
-          <p>
-            {isKo
-              ? '작은 모임에서 시작해 예수님을 따르는 활기찬 가족으로 성장했습니다. 매주 하나님이 쓰시는 이야기에 새로운 친구들을 맞이합니다.'
-              : 'We began as a small gathering and have grown into a vibrant family following Jesus together. Every week we welcome new friends into the story God is writing here.'}
-          </p>
-        </div>
-        <div className="card">
-          <div className="card__eyebrow">{isKo ? '비전' : 'Vision'}</div>
-          <p>
-            {isKo
-              ? '그리스도를 중심으로 희망을 지역과 열방에 비추는 공동체가 되는 것.'
-              : 'To be a Christ-centered community that shines hope locally and globally.'}
-          </p>
-        </div>
-        <div className="card">
-          <div className="card__eyebrow">{isKo ? '미션' : 'Mission'}</div>
-          <p>
-            {isKo
-              ? '제자를 세우고, 진정한 관계를 가꾸며, 복음을 일상에서 살아내기.'
-              : 'To make disciples, cultivate authentic relationships, and live out the gospel daily.'}
-          </p>
-        </div>
-      </div>
-    </section>
+            ? '주일의 예배가 평일의 삶으로 이어지고, 모든 성도가 삶의 자리에서 사역자로 서기를 소망합니다.'
+            : 'We long for Sunday worship to shape everyday life and for every believer to serve where they live.'}
+        </blockquote>
+      </section>
+    </article>
   );
 };
 
 About.meta = {
   title: 'About',
-  description: 'Learn about our church vision and mission.',
+  description: 'Meet Sydney Samil Church and discover our story, vision, and mission.',
 };
 
 export default About;
