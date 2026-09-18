@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { NextPage } from 'next';
 import { FormEvent, useState } from 'react';
+import HomeHero from '../components/home/HomeHero';
+import QuickInfo from '../components/home/QuickInfo';
 import WeeklyHighlights from '../components/home/WeeklyHighlights';
 import type { WeeklyItem } from '../components/home/homeContent';
 import weeklyData from '../content/weekly.json';
@@ -57,51 +59,8 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
 
   return (
     <div className="home-page">
-      <section className="hero hero--art">
-        <div className="hero__bg motion-bg">
-          <div className="blob blob--one" />
-          <div className="blob blob--two" />
-          <div className="blob blob--three" />
-          <div className="hero__bg-image">
-            <img
-              src="https://images.unsplash.com/photo-1471879832106-c7ab9e0cee23?auto=format&fit=crop&w=1400&q=80"
-              alt={isKo ? '교회 예배 모임' : 'Church gathering'}
-            />
-          </div>
-          <div className="hero__gradient" />
-        </div>
-        <div className="hero__content">
-          <p className="pill">{isKo ? '시드니 삼일 교회' : 'Sydney Samil Church'}</p>
-          <h1 className="hero-title">{isKo ? '처음 방문이신가요? 편하게 오세요.' : 'Visiting for the first time? You are welcome here.'}</h1>
-          <p className="lead">
-            {isKo
-              ? '예배 흐름, 주차, 아이 체크인까지 30초 요약과 간단한 방문 등록으로 준비해 드립니다.'
-              : 'Get a 30-second overview of service flow, parking, and kids check-in, plus a quick visit registration.'}
-          </p>
-          <div className="hero__actions">
-            <Link href="/#visit-intro" className="button">
-              {isKo ? 'Plan a Visit' : 'Plan a Visit'}
-            </Link>
-            <Link href="/#visit-map" className="button ghost">
-              {isKo ? '길찾기' : 'Get Directions'}
-            </Link>
-          </div>
-          <div className="hero__stats">
-            <div className="stat">
-              <span className="stat__number">2</span>
-              <span className="stat__label">{isKo ? '주일 예배' : 'Sunday gatherings'}</span>
-            </div>
-            <div className="stat">
-              <span className="stat__number">20+</span>
-              <span className="stat__label">{isKo ? '섬김 팀' : 'Serving teams'}</span>
-            </div>
-            <div className="stat">
-              <span className="stat__number">50+</span>
-              <span className="stat__label">{isKo ? '소그룹' : 'Small groups'}</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HomeHero lang={lang} />
+      <QuickInfo lang={lang} />
 
       <section className="section" id="visit-intro">
         <div className="section__header">
