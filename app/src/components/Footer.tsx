@@ -34,7 +34,9 @@ const Footer = () => {
       </div>
 
       <div className="footer__bottom">
-        <small>&copy; {new Date().getFullYear()} Sydney Samil Church</small>
+        <small suppressHydrationWarning>
+          &copy; {new Date().getFullYear()} Sydney Samil Church
+        </small>
         <Link href="/contact" className="footer__visit">
           {isKo ? '이번 주일에 만나요' : 'Meet us this Sunday'}
           <span aria-hidden="true">→</span>

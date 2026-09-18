@@ -1,14 +1,34 @@
 export type DisplayLanguage = 'ko' | 'en';
 
-export const formatDisplayDate = (value: string, lang: DisplayLanguage) => {
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return value;
+const EN_MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+] as const;
 
-  return date.toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-AU', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+const parseDateParts = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return { year, month, day };
+};
+
+export const formatDisplayDate = (value: string, lang: DisplayLanguage) => {
+  const parts = parseDateParts(value);
+  if (!parts) return value;
+  return lang === 'ko'
+    ? `${parts.year}년 ${parts.month}월 ${parts.day}일`
+    : `${parts.day} ${EN_MONTHS[parts.month - 1]} ${parts.year}`;
+};
+
+export const formatShortDate = (value: string, lang: DisplayLanguage) => {
+  const parts = parseDateParts(value);
+  if (!parts) return value;
+  return lang === 'ko'
+    ? `${parts.month}월 ${parts.day}일`
+    : `${parts.day} ${EN_MONTHS[parts.month - 1]}`;
 };
 
 export const isPlaceholderUrl = (value?: string) => {

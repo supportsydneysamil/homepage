@@ -1,4 +1,4 @@
-import type { NextPage } from 'next';
+import type { GetStaticProps, NextPage } from 'next';
 import ChurchPillars from '../components/home/ChurchPillars';
 import HomeHero from '../components/home/HomeHero';
 import NextSteps from '../components/home/NextSteps';
@@ -10,7 +10,13 @@ import type { WeeklyItem } from '../components/home/homeContent';
 import weeklyData from '../content/weekly.json';
 import { useLanguage } from '../lib/LanguageContext';
 
-const Home: NextPage & { meta?: { title?: string; description?: string } } = () => {
+type HomeProps = {
+  generatedAt: string;
+};
+
+const Home: NextPage<HomeProps> & { meta?: { title?: string; description?: string } } = ({
+  generatedAt,
+}) => {
   const { lang } = useLanguage();
   const items = weeklyData.items as WeeklyItem[];
 
@@ -19,7 +25,7 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
       <HomeHero lang={lang} />
       <QuickInfo lang={lang} />
       <ChurchPillars lang={lang} />
-      <WeeklyHighlights items={items} lang={lang} />
+      <WeeklyHighlights items={items} lang={lang} now={new Date(generatedAt)} />
       <VisitOverview lang={lang} />
       <NextSteps lang={lang} />
       <PastorFeature lang={lang} />
@@ -32,5 +38,11 @@ Home.meta = {
   description:
     'Worship, community, and faith for everyday life at Sydney Samil Church.',
 };
+
+export const getStaticProps: GetStaticProps<HomeProps> = async () => ({
+  props: {
+    generatedAt: new Date().toISOString(),
+  },
+});
 
 export default Home;

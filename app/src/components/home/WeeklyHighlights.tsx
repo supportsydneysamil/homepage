@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import {
+  formatShortDate,
+} from '../../lib/presentation';
+import {
   getVisibleWeeklyItems,
   type Language,
   type WeeklyItem,
@@ -10,12 +13,6 @@ type WeeklyHighlightsProps = {
   lang: Language;
   now?: Date;
 };
-
-const formatDate = (value: string, lang: Language) =>
-  new Date(`${value}T00:00:00`).toLocaleDateString(
-    lang === 'ko' ? 'ko-KR' : 'en-AU',
-    { month: 'short', day: 'numeric' },
-  );
 
 const WeeklyHighlights = ({
   items,
@@ -43,7 +40,7 @@ const WeeklyHighlights = ({
             <article className="home-weekly__card" key={item.id}>
               <div className="home-weekly__meta">
                 <span>0{index + 1}</span>
-                <time dateTime={item.date}>{formatDate(item.date, lang)}</time>
+                <time dateTime={item.date}>{formatShortDate(item.date, lang)}</time>
               </div>
               <h3>{isKo ? item.titleKo : item.titleEn}</h3>
               <p>{isKo ? item.summaryKo : item.summaryEn}</p>

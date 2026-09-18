@@ -37,6 +37,8 @@ for marker in (
     require(html, marker, "exported homepage")
 
 require(weekly_source, "weekly-empty", "weekly highlights component")
+require(html, "20 Sep", "exported homepage")
+reject(html, "20 Sept", "exported homepage")
 
 for removed in (
     "images.unsplash.com",

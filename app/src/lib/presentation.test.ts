@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   formatDisplayDate,
+  formatShortDate,
   isPlaceholderUrl,
   toYouTubeEmbedUrl,
 } from './presentation';
@@ -9,6 +10,9 @@ import {
 test('formats dates for the selected language', () => {
   assert.equal(formatDisplayDate('2026-01-04', 'en'), '4 Jan 2026');
   assert.equal(formatDisplayDate('2026-01-04', 'ko'), '2026년 1월 4일');
+  assert.equal(formatDisplayDate('2026-09-20', 'en'), '20 Sep 2026');
+  assert.equal(formatShortDate('2026-09-20', 'en'), '20 Sep');
+  assert.equal(formatShortDate('2026-09-20', 'ko'), '9월 20일');
 });
 
 test('converts standard and short YouTube URLs to embeds', () => {
