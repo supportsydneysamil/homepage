@@ -38,8 +38,16 @@ const Worship: NextPage & { meta?: { title?: string; description?: string } } = 
           <h2>{isKo ? '두 번의 예배, 하나의 공동체' : 'Two services, one community'}</h2>
           <p>{isKo ? '편안한 복장으로 부담 없이 오세요.' : 'Come as you are. You will be warmly welcomed.'}</p>
         </div>
-        <div className="worship-time"><span>01</span><strong>9:30</strong><small>AM</small></div>
-        <div className="worship-time"><span>02</span><strong>11:00</strong><small>AM · KIDS</small></div>
+        <div className="worship-time">
+          <span>{isKo ? '1부' : '1st'}</span>
+          <strong>9:30</strong>
+          <small>{isKo ? 'AM · 어린이 예배' : 'AM · KIDS'}</small>
+        </div>
+        <div className="worship-time">
+          <span>{isKo ? '2부' : '2nd'}</span>
+          <strong>11:00</strong>
+          <small>{isKo ? 'AM · 메인 예배' : 'AM · MAIN'}</small>
+        </div>
       </section>
 
       <section className="worship-details">
