@@ -6,7 +6,10 @@ export type ApiEvent = {
   date: string;
   title: string;
   description: string;
+  location: string;
+  startTime: string;
   youtubeUrl: string;
+  published: boolean;
   images: string[];
 };
 
@@ -47,6 +50,9 @@ export const parseEvents = (payload: unknown): ApiEvent[] =>
       title: String(row.title ?? ''),
       description: String(row.description ?? ''),
       youtubeUrl: String(row.youtubeUrl ?? ''),
+      location: String(row.location ?? ''),
+      startTime: String(row.startTime ?? ''),
+      published: row.published !== false && row.published !== 0 && row.published !== 'false',
       images: Array.isArray(row.images) ? row.images.map(String) : [],
     };
   });

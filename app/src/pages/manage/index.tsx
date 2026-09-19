@@ -8,6 +8,7 @@ import { useLanguage } from '../../lib/LanguageContext';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
 import { fileNameFromUrl, formatDisplayDate } from '../../lib/presentation';
+import { eventImageIdFromUrl } from '../../lib/events';
 import { MANAGE_TABS, buildManageHref, parseManageQuery, type ManageTab } from '../../lib/manageNav';
 import {
   RESOURCE_CATEGORIES,
@@ -137,7 +138,21 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           ? `현재 파일: ${fileName} · 새 파일을 고르면 교체됩니다.`
           : `Current file: ${fileName} · choosing a new file replaces it.`,
       slug: isKo ? '주소 슬러그' : 'URL slug',
+      slugHint: isKo
+        ? '비워두면 제목으로 만듭니다. 한글 제목은 날짜 주소가 됩니다.'
+        : 'Leave empty to generate from the title. Korean titles fall back to the date.',
       description: isKo ? '설명' : 'Description',
+      location: isKo ? '장소' : 'Location',
+      startTime: isKo ? '시작 시각' : 'Start time',
+      published: isKo ? '공개' : 'Visibility',
+      publishedLive: isKo ? '공개' : 'Published',
+      publishedDraft: isKo ? '초안' : 'Draft',
+      photo: isKo ? '사진' : 'Photo',
+      photoHint: isKo
+        ? 'JPG, PNG, WebP 파일을 한 번에 여러 장 고를 수 있습니다. 고른 사진은 기존 사진 뒤에 추가됩니다.'
+        : 'Pick one or more JPG, PNG, or WebP files. They are added after the existing photos.',
+      photoCurrent: (count: number) =>
+        isKo ? `등록된 사진 ${count}장` : `${count} photo${count === 1 ? '' : 's'} attached`,
       emptyResources: isKo ? '등록된 자료가 없습니다.' : 'No resources yet.',
       emptySermons: isKo ? '등록된 설교가 없습니다.' : 'No sermons yet.',
       emptyEvents: isKo ? '등록된 이벤트가 없습니다.' : 'No events yet.',
@@ -214,6 +229,16 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       if (editId === id) {
         goTo(tab);
       }
+    } catch (error) {
+      setNotice(labels.deleteFailed);
+    }
+  };
+
+  const onRemovePhoto = async (imageUrl: string) => {
+    try {
+      await deleteContent('/api/events/images', eventImageIdFromUrl(imageUrl));
+      await events.reload();
+      setNotice(labels.deleted);
     } catch (error) {
       setNotice(labels.deleteFailed);
     }
@@ -314,7 +339,8 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 busyLabel={labels.saving}
                 cancelLabel={labels.cancel}
                 onCancel={() => goTo('resources')}
-                onSubmit={async (values, file) => {
+                onSubmit={async (values, files) => {
+                  const [file] = files;
                   const replacement = file ? await uploadFile(file, 'resources') : null;
                   await sendContent('/api/resources', 'PUT', {
                     id: editingResource.id,
@@ -474,7 +500,8 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
               busyLabel={labels.saving}
               cancelLabel={editingSermon ? labels.cancel : undefined}
               onCancel={editingSermon ? () => goTo('sermons') : undefined}
-              onSubmit={async (values, file) => {
+              onSubmit={async (values, files) => {
+                const [file] = files;
                 let media = editingSermon
                   ? { mediaUrl: editingSermon.mediaUrl, mediaContentType: editingSermon.mediaContentType }
                   : { mediaUrl: '', mediaContentType: '' };
@@ -502,7 +529,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             items={events.items.map((item) => ({
               id: item.id,
               primary: item.title,
-              secondary: formatDisplayDate(item.date, lang),
+              secondary: [
+                formatDisplayDate(item.date, lang),
+                item.location,
+                item.published ? '' : isKo ? '초안' : 'Draft',
+              ]
+                .filter(Boolean)
+                .join(' · '),
             }))}
             activeId={editId}
             emptyLabel={labels.emptyEvents}
@@ -519,16 +552,60 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
 
           <div className="manage-editor">
             <h2>{editingEvent ? labels.editEvent : labels.addEvent}</h2>
+
+            {editingEvent?.images.length ? (
+              <div className="manage-gallery">
+                <span className="muted">{labels.photoCurrent(editingEvent.images.length)}</span>
+                <ul>
+                  {editingEvent.images.map((image) => (
+                    <li key={image}>
+                      <img src={image} alt="" />
+                      <button
+                        type="button"
+                        className="manage-button manage-button--ghost"
+                        onClick={() => onRemovePhoto(image)}
+                      >
+                        {labels.remove}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <ContentForm
               fields={
                 [
-                  { name: 'slug', label: labels.slug, type: 'text', required: true },
-                  { name: 'date', label: labels.date, type: 'date', required: true },
                   { name: 'title', label: labels.title, type: 'text', required: true },
+                  { name: 'date', label: labels.date, type: 'date', required: true },
+                  { name: 'startTime', label: labels.startTime, type: 'time' },
+                  { name: 'location', label: labels.location, type: 'text' },
+                  {
+                    name: 'slug',
+                    label: labels.slug,
+                    type: 'text',
+                    hint: labels.slugHint,
+                  },
                   { name: 'description', label: labels.description, type: 'textarea' },
                   { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
+                  {
+                    name: 'published',
+                    label: labels.published,
+                    type: 'select',
+                    options: [
+                      { value: 'true', label: labels.publishedLive },
+                      { value: 'false', label: labels.publishedDraft },
+                    ],
+                  },
                 ] as FormField[]
               }
+              fileField={{
+                name: 'event-photo',
+                label: labels.photo,
+                accept: '.jpg,.jpeg,.png,.webp',
+                hint: labels.photoHint,
+                multiple: true,
+              }}
               initialValues={
                 editingEvent
                   ? {
@@ -536,7 +613,10 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                       date: editingEvent.date,
                       title: editingEvent.title,
                       description: editingEvent.description,
+                      location: editingEvent.location,
+                      startTime: editingEvent.startTime,
                       youtubeUrl: editingEvent.youtubeUrl,
+                      published: editingEvent.published ? 'true' : 'false',
                     }
                   : undefined
               }
@@ -544,11 +624,24 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
               busyLabel={labels.saving}
               cancelLabel={editingEvent ? labels.cancel : undefined}
               onCancel={editingEvent ? () => goTo('events') : undefined}
-              onSubmit={async (values) => {
+              onSubmit={async (values, files) => {
+                const uploaded = await Promise.all(files.map((file) => uploadFile(file, 'events')));
+                const imageBlobPaths = uploaded.map((item) => item.blobPath);
+                const payload = {
+                  slug: values.slug,
+                  date: values.date,
+                  title: values.title,
+                  description: values.description,
+                  location: values.location,
+                  startTime: values.startTime,
+                  youtubeUrl: values.youtubeUrl,
+                  published: values.published !== 'false',
+                  imageBlobPaths,
+                };
                 if (editingEvent) {
-                  await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...values });
+                  await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload });
                 } else {
-                  await sendContent('/api/events', 'POST', values);
+                  await sendContent('/api/events', 'POST', payload);
                 }
                 await events.reload();
                 goTo('events');

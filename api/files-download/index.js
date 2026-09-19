@@ -3,9 +3,8 @@ const { getClientPrincipal } = require('../shared/principal');
 const { canSee, DEFAULT_VISIBILITY } = require('../shared/library');
 const { createReadSas } = require('../shared/blob');
 
-// Resolving the id through SQL keeps callers from naming an arbitrary blob.
-// Sermon and event attachments carry no visibility column of their own, so they
-// fall back to the member level.
+// Event photos are shown on the public events pages, so they are public.
+// Sermon attachments have no visibility column and stay at the member level.
 const lookupFile = async (id) => {
   await ensureSchema();
   const pool = await getPool();
@@ -17,7 +16,7 @@ SELECT BlobPath, Visibility FROM dbo.Resources WHERE Id = @id
 UNION ALL
 SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility FROM dbo.SermonFiles WHERE Id = @id
 UNION ALL
-SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility FROM dbo.EventImages WHERE Id = @id;
+SELECT BlobPath, 'public' AS Visibility FROM dbo.EventImages WHERE Id = @id;
 `);
   const row = result.recordset && result.recordset[0];
   return row ? { blobPath: row.BlobPath, visibility: row.Visibility } : null;
