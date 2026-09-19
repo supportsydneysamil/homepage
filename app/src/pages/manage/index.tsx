@@ -93,6 +93,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       date: isKo ? '날짜' : 'Date',
       speaker: isKo ? '설교자' : 'Speaker',
       youtube: isKo ? '유튜브 주소' : 'YouTube URL',
+      recording: isKo ? '설교 음원 · 영상 파일' : 'Sermon recording',
+      recordingHint: isKo
+        ? 'MP3, M4A, WAV, MP4, WebM 파일을 최대 200MB까지 올릴 수 있습니다. 유튜브만 쓰신다면 비워두세요.'
+        : 'MP3, M4A, WAV, MP4, or WebM up to 200 MB. Leave empty when you only use YouTube.',
+      recordingCurrent: isKo
+        ? '이미 올린 파일이 있습니다. 새 파일을 고르면 교체됩니다.'
+        : 'A recording is already attached. Choosing a new file replaces it.',
       slug: isKo ? '주소 슬러그' : 'URL slug',
       description: isKo ? '설명' : 'Description',
       emptyResources: isKo ? '등록된 자료가 없습니다.' : 'No resources yet.',
@@ -315,15 +322,30 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                     }
                   : undefined
               }
+              fileField={{
+                name: 'sermon-media',
+                label: labels.recording,
+                accept: '.mp3,.m4a,.wav,.mp4,.webm',
+                hint: labels.recordingHint,
+                currentLabel: editingSermon?.mediaUrl ? labels.recordingCurrent : undefined,
+              }}
               submitLabel={labels.save}
               busyLabel={labels.saving}
               cancelLabel={editingSermon ? labels.cancel : undefined}
               onCancel={editingSermon ? () => goTo('sermons') : undefined}
-              onSubmit={async (values) => {
+              onSubmit={async (values, file) => {
+                let media = editingSermon
+                  ? { mediaUrl: editingSermon.mediaUrl, mediaContentType: editingSermon.mediaContentType }
+                  : { mediaUrl: '', mediaContentType: '' };
+                if (file) {
+                  const uploaded = await uploadFile(file, 'media');
+                  media = { mediaUrl: uploaded.publicUrl ?? '', mediaContentType: uploaded.contentType };
+                }
+                const payload = { ...values, ...media };
                 if (editingSermon) {
-                  await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...values });
+                  await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload });
                 } else {
-                  await sendContent('/api/sermons', 'POST', values);
+                  await sendContent('/api/sermons', 'POST', payload);
                 }
                 await sermons.reload();
                 goTo('sermons');

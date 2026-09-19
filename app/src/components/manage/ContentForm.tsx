@@ -8,18 +8,28 @@ export type FormField = {
   readOnly?: boolean;
 };
 
+export type FileField = {
+  name: string;
+  label: string;
+  accept: string;
+  hint?: string;
+  currentLabel?: string;
+};
+
 type ContentFormProps = {
   fields: FormField[];
+  fileField?: FileField;
   initialValues?: Record<string, string>;
   submitLabel: string;
   busyLabel: string;
   cancelLabel?: string;
   onCancel?: () => void;
-  onSubmit: (values: Record<string, string>) => Promise<void>;
+  onSubmit: (values: Record<string, string>, file: File | null) => Promise<void>;
 };
 
 const ContentForm = ({
   fields,
+  fileField,
   initialValues,
   submitLabel,
   busyLabel,
@@ -28,12 +38,16 @@ const ContentForm = ({
   onSubmit,
 }: ContentFormProps) => {
   const [values, setValues] = useState<Record<string, string>>(initialValues ?? {});
+  const [file, setFile] = useState<File | null>(null);
+  const [fileKey, setFileKey] = useState(0);
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const initialKey = JSON.stringify(initialValues ?? {});
   useEffect(() => {
     setValues(initialValues ?? {});
+    setFile(null);
+    setFileKey((previous) => previous + 1);
     setStatus(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialKey]);
@@ -43,7 +57,9 @@ const ContentForm = ({
     setIsBusy(true);
     setStatus(null);
     try {
-      await onSubmit(values);
+      await onSubmit(values, file);
+      setFile(null);
+      setFileKey((previous) => previous + 1);
       if (!initialValues) {
         setValues({});
       }
@@ -83,6 +99,21 @@ const ContentForm = ({
           )}
         </div>
       ))}
+
+      {fileField ? (
+        <div className="manage-form__field">
+          <label htmlFor={`field-${fileField.name}`}>{fileField.label}</label>
+          <input
+            key={fileKey}
+            id={`field-${fileField.name}`}
+            type="file"
+            accept={fileField.accept}
+            onChange={(changeEvent) => setFile(changeEvent.target.files?.[0] ?? null)}
+          />
+          {fileField.currentLabel ? <span className="muted">{fileField.currentLabel}</span> : null}
+          {fileField.hint ? <span className="muted">{fileField.hint}</span> : null}
+        </div>
+      ) : null}
 
       <div className="manage-form__actions">
         <button type="submit" className="manage-button" disabled={isBusy}>

@@ -55,6 +55,14 @@ const Sermons: NextPage & {
                       allowFullScreen
                     />
                   </div>
+                ) : sermon.mediaUrl && sermon.mediaContentType.startsWith('video/') ? (
+                  <div className="site-video">
+                    <video src={sermon.mediaUrl} controls preload="none" />
+                  </div>
+                ) : sermon.mediaUrl ? (
+                  <div className="sermon-audio">
+                    <audio src={sermon.mediaUrl} controls preload="none" />
+                  </div>
                 ) : (
                   <div className="media-unavailable">
                     <span aria-hidden="true" />

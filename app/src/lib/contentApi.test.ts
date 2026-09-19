@@ -22,6 +22,25 @@ test('parses a sermons payload', () => {
     sermons: [{ id: '1', date: '2026-01-04', title: 'T', speaker: 'P', youtubeUrl: '' }],
   });
   assert.strictEqual(sermons[0].speaker, 'P');
+  assert.strictEqual(sermons[0].mediaUrl, '');
+});
+
+test('parses an uploaded sermon recording', () => {
+  const sermons = parseSermons({
+    sermons: [
+      {
+        id: '1',
+        date: '2026-08-16',
+        title: 'T',
+        speaker: 'P',
+        youtubeUrl: '',
+        mediaUrl: 'https://samilchurchstorage0.blob.core.windows.net/samilmedia/media/a.mp3',
+        mediaContentType: 'audio/mpeg',
+      },
+    ],
+  });
+  assert.strictEqual(sermons[0].mediaContentType, 'audio/mpeg');
+  assert.ok(sermons[0].mediaUrl.endsWith('.mp3'));
 });
 
 test('parses a resources payload and keeps the proxied download url', () => {

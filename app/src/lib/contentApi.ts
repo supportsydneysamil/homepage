@@ -16,6 +16,8 @@ export type ApiSermon = {
   title: string;
   speaker: string;
   youtubeUrl: string;
+  mediaUrl: string;
+  mediaContentType: string;
 };
 
 export type ApiResource = {
@@ -54,6 +56,8 @@ export const parseSermons = (payload: unknown): ApiSermon[] =>
       title: String(row.title ?? ''),
       speaker: String(row.speaker ?? ''),
       youtubeUrl: String(row.youtubeUrl ?? ''),
+      mediaUrl: String(row.mediaUrl ?? ''),
+      mediaContentType: String(row.mediaContentType ?? ''),
     };
   });
 
