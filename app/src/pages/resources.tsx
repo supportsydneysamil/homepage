@@ -1,19 +1,21 @@
-import type { GetStaticProps, NextPage } from 'next';
+import type { NextPage } from 'next';
 import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
-import resourcesData from '../content/resources.json';
 import { useLanguage } from '../lib/LanguageContext';
-import { isPlaceholderUrl } from '../lib/presentation';
+import { fetchResources, useContent, type ApiResource } from '../lib/contentApi';
 
-type Resource = { title: string; url: string };
-type ResourcesPageProps = { resources: Resource[] };
+const formatSize = (bytes: number) => {
+  if (!bytes) return '';
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+};
 
-const Resources: NextPage<ResourcesPageProps> & {
+const Resources: NextPage & {
   meta?: { title?: string; description?: string };
-} = ({ resources }) => {
+} = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
-  const availableResources = resources.filter((resource) => !isPlaceholderUrl(resource.url));
+  const { items: resources, isLoading, error } = useContent<ApiResource>(fetchResources);
 
   return (
     <article className="site-page resources-page">
@@ -27,19 +29,30 @@ const Resources: NextPage<ResourcesPageProps> & {
         }
       />
 
-      {availableResources.length ? (
+      {isLoading ? <p className="account-state">{isKo ? '불러오는 중...' : 'Loading...'}</p> : null}
+
+      {error ? (
+        <p className="error-text" role="alert">
+          {isKo ? '자료를 불러오지 못했습니다.' : 'Resources could not be loaded.'}
+        </p>
+      ) : null}
+
+      {!isLoading && !error && resources.length ? (
         <ol className="resource-list">
-          {availableResources.map((resource, index) => (
-            <li key={resource.url}>
+          {resources.map((resource, index) => (
+            <li key={resource.id}>
               <span>0{index + 1}</span>
               <strong>{resource.title}</strong>
-              <a href={resource.url} target="_blank" rel="noreferrer">
-                {isKo ? '자료 열기' : 'Open resource'} <span aria-hidden="true">↗</span>
+              <span className="resource-list__meta">{formatSize(resource.sizeBytes)}</span>
+              <a href={resource.downloadUrl} rel="noreferrer">
+                {isKo ? '다운로드' : 'Download'} <span aria-hidden="true">↓</span>
               </a>
             </li>
           ))}
         </ol>
-      ) : (
+      ) : null}
+
+      {!isLoading && !error && !resources.length ? (
         <EmptyState
           title={isKo ? '자료를 정리하고 있습니다' : 'Resources are being prepared'}
           description={
@@ -50,7 +63,7 @@ const Resources: NextPage<ResourcesPageProps> & {
           href="/contact"
           linkLabel={isKo ? '자료 문의하기' : 'Ask about a resource'}
         />
-      )}
+      ) : null}
     </article>
   );
 };
@@ -59,9 +72,5 @@ Resources.meta = {
   title: 'Resources',
   description: 'Bulletins and helpful resources from Sydney Samil Church.',
 };
-
-export const getStaticProps: GetStaticProps<ResourcesPageProps> = async () => ({
-  props: { resources: resourcesData },
-});
 
 export default Resources;
