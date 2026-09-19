@@ -1,10 +1,14 @@
 import type { NextPage } from 'next';
-import { useState } from 'react';
+import { useRouter } from 'next/router';
+import { useMemo, useState } from 'react';
 import PageHero from '../../components/PageHero';
+import ContentForm, { type FormField } from '../../components/manage/ContentForm';
+import ManageList from '../../components/manage/ManageList';
 import { useLanguage } from '../../lib/LanguageContext';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
-import ContentForm, { type FormField } from '../../components/manage/ContentForm';
+import { formatDisplayDate } from '../../lib/presentation';
+import { MANAGE_TABS, buildManageHref, parseManageQuery, type ManageTab } from '../../lib/manageNav';
 import {
   fetchEvents,
   fetchResources,
@@ -16,12 +20,23 @@ import {
 } from '../../lib/contentApi';
 import { uploadFile } from '../../lib/uploadFile';
 
-const postContent = async (endpoint: string, values: Record<string, string>) => {
+const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: unknown) => {
   const res = await fetch(endpoint, {
-    method: 'POST',
+    method,
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(values),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const detail = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(detail.error || `Request failed (${res.status})`);
+  }
+};
+
+const deleteContent = async (endpoint: string, id: string) => {
+  const res = await fetch(`${endpoint}?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    credentials: 'include',
   });
   if (!res.ok) {
     const detail = (await res.json().catch(() => ({}))) as { error?: string };
@@ -34,15 +49,62 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const { isEditor, isLoading: isRoleLoading } = useRoles();
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
-  const { items: resources } = useContent<ApiResource>(fetchResources);
-  const { items: events } = useContent<ApiEvent>(fetchEvents);
-  const { items: sermons } = useContent<ApiSermon>(fetchSermons);
-  const [title, setTitle] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
+  const router = useRouter();
+  // Static export serves this page without query params, so wait for the
+  // client-side router before choosing a tab or edit target.
+  const { tab, editId } = parseManageQuery(router.isReady ? router.query : {});
 
-  if (isLoading || isRoleLoading) {
+  const resources = useContent<ApiResource>(fetchResources);
+  const sermons = useContent<ApiSermon>(fetchSermons);
+  const events = useContent<ApiEvent>(fetchEvents);
+
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadFileHandle, setUploadFileHandle] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const labels = useMemo(
+    () => ({
+      tabs: {
+        resources: isKo ? '자료실' : 'Resources',
+        sermons: isKo ? '설교' : 'Sermons',
+        events: isKo ? '이벤트' : 'Events',
+      } as Record<ManageTab, string>,
+      edit: isKo ? '편집' : 'Edit',
+      remove: isKo ? '삭제' : 'Delete',
+      confirm: isKo ? '삭제 확인' : 'Confirm',
+      cancel: isKo ? '취소' : 'Cancel',
+      saving: isKo ? '저장 중...' : 'Saving...',
+      saved: isKo ? '저장되었습니다.' : 'Saved.',
+      deleted: isKo ? '삭제되었습니다.' : 'Deleted.',
+      deleteFailed: isKo ? '삭제하지 못했습니다.' : 'Delete failed.',
+      addResource: isKo ? '자료 추가' : 'Add a resource',
+      editResource: isKo ? '자료 이름 변경' : 'Rename resource',
+      addSermon: isKo ? '설교 추가' : 'Add a sermon',
+      editSermon: isKo ? '설교 수정' : 'Edit sermon',
+      addEvent: isKo ? '이벤트 추가' : 'Add an event',
+      editEvent: isKo ? '이벤트 수정' : 'Edit event',
+      save: isKo ? '저장' : 'Save',
+      upload: isKo ? '업로드' : 'Upload',
+      uploading: isKo ? '업로드 중...' : 'Uploading...',
+      title: isKo ? '제목' : 'Title',
+      file: isKo ? '파일' : 'File',
+      date: isKo ? '날짜' : 'Date',
+      speaker: isKo ? '설교자' : 'Speaker',
+      youtube: isKo ? '유튜브 주소' : 'YouTube URL',
+      slug: isKo ? '주소 슬러그' : 'URL slug',
+      description: isKo ? '설명' : 'Description',
+      emptyResources: isKo ? '등록된 자료가 없습니다.' : 'No resources yet.',
+      emptySermons: isKo ? '등록된 설교가 없습니다.' : 'No sermons yet.',
+      emptyEvents: isKo ? '등록된 이벤트가 없습니다.' : 'No events yet.',
+      needFile: isKo ? '제목과 파일을 모두 입력해 주세요.' : 'Provide both a title and a file.',
+      uploadFailed: isKo ? '업로드에 실패했습니다.' : 'Upload failed.',
+    }),
+    [isKo]
+  );
+
+  if (isLoading || isRoleLoading || !router.isReady) {
     return <p className="account-state">{isKo ? '권한 확인 중...' : 'Checking permissions...'}</p>;
   }
 
@@ -61,133 +123,277 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     );
   }
 
-  const onSubmit = async (formEvent: React.FormEvent) => {
+  const goTo = (nextTab: ManageTab, nextEditId?: string) => {
+    setPendingDeleteId(null);
+    setNotice(null);
+    void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true });
+  };
+
+  const editingResource = resources.items.find((item) => item.id === editId) ?? null;
+  const editingSermon = sermons.items.find((item) => item.id === editId) ?? null;
+  const editingEvent = events.items.find((item) => item.id === editId) ?? null;
+
+  const onUpload = async (formEvent: React.FormEvent) => {
     formEvent.preventDefault();
-    if (!file || !title.trim()) {
-      setStatus(isKo ? '제목과 파일을 모두 입력해 주세요.' : 'Provide both a title and a file.');
+    if (!uploadFileHandle || !uploadTitle.trim()) {
+      setNotice(labels.needFile);
       return;
     }
 
-    setIsBusy(true);
-    setStatus(null);
+    setIsUploading(true);
+    setNotice(null);
     try {
-      const uploaded = await uploadFile(file, 'resources');
-      const res = await fetch('/api/resources', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ title: title.trim(), ...uploaded }),
-      });
-      if (!res.ok) {
-        throw new Error(String(res.status));
-      }
-      setStatus(
-        isKo ? '자료가 등록되었습니다. 새로고침하면 목록에 보입니다.' : 'Resource uploaded. Refresh to see it listed.'
-      );
-      setTitle('');
-      setFile(null);
+      const uploaded = await uploadFile(uploadFileHandle, 'resources');
+      await sendContent('/api/resources', 'POST', { title: uploadTitle.trim(), ...uploaded });
+      setUploadTitle('');
+      setUploadFileHandle(null);
+      await resources.reload();
+      setNotice(labels.saved);
     } catch (error) {
-      setStatus(isKo ? '업로드에 실패했습니다.' : 'Upload failed.');
+      setNotice(labels.uploadFailed);
     }
-    setIsBusy(false);
+    setIsUploading(false);
+  };
+
+  const onDelete = async (endpoint: string, id: string, reload: () => Promise<void>) => {
+    setPendingDeleteId(null);
+    try {
+      await deleteContent(endpoint, id);
+      await reload();
+      setNotice(labels.deleted);
+      if (editId === id) {
+        goTo(tab);
+      }
+    } catch (error) {
+      setNotice(labels.deleteFailed);
+    }
   };
 
   return (
-    <article className="site-page settings-page">
+    <article className="site-page manage-page">
       <PageHero
         eyebrow={isKo ? '편집자' : 'Editors'}
         title={isKo ? '자료 관리' : 'Content management'}
         description={
           isKo
-            ? '주보와 자료를 올리고 목록을 관리합니다. 파일은 최대 25MB까지 등록할 수 있습니다.'
-            : 'Upload bulletins and resources. Files may be up to 25 MB.'
+            ? '주보와 설교, 이벤트를 한곳에서 등록하고 수정합니다. 파일은 최대 25MB까지 올릴 수 있습니다.'
+            : 'Publish and update bulletins, sermons, and events in one place. Files may be up to 25 MB.'
         }
       />
 
-      <form className="settings-card" onSubmit={onSubmit}>
-        <label htmlFor="resource-title">{isKo ? '자료 제목' : 'Resource title'}</label>
-        <input
-          id="resource-title"
-          type="text"
-          value={title}
-          onChange={(changeEvent) => setTitle(changeEvent.target.value)}
-          maxLength={200}
-          required
-        />
+      <nav className="manage-tabs" aria-label={isKo ? '관리 영역' : 'Management sections'}>
+        {MANAGE_TABS.map((manageTab) => (
+          <button
+            key={manageTab}
+            type="button"
+            className={manageTab === tab ? 'manage-tab manage-tab--active' : 'manage-tab'}
+            aria-current={manageTab === tab ? 'page' : undefined}
+            onClick={() => goTo(manageTab)}
+          >
+            {labels.tabs[manageTab]}
+          </button>
+        ))}
+      </nav>
 
-        <label htmlFor="resource-file">{isKo ? '파일' : 'File'}</label>
-        <input
-          id="resource-file"
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.pptx"
-          onChange={(changeEvent) => setFile(changeEvent.target.files?.[0] ?? null)}
-          required
-        />
-
-        <button type="submit" disabled={isBusy}>
-          {isBusy ? (isKo ? '업로드 중...' : 'Uploading...') : isKo ? '업로드' : 'Upload'}
-        </button>
-
-        {status ? (
-          <p className="account-state" role="status" aria-live="polite">
-            {status}
-          </p>
-        ) : null}
-      </form>
-
-      <section className="settings-card">
-        <h2>{isKo ? '등록된 자료' : 'Uploaded resources'}</h2>
-        {resources.length ? (
-          <ul>
-            {resources.map((resource) => (
-              <li key={resource.id}>{resource.title}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">{isKo ? '등록된 자료가 없습니다.' : 'No resources yet.'}</p>
-        )}
-      </section>
-
-      <section className="settings-card">
-        <h2>{isKo ? '이벤트 추가' : 'Add an event'}</h2>
-        <ContentForm
-          fields={
-            [
-              { name: 'slug', label: isKo ? '주소 슬러그' : 'URL slug', type: 'text', required: true },
-              { name: 'date', label: isKo ? '날짜' : 'Date', type: 'date', required: true },
-              { name: 'title', label: isKo ? '제목' : 'Title', type: 'text', required: true },
-              { name: 'description', label: isKo ? '설명' : 'Description', type: 'textarea' },
-              { name: 'youtubeUrl', label: isKo ? '유튜브 주소' : 'YouTube URL', type: 'url' },
-            ] as FormField[]
-          }
-          submitLabel={isKo ? '이벤트 저장' : 'Save event'}
-          busyLabel={isKo ? '저장 중...' : 'Saving...'}
-          onSubmit={(values) => postContent('/api/events', values)}
-        />
-        <p className="muted">
-          {isKo ? `등록된 이벤트 ${events.length}건` : `${events.length} events published`}
+      {notice ? (
+        <p className="account-state" role="status" aria-live="polite">
+          {notice}
         </p>
-      </section>
+      ) : null}
 
-      <section className="settings-card">
-        <h2>{isKo ? '설교 추가' : 'Add a sermon'}</h2>
-        <ContentForm
-          fields={
-            [
-              { name: 'date', label: isKo ? '날짜' : 'Date', type: 'date', required: true },
-              { name: 'title', label: isKo ? '제목' : 'Title', type: 'text', required: true },
-              { name: 'speaker', label: isKo ? '설교자' : 'Speaker', type: 'text' },
-              { name: 'youtubeUrl', label: isKo ? '유튜브 주소' : 'YouTube URL', type: 'url' },
-            ] as FormField[]
-          }
-          submitLabel={isKo ? '설교 저장' : 'Save sermon'}
-          busyLabel={isKo ? '저장 중...' : 'Saving...'}
-          onSubmit={(values) => postContent('/api/sermons', values)}
-        />
-        <p className="muted">
-          {isKo ? `등록된 설교 ${sermons.length}건` : `${sermons.length} sermons published`}
-        </p>
-      </section>
+      {tab === 'resources' ? (
+        <section className="manage-panel">
+          <ManageList
+            items={resources.items.map((item) => ({ id: item.id, primary: item.title }))}
+            activeId={editId}
+            emptyLabel={labels.emptyResources}
+            editLabel={labels.edit}
+            deleteLabel={labels.remove}
+            confirmLabel={labels.confirm}
+            cancelLabel={labels.cancel}
+            pendingDeleteId={pendingDeleteId}
+            onEdit={(id) => goTo('resources', id)}
+            onRequestDelete={setPendingDeleteId}
+            onConfirmDelete={(id) => onDelete('/api/resources', id, resources.reload)}
+            onCancelDelete={() => setPendingDeleteId(null)}
+          />
+
+          {editingResource ? (
+            <div className="manage-editor">
+              <h2>{labels.editResource}</h2>
+              <ContentForm
+                fields={[{ name: 'title', label: labels.title, type: 'text', required: true }]}
+                initialValues={{ title: editingResource.title }}
+                submitLabel={labels.save}
+                busyLabel={labels.saving}
+                cancelLabel={labels.cancel}
+                onCancel={() => goTo('resources')}
+                onSubmit={async (values) => {
+                  await sendContent('/api/resources', 'PUT', { id: editingResource.id, title: values.title });
+                  await resources.reload();
+                  goTo('resources');
+                }}
+              />
+            </div>
+          ) : (
+            <div className="manage-editor">
+              <h2>{labels.addResource}</h2>
+              <form className="manage-form" onSubmit={onUpload}>
+                <div className="manage-form__field">
+                  <label htmlFor="resource-title">{labels.title}</label>
+                  <input
+                    id="resource-title"
+                    type="text"
+                    value={uploadTitle}
+                    onChange={(changeEvent) => setUploadTitle(changeEvent.target.value)}
+                    maxLength={200}
+                    required
+                  />
+                </div>
+
+                <div className="manage-form__field">
+                  <label htmlFor="resource-file">{labels.file}</label>
+                  <input
+                    id="resource-file"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.pptx"
+                    onChange={(changeEvent) => setUploadFileHandle(changeEvent.target.files?.[0] ?? null)}
+                    required
+                  />
+                </div>
+
+                <div className="manage-form__actions">
+                  <button type="submit" className="manage-button" disabled={isUploading}>
+                    {isUploading ? labels.uploading : labels.upload}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {tab === 'sermons' ? (
+        <section className="manage-panel">
+          <ManageList
+            items={sermons.items.map((item) => ({
+              id: item.id,
+              primary: item.title,
+              secondary: `${formatDisplayDate(item.date, lang)}${item.speaker ? ` · ${item.speaker}` : ''}`,
+            }))}
+            activeId={editId}
+            emptyLabel={labels.emptySermons}
+            editLabel={labels.edit}
+            deleteLabel={labels.remove}
+            confirmLabel={labels.confirm}
+            cancelLabel={labels.cancel}
+            pendingDeleteId={pendingDeleteId}
+            onEdit={(id) => goTo('sermons', id)}
+            onRequestDelete={setPendingDeleteId}
+            onConfirmDelete={(id) => onDelete('/api/sermons', id, sermons.reload)}
+            onCancelDelete={() => setPendingDeleteId(null)}
+          />
+
+          <div className="manage-editor">
+            <h2>{editingSermon ? labels.editSermon : labels.addSermon}</h2>
+            <ContentForm
+              fields={
+                [
+                  { name: 'date', label: labels.date, type: 'date', required: true },
+                  { name: 'title', label: labels.title, type: 'text', required: true },
+                  { name: 'speaker', label: labels.speaker, type: 'text' },
+                  { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
+                ] as FormField[]
+              }
+              initialValues={
+                editingSermon
+                  ? {
+                      date: editingSermon.date,
+                      title: editingSermon.title,
+                      speaker: editingSermon.speaker,
+                      youtubeUrl: editingSermon.youtubeUrl,
+                    }
+                  : undefined
+              }
+              submitLabel={labels.save}
+              busyLabel={labels.saving}
+              cancelLabel={editingSermon ? labels.cancel : undefined}
+              onCancel={editingSermon ? () => goTo('sermons') : undefined}
+              onSubmit={async (values) => {
+                if (editingSermon) {
+                  await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...values });
+                } else {
+                  await sendContent('/api/sermons', 'POST', values);
+                }
+                await sermons.reload();
+                goTo('sermons');
+              }}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {tab === 'events' ? (
+        <section className="manage-panel">
+          <ManageList
+            items={events.items.map((item) => ({
+              id: item.id,
+              primary: item.title,
+              secondary: formatDisplayDate(item.date, lang),
+            }))}
+            activeId={editId}
+            emptyLabel={labels.emptyEvents}
+            editLabel={labels.edit}
+            deleteLabel={labels.remove}
+            confirmLabel={labels.confirm}
+            cancelLabel={labels.cancel}
+            pendingDeleteId={pendingDeleteId}
+            onEdit={(id) => goTo('events', id)}
+            onRequestDelete={setPendingDeleteId}
+            onConfirmDelete={(id) => onDelete('/api/events', id, events.reload)}
+            onCancelDelete={() => setPendingDeleteId(null)}
+          />
+
+          <div className="manage-editor">
+            <h2>{editingEvent ? labels.editEvent : labels.addEvent}</h2>
+            <ContentForm
+              fields={
+                [
+                  { name: 'slug', label: labels.slug, type: 'text', required: true },
+                  { name: 'date', label: labels.date, type: 'date', required: true },
+                  { name: 'title', label: labels.title, type: 'text', required: true },
+                  { name: 'description', label: labels.description, type: 'textarea' },
+                  { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
+                ] as FormField[]
+              }
+              initialValues={
+                editingEvent
+                  ? {
+                      slug: editingEvent.slug,
+                      date: editingEvent.date,
+                      title: editingEvent.title,
+                      description: editingEvent.description,
+                      youtubeUrl: editingEvent.youtubeUrl,
+                    }
+                  : undefined
+              }
+              submitLabel={labels.save}
+              busyLabel={labels.saving}
+              cancelLabel={editingEvent ? labels.cancel : undefined}
+              onCancel={editingEvent ? () => goTo('events') : undefined}
+              onSubmit={async (values) => {
+                if (editingEvent) {
+                  await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...values });
+                } else {
+                  await sendContent('/api/events', 'POST', values);
+                }
+                await events.reload();
+                goTo('events');
+              }}
+            />
+          </div>
+        </section>
+      ) : null}
     </article>
   );
 };

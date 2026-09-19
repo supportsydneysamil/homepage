@@ -1,23 +1,42 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export type FormField = {
   name: string;
   label: string;
   type: 'text' | 'date' | 'url' | 'textarea';
   required?: boolean;
+  readOnly?: boolean;
 };
 
 type ContentFormProps = {
   fields: FormField[];
+  initialValues?: Record<string, string>;
   submitLabel: string;
   busyLabel: string;
+  cancelLabel?: string;
+  onCancel?: () => void;
   onSubmit: (values: Record<string, string>) => Promise<void>;
 };
 
-const ContentForm = ({ fields, submitLabel, busyLabel, onSubmit }: ContentFormProps) => {
-  const [values, setValues] = useState<Record<string, string>>({});
+const ContentForm = ({
+  fields,
+  initialValues,
+  submitLabel,
+  busyLabel,
+  cancelLabel,
+  onCancel,
+  onSubmit,
+}: ContentFormProps) => {
+  const [values, setValues] = useState<Record<string, string>>(initialValues ?? {});
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+
+  const initialKey = JSON.stringify(initialValues ?? {});
+  useEffect(() => {
+    setValues(initialValues ?? {});
+    setStatus(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialKey]);
 
   const handleSubmit = async (formEvent: React.FormEvent) => {
     formEvent.preventDefault();
@@ -25,7 +44,9 @@ const ContentForm = ({ fields, submitLabel, busyLabel, onSubmit }: ContentFormPr
     setStatus(null);
     try {
       await onSubmit(values);
-      setValues({});
+      if (!initialValues) {
+        setValues({});
+      }
     } catch (error) {
       setStatus((error as Error).message);
     }
@@ -33,9 +54,9 @@ const ContentForm = ({ fields, submitLabel, busyLabel, onSubmit }: ContentFormPr
   };
 
   return (
-    <form className="settings-card" onSubmit={handleSubmit}>
+    <form className="manage-form" onSubmit={handleSubmit}>
       {fields.map((field) => (
-        <div key={field.name}>
+        <div className="manage-form__field" key={field.name}>
           <label htmlFor={`field-${field.name}`}>{field.label}</label>
           {field.type === 'textarea' ? (
             <textarea
@@ -45,6 +66,8 @@ const ContentForm = ({ fields, submitLabel, busyLabel, onSubmit }: ContentFormPr
                 setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
               }
               required={field.required}
+              readOnly={field.readOnly}
+              rows={3}
             />
           ) : (
             <input
@@ -55,14 +78,22 @@ const ContentForm = ({ fields, submitLabel, busyLabel, onSubmit }: ContentFormPr
                 setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
               }
               required={field.required}
+              readOnly={field.readOnly}
             />
           )}
         </div>
       ))}
 
-      <button type="submit" disabled={isBusy}>
-        {isBusy ? busyLabel : submitLabel}
-      </button>
+      <div className="manage-form__actions">
+        <button type="submit" className="manage-button" disabled={isBusy}>
+          {isBusy ? busyLabel : submitLabel}
+        </button>
+        {onCancel && cancelLabel ? (
+          <button type="button" className="manage-button manage-button--ghost" onClick={onCancel}>
+            {cancelLabel}
+          </button>
+        ) : null}
+      </div>
 
       {status ? (
         <p className="error-text" role="alert">
