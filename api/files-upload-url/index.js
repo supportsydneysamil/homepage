@@ -1,5 +1,11 @@
 const { requireRole, ROLES } = require('../shared/principal');
-const { validateUploadRequest, createUploadSas, UPLOAD_SAS_SECONDS } = require('../shared/blob');
+const {
+  validateUploadRequest,
+  createUploadSas,
+  isPublicFolder,
+  publicUrlFor,
+  UPLOAD_SAS_SECONDS,
+} = require('../shared/blob');
 
 module.exports = async function (context, req) {
   const auth = requireRole(req, ROLES.EDITOR);
@@ -15,10 +21,19 @@ module.exports = async function (context, req) {
   }
 
   try {
-    const uploadUrl = await createUploadSas(parsed.value.blobPath, parsed.value.contentType);
+    const uploadUrl = await createUploadSas(
+      parsed.value.blobPath,
+      parsed.value.contentType,
+      parsed.value.folder
+    );
     context.res = {
       status: 200,
-      body: { uploadUrl, blobPath: parsed.value.blobPath, expiresInSeconds: UPLOAD_SAS_SECONDS },
+      body: {
+        uploadUrl,
+        blobPath: parsed.value.blobPath,
+        publicUrl: isPublicFolder(parsed.value.folder) ? publicUrlFor(parsed.value.blobPath) : null,
+        expiresInSeconds: UPLOAD_SAS_SECONDS,
+      },
     };
   } catch (error) {
     context.log.error('files-upload-url error:', (error && error.message) || error);

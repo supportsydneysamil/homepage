@@ -152,6 +152,12 @@ BEGIN
   );
 END;
 
+IF COL_LENGTH('dbo.Sermons', 'MediaUrl') IS NULL
+  ALTER TABLE dbo.Sermons ADD MediaUrl NVARCHAR(600) NULL;
+
+IF COL_LENGTH('dbo.Sermons', 'MediaContentType') IS NULL
+  ALTER TABLE dbo.Sermons ADD MediaContentType NVARCHAR(150) NULL;
+
 IF OBJECT_ID('dbo.Resources', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.Resources (

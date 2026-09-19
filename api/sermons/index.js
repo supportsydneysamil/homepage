@@ -1,5 +1,6 @@
 const { sql, getPool, ensureSchema } = require('../shared/db');
 const { requireRole, actorOf, ROLES } = require('../shared/principal');
+const { isMediaUrl, ALLOWED_MEDIA_CONTENT_TYPES } = require('../shared/blob');
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const YOUTUBE_HOSTS = ['www.youtube.com', 'youtube.com', 'youtu.be'];
@@ -18,12 +19,29 @@ const validateSermonInput = (body) => {
   const title = String(input.title || '').trim();
   const speaker = String(input.speaker || '').trim();
   const youtubeUrl = String(input.youtubeUrl || '').trim();
+  const mediaUrl = String(input.mediaUrl || '').trim();
+  const mediaContentType = String(input.mediaContentType || '').trim().toLowerCase();
 
   if (!DATE_PATTERN.test(date) || Number.isNaN(Date.parse(date))) return { error: 'Date must be YYYY-MM-DD.' };
   if (!title || title.length > 200) return { error: 'Title is required and must be 200 characters or fewer.' };
   if (youtubeUrl && !isYouTubeUrl(youtubeUrl)) return { error: 'Video URL must be a YouTube link.' };
+  if (mediaUrl && !isMediaUrl(mediaUrl)) {
+    return { error: 'Recording URL must point at an uploaded file in the church media container.' };
+  }
+  if (mediaUrl && !ALLOWED_MEDIA_CONTENT_TYPES.includes(mediaContentType)) {
+    return { error: 'Recording type is not supported.' };
+  }
 
-  return { value: { date, title, speaker: speaker || null, youtubeUrl: youtubeUrl || null } };
+  return {
+    value: {
+      date,
+      title,
+      speaker: speaker || null,
+      youtubeUrl: youtubeUrl || null,
+      mediaUrl: mediaUrl || null,
+      mediaContentType: mediaUrl ? mediaContentType : null,
+    },
+  };
 };
 
 const mapRow = (row) => ({
@@ -32,6 +50,8 @@ const mapRow = (row) => ({
   title: row.Title,
   speaker: row.Speaker || '',
   youtubeUrl: row.YouTubeUrl || '',
+  mediaUrl: row.MediaUrl || '',
+  mediaContentType: row.MediaContentType || '',
 });
 
 const listSermons = async () => {
@@ -40,7 +60,7 @@ const listSermons = async () => {
   const result = await pool
     .request()
     .query(
-      'SELECT Id, SermonDate, Title, Speaker, YouTubeUrl FROM dbo.Sermons WHERE IsPublished = 1 ORDER BY SermonDate DESC'
+      'SELECT Id, SermonDate, Title, Speaker, YouTubeUrl, MediaUrl, MediaContentType FROM dbo.Sermons WHERE IsPublished = 1 ORDER BY SermonDate DESC'
     );
   return (result.recordset || []).map(mapRow);
 };
@@ -73,11 +93,14 @@ module.exports = async function (context, req) {
         .input('title', sql.NVarChar(200), parsed.value.title)
         .input('speaker', sql.NVarChar(120), parsed.value.speaker)
         .input('youTubeUrl', sql.NVarChar(500), parsed.value.youtubeUrl)
+        .input('mediaUrl', sql.NVarChar(600), parsed.value.mediaUrl)
+        .input('mediaContentType', sql.NVarChar(150), parsed.value.mediaContentType)
         .input('actor', sql.NVarChar(256), actor)
         .query(`
-INSERT INTO dbo.Sermons (SermonDate, Title, Speaker, YouTubeUrl, CreatedBy, UpdatedBy)
-OUTPUT inserted.Id, inserted.SermonDate, inserted.Title, inserted.Speaker, inserted.YouTubeUrl
-VALUES (@sermonDate, @title, @speaker, @youTubeUrl, @actor, @actor);
+INSERT INTO dbo.Sermons (SermonDate, Title, Speaker, YouTubeUrl, MediaUrl, MediaContentType, CreatedBy, UpdatedBy)
+OUTPUT inserted.Id, inserted.SermonDate, inserted.Title, inserted.Speaker, inserted.YouTubeUrl,
+       inserted.MediaUrl, inserted.MediaContentType
+VALUES (@sermonDate, @title, @speaker, @youTubeUrl, @mediaUrl, @mediaContentType, @actor, @actor);
 `);
       context.res = { status: 201, body: { sermon: mapRow(inserted.recordset[0]) } };
       return;
@@ -101,12 +124,16 @@ VALUES (@sermonDate, @title, @speaker, @youTubeUrl, @actor, @actor);
         .input('title', sql.NVarChar(200), parsed.value.title)
         .input('speaker', sql.NVarChar(120), parsed.value.speaker)
         .input('youTubeUrl', sql.NVarChar(500), parsed.value.youtubeUrl)
+        .input('mediaUrl', sql.NVarChar(600), parsed.value.mediaUrl)
+        .input('mediaContentType', sql.NVarChar(150), parsed.value.mediaContentType)
         .input('actor', sql.NVarChar(256), actor)
         .query(`
 UPDATE dbo.Sermons
 SET SermonDate = @sermonDate, Title = @title, Speaker = @speaker, YouTubeUrl = @youTubeUrl,
+    MediaUrl = @mediaUrl, MediaContentType = @mediaContentType,
     UpdatedBy = @actor, UpdatedAt = SYSUTCDATETIME()
-OUTPUT inserted.Id, inserted.SermonDate, inserted.Title, inserted.Speaker, inserted.YouTubeUrl
+OUTPUT inserted.Id, inserted.SermonDate, inserted.Title, inserted.Speaker, inserted.YouTubeUrl,
+       inserted.MediaUrl, inserted.MediaContentType
 WHERE Id = @id;
 `);
       if (!updated.recordset.length) {
