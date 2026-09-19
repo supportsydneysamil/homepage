@@ -1,50 +1,65 @@
 const { sql, getPool, ensureSchema } = require('../shared/db');
-const { requireRole, ROLES } = require('../shared/principal');
+const { getClientPrincipal } = require('../shared/principal');
+const { canSee, DEFAULT_VISIBILITY } = require('../shared/library');
 const { createReadSas } = require('../shared/blob');
 
 // Resolving the id through SQL keeps callers from naming an arbitrary blob.
-const lookupBlobPath = async (id) => {
+// Sermon and event attachments carry no visibility column of their own, so they
+// fall back to the member level.
+const lookupFile = async (id) => {
   await ensureSchema();
   const pool = await getPool();
   const result = await pool
     .request()
     .input('id', sql.UniqueIdentifier, id)
     .query(`
-SELECT BlobPath FROM dbo.Resources WHERE Id = @id
+SELECT BlobPath, Visibility FROM dbo.Resources WHERE Id = @id
 UNION ALL
-SELECT BlobPath FROM dbo.SermonFiles WHERE Id = @id
+SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility FROM dbo.SermonFiles WHERE Id = @id
 UNION ALL
-SELECT BlobPath FROM dbo.EventImages WHERE Id = @id;
+SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility FROM dbo.EventImages WHERE Id = @id;
 `);
   const row = result.recordset && result.recordset[0];
-  return row ? row.BlobPath : null;
+  return row ? { blobPath: row.BlobPath, visibility: row.Visibility } : null;
 };
 
-module.exports = async function (context, req) {
-  const auth = requireRole(req, ROLES.MEMBER);
-  if (auth.error) {
-    context.res = { status: auth.error.status, body: auth.error.body };
-    return;
-  }
+const defaultDeps = { lookupFile, createReadSas };
 
+module.exports = async function (context, req, deps = defaultDeps) {
   const id = String((req.params && req.params.id) || '').trim();
   if (!id) {
     context.res = { status: 400, body: { error: 'File id is required.' } };
     return;
   }
 
+  const principal = getClientPrincipal(req);
+  const userRoles = principal ? principal.userRoles : [];
+
   try {
-    const blobPath = await lookupBlobPath(id);
-    if (!blobPath) {
+    const file = await deps.lookupFile(id);
+    if (!file) {
       context.res = { status: 404, body: { error: 'File not found.' } };
       return;
     }
+
+    if (!canSee(file.visibility, userRoles)) {
+      context.res = principal
+        ? {
+            status: 403,
+            body: { error: 'You do not have access to this file.', errorKo: '이 자료에 접근할 권한이 없습니다.' },
+          }
+        : { status: 401, body: { error: 'Sign-in required.', errorKo: '로그인이 필요합니다.' } };
+      return;
+    }
+
     context.res = {
       status: 302,
-      headers: { Location: await createReadSas(blobPath), 'Cache-Control': 'no-store' },
+      headers: { Location: await deps.createReadSas(file.blobPath), 'Cache-Control': 'no-store' },
     };
   } catch (error) {
     context.log.error('files-download error:', (error && error.message) || error);
     context.res = { status: 500, body: { error: 'Unable to prepare the download.' } };
   }
 };
+
+module.exports.lookupFile = lookupFile;

@@ -1,12 +1,20 @@
 import type { NextPage } from 'next';
+import { useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
-import { formatListIndex } from '../lib/presentation';
+import { formatDisplayDate } from '../lib/presentation';
 import { fetchResources, useContent, type ApiResource } from '../lib/contentApi';
-import { useRoles } from '../lib/useRoles';
-import { buildManageHref } from '../lib/manageNav';
-
+import {
+  RESOURCE_CATEGORIES,
+  categoryLabel,
+  fileTypeLabel,
+  filterResources,
+  paginate,
+  visibilityLabel,
+  RESOURCES_PER_PAGE,
+  type ResourceCategory,
+} from '../lib/library';
 const formatSize = (bytes: number) => {
   if (!bytes) return '';
   const mb = bytes / (1024 * 1024);
@@ -19,7 +27,22 @@ const Resources: NextPage & {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { items: resources, isLoading, error } = useContent<ApiResource>(fetchResources);
-  const { isEditor } = useRoles();
+  const [category, setCategory] = useState<ResourceCategory | 'all'>('all');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+
+  const matched = filterResources(resources, category, search);
+  const current = paginate(matched, page, RESOURCES_PER_PAGE);
+  const visible = current.items;
+
+  // Narrowing the list can leave the reader on a page that no longer exists.
+  const showFrom = (nextCategory: ResourceCategory | 'all', nextSearch: string) => {
+    setCategory(nextCategory);
+    setSearch(nextSearch);
+    setPage(1);
+  };
+  const countFor = (id: ResourceCategory) =>
+    resources.filter((resource) => resource.category === id).length;
 
   return (
     <article className="site-page resources-page">
@@ -28,8 +51,8 @@ const Resources: NextPage & {
         title={isKo ? '필요한 자료를 한곳에서' : 'Helpful resources, all in one place'}
         description={
           isKo
-            ? '주보와 신앙생활에 도움이 되는 자료를 편하게 확인하세요.'
-            : 'Find weekly bulletins and practical resources to support your life of faith.'
+            ? '주보와 신앙생활에 도움이 되는 자료를 편하게 확인하세요. 일부 자료는 로그인 후에 보입니다.'
+            : 'Find bulletins and practical resources for your life of faith. Some items appear once you sign in.'
         }
       />
 
@@ -42,23 +65,148 @@ const Resources: NextPage & {
       ) : null}
 
       {!isLoading && !error && resources.length ? (
-        <ol className="resource-list">
-          {resources.map((resource, index) => (
-            <li key={resource.id}>
-              <span>{formatListIndex(index)}</span>
-              <strong>{resource.title}</strong>
-              <span className="resource-list__meta">{formatSize(resource.sizeBytes)}</span>
-              <a href={resource.downloadUrl} rel="noreferrer">
-                {isKo ? '다운로드' : 'Download'} <span aria-hidden="true">↓</span>
-              </a>
-              {isEditor ? (
-                <a className="manage-edit-link" href={buildManageHref('resources', resource.id)}>
-                  {isKo ? '편집' : 'Edit'}
-                </a>
+        <>
+          <div className="library-controls">
+            <nav className="library-tabs" aria-label={isKo ? '자료 분류' : 'Resource categories'}>
+              <button
+                type="button"
+                className={category === 'all' ? 'library-tab library-tab--active' : 'library-tab'}
+                aria-current={category === 'all' ? 'true' : undefined}
+                onClick={() => showFrom('all', search)}
+              >
+                {isKo ? '전체' : 'All'} ({resources.length})
+              </button>
+              {RESOURCE_CATEGORIES.filter((entry) => countFor(entry.id)).map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className={category === entry.id ? 'library-tab library-tab--active' : 'library-tab'}
+                  aria-current={category === entry.id ? 'true' : undefined}
+                  onClick={() => showFrom(entry.id, search)}
+                >
+                  {categoryLabel(entry.id, lang)} ({countFor(entry.id)})
+                </button>
+              ))}
+            </nav>
+
+            <div className="library-search">
+              <label className="visually-hidden" htmlFor="library-search-input">
+                {isKo ? '자료 검색' : 'Search resources'}
+              </label>
+              <input
+                id="library-search-input"
+                type="search"
+                value={search}
+                placeholder={isKo ? '제목으로 검색' : 'Search by title'}
+                onChange={(changeEvent) => showFrom(category, changeEvent.target.value)}
+              />
+              {search ? (
+                <button
+                  type="button"
+                  className="library-search__clear"
+                  onClick={() => showFrom(category, '')}
+                  aria-label={isKo ? '검색어 지우기' : 'Clear search'}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
               ) : null}
-            </li>
-          ))}
-        </ol>
+            </div>
+          </div>
+
+          <p className="library-count" role="status" aria-live="polite">
+            {matched.length
+              ? isKo
+                ? `${matched.length}건 중 ${current.from}–${current.to}`
+                : `${current.from}–${current.to} of ${matched.length}`
+              : isKo
+                ? '0건'
+                : 'No items'}
+          </p>
+
+          {visible.length ? (
+            <ul className="resource-list">
+              {visible.map((resource) => {
+                const meta = [
+                  fileTypeLabel(resource.contentType, lang),
+                  formatSize(resource.sizeBytes),
+                  resource.resourceDate ? formatDisplayDate(resource.resourceDate, lang) : '',
+                ].filter(Boolean);
+
+                return (
+                  <li key={resource.id} className="resource-row">
+                    <span className="resource-chip">{categoryLabel(resource.category, lang)}</span>
+
+                    <span className="resource-row__main">
+                      <strong>{resource.title}</strong>
+                      {resource.visibility !== 'public' ? (
+                        <span className="resource-badge">{visibilityLabel(resource.visibility, lang)}</span>
+                      ) : null}
+                    </span>
+
+                    {meta.length ? <span className="resource-row__meta">{meta.join(' · ')}</span> : null}
+
+                    <a
+                      className="resource-download"
+                      href={resource.downloadUrl}
+                      rel="noreferrer"
+                      aria-label={
+                        isKo ? `${resource.title} 다운로드` : `Download ${resource.title}`
+                      }
+                    >
+                      <span aria-hidden="true">↓</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+
+          {current.pageCount > 1 ? (
+            <nav className="library-pager" aria-label={isKo ? '자료 페이지' : 'Resource pages'}>
+              <button
+                type="button"
+                className="library-pager__step"
+                onClick={() => setPage(current.page - 1)}
+                disabled={current.page === 1}
+              >
+                {isKo ? '이전' : 'Previous'}
+              </button>
+
+              <span className="library-pager__pages">
+                {Array.from({ length: current.pageCount }, (_, index) => index + 1).map((number) => (
+                  <button
+                    key={number}
+                    type="button"
+                    className={
+                      number === current.page
+                        ? 'library-pager__page library-pager__page--active'
+                        : 'library-pager__page'
+                    }
+                    aria-current={number === current.page ? 'page' : undefined}
+                    onClick={() => setPage(number)}
+                  >
+                    {number}
+                  </button>
+                ))}
+              </span>
+
+              <button
+                type="button"
+                className="library-pager__step"
+                onClick={() => setPage(current.page + 1)}
+                disabled={current.page === current.pageCount}
+              >
+                {isKo ? '다음' : 'Next'}
+              </button>
+            </nav>
+          ) : null}
+
+          {!visible.length ? (
+            <p className="muted library-no-match">
+              {isKo ? '조건에 맞는 자료가 없습니다.' : 'No resources match that filter.'}
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       {!isLoading && !error && !resources.length ? (
@@ -66,8 +214,8 @@ const Resources: NextPage & {
           title={isKo ? '자료를 정리하고 있습니다' : 'Resources are being prepared'}
           description={
             isKo
-              ? '확인된 주보와 자료가 준비되는 대로 이곳에 추가하겠습니다.'
-              : 'Verified bulletins and resources will appear here as soon as they are ready.'
+              ? '확인된 주보와 자료가 준비되는 대로 이곳에 추가하겠습니다. 로그인하시면 더 많은 자료가 보일 수 있습니다.'
+              : 'Verified bulletins and resources will appear here soon. Signing in may reveal more.'
           }
           href="/contact"
           linkLabel={isKo ? '자료 문의하기' : 'Ask about a resource'}

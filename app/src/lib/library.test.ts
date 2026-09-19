@@ -1,0 +1,146 @@
+import test from 'node:test';
+import assert from 'node:assert';
+import {
+  RESOURCE_CATEGORIES,
+  RESOURCE_VISIBILITIES,
+  categoryLabel,
+  visibilityLabel,
+  filterResources,
+  fileTypeLabel,
+  paginate,
+} from './library';
+
+test('slices a page and reports the range', () => {
+  const items = Array.from({ length: 45 }, (_, index) => index);
+  const page1 = paginate(items, 1, 20);
+  assert.deepStrictEqual(page1.items, items.slice(0, 20));
+  assert.strictEqual(page1.pageCount, 3);
+  assert.strictEqual(page1.from, 1);
+  assert.strictEqual(page1.to, 20);
+});
+
+test('the last page holds the remainder', () => {
+  const items = Array.from({ length: 45 }, (_, index) => index);
+  const page3 = paginate(items, 3, 20);
+  assert.strictEqual(page3.items.length, 5);
+  assert.strictEqual(page3.from, 41);
+  assert.strictEqual(page3.to, 45);
+});
+
+test('a page beyond the end clamps to the last page', () => {
+  const page = paginate(Array.from({ length: 45 }, (_, i) => i), 9, 20);
+  assert.strictEqual(page.page, 3);
+  assert.strictEqual(page.items.length, 5);
+});
+
+test('a page below one clamps to the first page', () => {
+  const page = paginate([1, 2, 3], 0, 20);
+  assert.strictEqual(page.page, 1);
+  assert.strictEqual(page.items.length, 3);
+});
+
+test('an empty list has one page and an empty range', () => {
+  const page = paginate([], 1, 20);
+  assert.strictEqual(page.pageCount, 1);
+  assert.strictEqual(page.from, 0);
+  assert.strictEqual(page.to, 0);
+  assert.deepStrictEqual(page.items, []);
+});
+
+test('a list shorter than one page needs no second page', () => {
+  const page = paginate([1, 2, 3], 1, 20);
+  assert.strictEqual(page.pageCount, 1);
+  assert.strictEqual(page.to, 3);
+});
+
+test('names the common file types compactly', () => {
+  assert.strictEqual(fileTypeLabel('application/pdf', 'ko'), 'PDF');
+  assert.strictEqual(
+    fileTypeLabel('application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'en'),
+    'DOCX'
+  );
+  assert.strictEqual(
+    fileTypeLabel('application/vnd.openxmlformats-officedocument.presentationml.presentation', 'en'),
+    'PPTX'
+  );
+});
+
+test('groups images under one label per language', () => {
+  assert.strictEqual(fileTypeLabel('image/jpeg', 'ko'), '이미지');
+  assert.strictEqual(fileTypeLabel('image/png', 'en'), 'Image');
+  assert.strictEqual(fileTypeLabel('image/webp', 'ko'), '이미지');
+});
+
+test('says nothing for an unknown or missing type', () => {
+  assert.strictEqual(fileTypeLabel('application/zip', 'ko'), '');
+  assert.strictEqual(fileTypeLabel('', 'ko'), '');
+});
+import type { ApiResource } from './contentApi';
+
+const resource = (over: Partial<ApiResource>): ApiResource => ({
+  id: 'r1',
+  title: 'Weekly Bulletin',
+  fileName: 'bulletin.pdf',
+  contentType: 'application/pdf',
+  sizeBytes: 100,
+  category: 'bulletin',
+  visibility: 'member',
+  resourceDate: null,
+  downloadUrl: '/api/files/download/r1',
+  ...over,
+});
+
+test('exposes the six categories and three visibility levels', () => {
+  assert.deepStrictEqual(
+    RESOURCE_CATEGORIES.map((entry) => entry.id),
+    ['bulletin', 'smallgroup', 'worship', 'forms', 'minutes', 'newsletter']
+  );
+  assert.deepStrictEqual(
+    RESOURCE_VISIBILITIES.map((entry) => entry.id),
+    ['public', 'member', 'admin']
+  );
+});
+
+test('labels fall back to the raw value for an unknown category', () => {
+  assert.strictEqual(categoryLabel('bulletin', 'ko'), '주보');
+  assert.strictEqual(categoryLabel('bulletin', 'en'), 'Bulletins');
+  assert.strictEqual(categoryLabel('mystery', 'ko'), 'mystery');
+  assert.strictEqual(visibilityLabel('public', 'ko'), '전체 공개');
+});
+
+test('returns everything when no filter is applied', () => {
+  const items = [resource({ id: 'a' }), resource({ id: 'b', category: 'forms' })];
+  assert.strictEqual(filterResources(items, 'all', '').length, 2);
+});
+
+test('filters by category', () => {
+  const items = [resource({ id: 'a' }), resource({ id: 'b', category: 'forms' })];
+  const filtered = filterResources(items, 'forms', '');
+  assert.deepStrictEqual(
+    filtered.map((item) => item.id),
+    ['b']
+  );
+});
+
+test('searches the title without case sensitivity', () => {
+  const items = [resource({ title: 'Weekly Bulletin' }), resource({ id: 'b', title: '소그룹 교재' })];
+  assert.strictEqual(filterResources(items, 'all', 'weekly').length, 1);
+  assert.strictEqual(filterResources(items, 'all', '소그룹').length, 1);
+  assert.strictEqual(filterResources(items, 'all', '  WEEKLY  ').length, 1);
+});
+
+test('combines category and search', () => {
+  const items = [
+    resource({ id: 'a', title: '9월 주보', category: 'bulletin' }),
+    resource({ id: 'b', title: '9월 소식지', category: 'newsletter' }),
+  ];
+  const filtered = filterResources(items, 'newsletter', '9월');
+  assert.deepStrictEqual(
+    filtered.map((item) => item.id),
+    ['b']
+  );
+});
+
+test('a search that matches nothing returns an empty list', () => {
+  assert.deepStrictEqual(filterResources([resource({})], 'all', 'zzz'), []);
+});

@@ -61,7 +61,33 @@ test('gives two uploads of the same name distinct paths', () => {
 });
 
 test('replaces unsafe characters in the file name', () => {
-  assert.strictEqual(buildBlobPath('sermons', 'notes 2026?.pdf', 'x1'), 'sermons/x1-notes-2026-.pdf');
+  assert.strictEqual(buildBlobPath('sermons', 'notes 2026?.pdf', 'x1'), 'sermons/x1-notes-2026.pdf');
+});
+
+test('keeps a Korean file name intact', () => {
+  assert.strictEqual(buildBlobPath('resources', '주보.docx', 'x1'), 'resources/x1-주보.docx');
+});
+
+test('keeps a mixed Korean and English name readable', () => {
+  assert.strictEqual(
+    buildBlobPath('resources', '2026 교회 웹사이트 계획.docx', 'x1'),
+    'resources/x1-2026-교회-웹사이트-계획.docx'
+  );
+});
+
+test('never loses the name to sanitising', () => {
+  const path = buildBlobPath('resources', '회의록.pptx', 'x1');
+  assert.ok(!path.endsWith('-.pptx'), 'the name must survive, not collapse to an extension');
+});
+
+test('strips path separators so a name cannot escape its folder', () => {
+  assert.strictEqual(buildBlobPath('resources', '../../etc/secret.pdf', 'x1'), 'resources/x1-secret.pdf');
+  assert.ok(!buildBlobPath('resources', 'a\\b.pdf', 'x1').includes('\\'));
+});
+
+test('falls back to a generic name when nothing usable remains', () => {
+  assert.strictEqual(buildBlobPath('resources', '', 'x1'), 'resources/x1-file');
+  assert.strictEqual(buildBlobPath('resources', '???', 'x1'), 'resources/x1-file');
 });
 
 test('accepts a sermon recording up to the media limit', () => {

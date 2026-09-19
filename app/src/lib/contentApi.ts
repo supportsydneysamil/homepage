@@ -23,8 +23,12 @@ export type ApiSermon = {
 export type ApiResource = {
   id: string;
   title: string;
+  fileName: string;
   contentType: string;
   sizeBytes: number;
+  category: string;
+  visibility: string;
+  resourceDate: string | null;
   downloadUrl: string;
 };
 
@@ -68,8 +72,12 @@ export const parseResources = (payload: unknown): ApiResource[] =>
       return {
         id: String(row.id ?? ''),
         title: String(row.title ?? ''),
+        fileName: String(row.fileName ?? ''),
         contentType: String(row.contentType ?? ''),
         sizeBytes: Number(row.sizeBytes ?? 0),
+        category: String(row.category ?? 'bulletin'),
+        visibility: String(row.visibility ?? 'member'),
+        resourceDate: row.resourceDate ? String(row.resourceDate) : null,
         downloadUrl: String(row.downloadUrl ?? ''),
       };
     })

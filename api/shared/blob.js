@@ -34,9 +34,20 @@ const READ_SAS_SECONDS = 300;
 
 const getEnv = (name) => process.env[name] || '';
 
+// Blob names may hold Unicode, so keep Korean names readable. Only strip what
+// is genuinely unsafe: path separators, control characters, and the Windows
+// reserved set. An all-unsafe name would otherwise collapse to its extension.
+const UNSAFE_IN_NAME = /[\\/:*?"<>|\u0000-\u001f]/g;
+
 const buildBlobPath = (folder, fileName, id) => {
-  const base = path.basename(String(fileName || 'file'));
-  const safe = base.replace(/[^A-Za-z0-9._-]/g, '-').replace(/^-+/, '') || 'file';
+  const base = path.basename(String(fileName || '').replace(/\\/g, '/'));
+  const safe =
+    base
+      .replace(UNSAFE_IN_NAME, '')
+      .replace(/\s+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^[-.]+/, '')
+      .trim() || 'file';
   return `${folder}/${id}-${safe}`;
 };
 

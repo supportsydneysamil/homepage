@@ -10,6 +10,12 @@ import { useRoles } from '../../lib/useRoles';
 import { fileNameFromUrl, formatDisplayDate } from '../../lib/presentation';
 import { MANAGE_TABS, buildManageHref, parseManageQuery, type ManageTab } from '../../lib/manageNav';
 import {
+  RESOURCE_CATEGORIES,
+  RESOURCE_VISIBILITIES,
+  categoryLabel,
+  visibilityLabel,
+} from '../../lib/library';
+import {
   fetchEvents,
   fetchResources,
   fetchSermons,
@@ -61,8 +67,20 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadCategory, setUploadCategory] = useState<string>(RESOURCE_CATEGORIES[0].id);
+  const [uploadVisibility, setUploadVisibility] = useState<string>('member');
+  const [uploadDate, setUploadDate] = useState('');
   const [uploadFileHandle, setUploadFileHandle] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const categoryOptions = RESOURCE_CATEGORIES.map((entry) => ({
+    value: entry.id,
+    label: categoryLabel(entry.id, lang),
+  }));
+  const visibilityOptions = RESOURCE_VISIBILITIES.map((entry) => ({
+    value: entry.id,
+    label: visibilityLabel(entry.id, lang),
+  }));
 
   const labels = useMemo(
     () => ({
@@ -90,6 +108,23 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       uploading: isKo ? '업로드 중...' : 'Uploading...',
       title: isKo ? '제목' : 'Title',
       file: isKo ? '파일' : 'File',
+      fileCurrent: (fileName: string) =>
+        isKo ? `현재 파일: ${fileName}` : `Current file: ${fileName}`,
+      fileUnknown: isKo
+        ? '현재 파일 이름을 확인할 수 없습니다. 새 파일을 올리면 정리됩니다.'
+        : 'The current file name is unavailable. Uploading a new file will fix it.',
+      fileReplaceHint: isKo
+        ? '비워두면 기존 파일이 그대로 유지됩니다.'
+        : 'Leave empty to keep the current file.',
+      category: isKo ? '분류' : 'Category',
+      visibility: isKo ? '공개 범위' : 'Who can see it',
+      visibilityHint: isKo
+        ? '관리자 전용 자료는 편집자에게도 보이지 않습니다.'
+        : 'Administrator-only files stay hidden from editors too.',
+      resourceDate: isKo ? '자료 날짜' : 'Resource date',
+      dateHint: isKo
+        ? '주보처럼 발행일이 있는 자료에 입력하세요. 비워두면 등록순으로 정렬됩니다.'
+        : 'Use for dated items such as bulletins. Leave empty to sort by upload order.',
       date: isKo ? '날짜' : 'Date',
       speaker: isKo ? '설교자' : 'Speaker',
       youtube: isKo ? '유튜브 주소' : 'YouTube URL',
@@ -152,8 +187,15 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     setNotice(null);
     try {
       const uploaded = await uploadFile(uploadFileHandle, 'resources');
-      await sendContent('/api/resources', 'POST', { title: uploadTitle.trim(), ...uploaded });
+      await sendContent('/api/resources', 'POST', {
+        title: uploadTitle.trim(),
+        category: uploadCategory,
+        visibility: uploadVisibility,
+        resourceDate: uploadDate,
+        ...uploaded,
+      });
       setUploadTitle('');
+      setUploadDate('');
       setUploadFileHandle(null);
       await resources.reload();
       setNotice(labels.saved);
@@ -212,7 +254,18 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       {tab === 'resources' ? (
         <section className="manage-panel">
           <ManageList
-            items={resources.items.map((item) => ({ id: item.id, primary: item.title }))}
+            items={resources.items.map((item) => ({
+              id: item.id,
+              primary: item.title,
+              secondary: [
+                categoryLabel(item.category, lang),
+                visibilityLabel(item.visibility, lang),
+                item.resourceDate ? formatDisplayDate(item.resourceDate, lang) : '',
+                item.fileName,
+              ]
+                .filter(Boolean)
+                .join(' · '),
+            }))}
             activeId={editId}
             emptyLabel={labels.emptyResources}
             editLabel={labels.edit}
@@ -230,14 +283,50 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             <div className="manage-editor">
               <h2>{labels.editResource}</h2>
               <ContentForm
-                fields={[{ name: 'title', label: labels.title, type: 'text', required: true }]}
-                initialValues={{ title: editingResource.title }}
+                fields={[
+                  { name: 'title', label: labels.title, type: 'text', required: true },
+                  { name: 'category', label: labels.category, type: 'select', options: categoryOptions },
+                  {
+                    name: 'visibility',
+                    label: labels.visibility,
+                    type: 'select',
+                    options: visibilityOptions,
+                    hint: labels.visibilityHint,
+                  },
+                  { name: 'resourceDate', label: labels.resourceDate, type: 'date', hint: labels.dateHint },
+                ]}
+                fileField={{
+                  name: 'resource-replacement',
+                  label: labels.file,
+                  accept: '.pdf,.jpg,.jpeg,.png,.webp,.docx,.pptx',
+                  currentLabel: editingResource.fileName
+                    ? labels.fileCurrent(editingResource.fileName)
+                    : labels.fileUnknown,
+                  hint: labels.fileReplaceHint,
+                }}
+                initialValues={{
+                  title: editingResource.title,
+                  category: editingResource.category,
+                  visibility: editingResource.visibility,
+                  resourceDate: editingResource.resourceDate ?? '',
+                }}
                 submitLabel={labels.save}
                 busyLabel={labels.saving}
                 cancelLabel={labels.cancel}
                 onCancel={() => goTo('resources')}
-                onSubmit={async (values) => {
-                  await sendContent('/api/resources', 'PUT', { id: editingResource.id, title: values.title });
+                onSubmit={async (values, file) => {
+                  const replacement = file ? await uploadFile(file, 'resources') : null;
+                  await sendContent('/api/resources', 'PUT', {
+                    id: editingResource.id,
+                    ...values,
+                    ...(replacement
+                      ? {
+                          blobPath: replacement.blobPath,
+                          contentType: replacement.contentType,
+                          sizeBytes: replacement.sizeBytes,
+                        }
+                      : {}),
+                  });
                   await resources.reload();
                   goTo('resources');
                 }}
@@ -257,6 +346,48 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                     maxLength={200}
                     required
                   />
+                </div>
+
+                <div className="manage-form__field">
+                  <label htmlFor="resource-category">{labels.category}</label>
+                  <select
+                    id="resource-category"
+                    value={uploadCategory}
+                    onChange={(changeEvent) => setUploadCategory(changeEvent.target.value)}
+                  >
+                    {categoryOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="manage-form__field">
+                  <label htmlFor="resource-visibility">{labels.visibility}</label>
+                  <select
+                    id="resource-visibility"
+                    value={uploadVisibility}
+                    onChange={(changeEvent) => setUploadVisibility(changeEvent.target.value)}
+                  >
+                    {visibilityOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="muted">{labels.visibilityHint}</span>
+                </div>
+
+                <div className="manage-form__field">
+                  <label htmlFor="resource-date">{labels.resourceDate}</label>
+                  <input
+                    id="resource-date"
+                    type="date"
+                    value={uploadDate}
+                    onChange={(changeEvent) => setUploadDate(changeEvent.target.value)}
+                  />
+                  <span className="muted">{labels.dateHint}</span>
                 </div>
 
                 <div className="manage-form__field">

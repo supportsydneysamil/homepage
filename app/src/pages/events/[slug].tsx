@@ -10,9 +10,6 @@ import {
   toYouTubeEmbedUrl,
 } from '../../lib/presentation';
 import { fetchEvents, useContent, type ApiEvent } from '../../lib/contentApi';
-import { useRoles } from '../../lib/useRoles';
-import { buildManageHref } from '../../lib/manageNav';
-
 type Event = {
   slug: string;
   date: string;
@@ -31,7 +28,6 @@ const EventDetail: NextPage<EventDetailProps> & {
   const isKo = lang === 'ko';
   // The build-time props keep the static route; live data keeps the content current.
   const { items: liveEvents } = useContent<ApiEvent>(fetchEvents);
-  const { isEditor } = useRoles();
   const liveMatch = liveEvents.find((item) => item.slug === event.slug);
   const liveEvent = liveMatch ?? event;
   const images = liveEvent.images.filter((image) => !isPlaceholderUrl(image));
@@ -49,11 +45,6 @@ const EventDetail: NextPage<EventDetailProps> & {
         <p className="site-kicker">{formatDisplayDate(liveEvent.date, lang)}</p>
         <h1>{liveEvent.title}</h1>
         <p>{liveEvent.description}</p>
-        {isEditor && liveMatch ? (
-          <a className="manage-edit-link" href={buildManageHref('events', liveMatch.id)}>
-            {isKo ? '편집' : 'Edit'}
-          </a>
-        ) : null}
       </header>
 
       {images.length ? (
