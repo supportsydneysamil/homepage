@@ -3,11 +3,12 @@ import { useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
-import { formatDisplayDate, formatListIndex } from '../lib/presentation';
+import { formatDisplayDate } from '../lib/presentation';
 import { fetchResources, useContent, type ApiResource } from '../lib/contentApi';
 import {
   RESOURCE_CATEGORIES,
   categoryLabel,
+  fileTypeLabel,
   filterResources,
   visibilityLabel,
   type ResourceCategory,
@@ -76,40 +77,70 @@ const Resources: NextPage & {
               ))}
             </nav>
 
-            <label className="library-search">
-              <span className="visually-hidden">{isKo ? '자료 검색' : 'Search resources'}</span>
+            <div className="library-search">
+              <label className="visually-hidden" htmlFor="library-search-input">
+                {isKo ? '자료 검색' : 'Search resources'}
+              </label>
               <input
+                id="library-search-input"
                 type="search"
                 value={search}
                 placeholder={isKo ? '제목으로 검색' : 'Search by title'}
                 onChange={(changeEvent) => setSearch(changeEvent.target.value)}
               />
-            </label>
+              {search ? (
+                <button
+                  type="button"
+                  className="library-search__clear"
+                  onClick={() => setSearch('')}
+                  aria-label={isKo ? '검색어 지우기' : 'Clear search'}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              ) : null}
+            </div>
           </div>
 
+          <p className="library-count" role="status" aria-live="polite">
+            {isKo ? `${visible.length}건` : `${visible.length} item${visible.length === 1 ? '' : 's'}`}
+          </p>
+
           {visible.length ? (
-            <ol className="resource-list">
-              {visible.map((resource, index) => (
-                <li key={resource.id}>
-                  <span>{formatListIndex(index)}</span>
-                  <strong>{resource.title}</strong>
-                  <span className="resource-list__meta">
-                    {[
-                      categoryLabel(resource.category, lang),
-                      resource.resourceDate ? formatDisplayDate(resource.resourceDate, lang) : '',
-                      formatSize(resource.sizeBytes),
-                      resource.visibility === 'member' ? visibilityLabel('member', lang) : '',
-                      resource.visibility === 'admin' ? visibilityLabel('admin', lang) : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                  <a href={resource.downloadUrl} rel="noreferrer">
-                    {isKo ? '다운로드' : 'Download'} <span aria-hidden="true">↓</span>
-                  </a>
-                </li>
-              ))}
-            </ol>
+            <ul className="resource-list">
+              {visible.map((resource) => {
+                const meta = [
+                  fileTypeLabel(resource.contentType, lang),
+                  formatSize(resource.sizeBytes),
+                  resource.resourceDate ? formatDisplayDate(resource.resourceDate, lang) : '',
+                ].filter(Boolean);
+
+                return (
+                  <li key={resource.id} className="resource-row">
+                    <span className="resource-chip">{categoryLabel(resource.category, lang)}</span>
+
+                    <span className="resource-row__main">
+                      <strong>{resource.title}</strong>
+                      {resource.visibility !== 'public' ? (
+                        <span className="resource-badge">{visibilityLabel(resource.visibility, lang)}</span>
+                      ) : null}
+                    </span>
+
+                    {meta.length ? <span className="resource-row__meta">{meta.join(' · ')}</span> : null}
+
+                    <a
+                      className="resource-download"
+                      href={resource.downloadUrl}
+                      rel="noreferrer"
+                      aria-label={
+                        isKo ? `${resource.title} 다운로드` : `Download ${resource.title}`
+                      }
+                    >
+                      <span aria-hidden="true">↓</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
           ) : (
             <p className="muted library-no-match">
               {isKo ? '조건에 맞는 자료가 없습니다.' : 'No resources match that filter.'}

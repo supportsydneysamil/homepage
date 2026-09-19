@@ -40,6 +40,27 @@ export const categoryLabel = (id: string, lang: DisplayLanguage) =>
 export const visibilityLabel = (id: string, lang: DisplayLanguage) =>
   labelFrom(RESOURCE_VISIBILITIES, id, lang);
 
+const FILE_TYPES: Record<string, { ko: string; en: string }> = {
+  'application/pdf': { ko: 'PDF', en: 'PDF' },
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
+    ko: 'DOCX',
+    en: 'DOCX',
+  },
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': {
+    ko: 'PPTX',
+    en: 'PPTX',
+  },
+  'image/jpeg': { ko: '이미지', en: 'Image' },
+  'image/png': { ko: '이미지', en: 'Image' },
+  'image/webp': { ko: '이미지', en: 'Image' },
+};
+
+export const fileTypeLabel = (contentType: string, lang: DisplayLanguage) => {
+  const match = FILE_TYPES[contentType.trim().toLowerCase()];
+  if (!match) return '';
+  return lang === 'ko' ? match.ko : match.en;
+};
+
 export const filterResources = (
   resources: ApiResource[],
   category: ResourceCategory | 'all',

@@ -6,7 +6,31 @@ import {
   categoryLabel,
   visibilityLabel,
   filterResources,
+  fileTypeLabel,
 } from './library';
+
+test('names the common file types compactly', () => {
+  assert.strictEqual(fileTypeLabel('application/pdf', 'ko'), 'PDF');
+  assert.strictEqual(
+    fileTypeLabel('application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'en'),
+    'DOCX'
+  );
+  assert.strictEqual(
+    fileTypeLabel('application/vnd.openxmlformats-officedocument.presentationml.presentation', 'en'),
+    'PPTX'
+  );
+});
+
+test('groups images under one label per language', () => {
+  assert.strictEqual(fileTypeLabel('image/jpeg', 'ko'), '이미지');
+  assert.strictEqual(fileTypeLabel('image/png', 'en'), 'Image');
+  assert.strictEqual(fileTypeLabel('image/webp', 'ko'), '이미지');
+});
+
+test('says nothing for an unknown or missing type', () => {
+  assert.strictEqual(fileTypeLabel('application/zip', 'ko'), '');
+  assert.strictEqual(fileTypeLabel('', 'ko'), '');
+});
 import type { ApiResource } from './contentApi';
 
 const resource = (over: Partial<ApiResource>): ApiResource => ({
