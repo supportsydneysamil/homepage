@@ -3645,3 +3645,9 @@ body {
   border: 0;
   display: block;
 }
+
+.sermon-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}

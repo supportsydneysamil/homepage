@@ -3,7 +3,7 @@ import type { NextPage } from 'next';
 import EmptyState from '../../components/EmptyState';
 import PageHero from '../../components/PageHero';
 import { useLanguage } from '../../lib/LanguageContext';
-import { formatDisplayDate } from '../../lib/presentation';
+import { formatDisplayDate, formatListIndex } from '../../lib/presentation';
 import { fetchEvents, useContent, type ApiEvent } from '../../lib/contentApi';
 import { useRoles } from '../../lib/useRoles';
 import { buildManageHref } from '../../lib/manageNav';
@@ -34,7 +34,7 @@ const EventsPage: NextPage & {
         <section className="content-list">
           {events.map((event, index) => (
             <article className="content-row" key={event.slug}>
-              <div className="content-row__index">0{index + 1}</div>
+              <div className="content-row__index">{formatListIndex(index)}</div>
               <time dateTime={event.date}>{formatDisplayDate(event.date, lang)}</time>
               <div className="content-row__body">
                 <h2>{event.title}</h2>

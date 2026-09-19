@@ -31,6 +31,8 @@ export const formatShortDate = (value: string, lang: DisplayLanguage) => {
     : `${parts.day} ${EN_MONTHS[parts.month - 1]}`;
 };
 
+export const formatListIndex = (index: number) => String(index + 1).padStart(2, '0');
+
 export const isPlaceholderUrl = (value?: string) => {
   if (!value) return true;
   try {

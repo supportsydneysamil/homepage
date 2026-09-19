@@ -1,11 +1,14 @@
 import type { NextPage } from 'next';
+import { useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
-import { formatDisplayDate, toYouTubeEmbedUrl } from '../lib/presentation';
+import { formatDisplayDate, formatListIndex, toYouTubeEmbedUrl } from '../lib/presentation';
 import { fetchSermons, useContent, type ApiSermon } from '../lib/contentApi';
 import { useRoles } from '../lib/useRoles';
 import { buildManageHref } from '../lib/manageNav';
+
+const PAGE_SIZE = 12;
 
 const Sermons: NextPage & {
   meta?: { title?: string; description?: string };
@@ -14,6 +17,9 @@ const Sermons: NextPage & {
   const isKo = lang === 'ko';
   const { items: sermons, isLoading } = useContent<ApiSermon>(fetchSermons);
   const { isEditor } = useRoles();
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const visibleSermons = sermons.slice(0, visibleCount);
+  const remaining = sermons.length - visibleSermons.length;
 
   return (
     <article className="site-page sermons-page">
@@ -31,12 +37,12 @@ const Sermons: NextPage & {
 
       {!isLoading && sermons.length ? (
         <section className="sermon-editorial-list">
-          {sermons.map((sermon, index) => {
+          {visibleSermons.map((sermon, index) => {
             const embedUrl = toYouTubeEmbedUrl(sermon.youtubeUrl);
             return (
               <article className="sermon-editorial-card" key={`${sermon.date}-${sermon.title}`}>
                 <div className="sermon-editorial-card__copy">
-                  <span>0{index + 1}</span>
+                  <span>{formatListIndex(index)}</span>
                   <time dateTime={sermon.date}>{formatDisplayDate(sermon.date, lang)}</time>
                   <h2>{sermon.title}</h2>
                   {sermon.speaker ? (
@@ -75,6 +81,18 @@ const Sermons: NextPage & {
             );
           })}
         </section>
+      ) : null}
+
+      {remaining > 0 ? (
+        <div className="sermon-more">
+          <button
+            type="button"
+            className="manage-button manage-button--ghost"
+            onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          >
+            {isKo ? `지난 설교 더 보기 (${remaining}건)` : `Show earlier messages (${remaining})`}
+          </button>
+        </div>
       ) : null}
 
       {!isLoading && !sermons.length ? (

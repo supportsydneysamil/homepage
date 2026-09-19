@@ -2,6 +2,7 @@ import type { NextPage } from 'next';
 import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
+import { formatListIndex } from '../lib/presentation';
 import { fetchResources, useContent, type ApiResource } from '../lib/contentApi';
 import { useRoles } from '../lib/useRoles';
 import { buildManageHref } from '../lib/manageNav';
@@ -44,7 +45,7 @@ const Resources: NextPage & {
         <ol className="resource-list">
           {resources.map((resource, index) => (
             <li key={resource.id}>
-              <span>0{index + 1}</span>
+              <span>{formatListIndex(index)}</span>
               <strong>{resource.title}</strong>
               <span className="resource-list__meta">{formatSize(resource.sizeBytes)}</span>
               <a href={resource.downloadUrl} rel="noreferrer">

@@ -6,7 +6,16 @@ import {
   isPlaceholderUrl,
   toYouTubeEmbedUrl,
   fileNameFromUrl,
+  formatListIndex,
 } from './presentation';
+
+test('pads list numbers to two digits without truncating larger ones', () => {
+  assert.equal(formatListIndex(0), '01');
+  assert.equal(formatListIndex(8), '09');
+  assert.equal(formatListIndex(9), '10');
+  assert.equal(formatListIndex(98), '99');
+  assert.equal(formatListIndex(99), '100');
+});
 
 test('shows the original file name for a console upload', () => {
   assert.equal(
