@@ -152,6 +152,12 @@ BEGIN
   );
 END;
 
+IF COL_LENGTH('dbo.Events', 'Location') IS NULL
+  ALTER TABLE dbo.Events ADD Location NVARCHAR(200) NULL;
+
+IF COL_LENGTH('dbo.Events', 'StartTime') IS NULL
+  ALTER TABLE dbo.Events ADD StartTime NVARCHAR(5) NULL;
+
 IF COL_LENGTH('dbo.Sermons', 'MediaUrl') IS NULL
   ALTER TABLE dbo.Sermons ADD MediaUrl NVARCHAR(600) NULL;
 

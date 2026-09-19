@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 export type FormField = {
   name: string;
   label: string;
-  type: 'text' | 'date' | 'url' | 'textarea' | 'select';
+  type: 'text' | 'date' | 'time' | 'url' | 'textarea' | 'select';
   required?: boolean;
   readOnly?: boolean;
   options?: { value: string; label: string }[];
@@ -16,6 +16,7 @@ export type FileField = {
   accept: string;
   hint?: string;
   currentLabel?: string;
+  multiple?: boolean;
 };
 
 type ContentFormProps = {
@@ -26,7 +27,7 @@ type ContentFormProps = {
   busyLabel: string;
   cancelLabel?: string;
   onCancel?: () => void;
-  onSubmit: (values: Record<string, string>, file: File | null) => Promise<void>;
+  onSubmit: (values: Record<string, string>, files: File[]) => Promise<void>;
 };
 
 const ContentForm = ({
@@ -40,7 +41,7 @@ const ContentForm = ({
   onSubmit,
 }: ContentFormProps) => {
   const [values, setValues] = useState<Record<string, string>>(initialValues ?? {});
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [fileKey, setFileKey] = useState(0);
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -48,7 +49,7 @@ const ContentForm = ({
   const initialKey = JSON.stringify(initialValues ?? {});
   useEffect(() => {
     setValues(initialValues ?? {});
-    setFile(null);
+    setFiles([]);
     setFileKey((previous) => previous + 1);
     setStatus(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,8 +60,8 @@ const ContentForm = ({
     setIsBusy(true);
     setStatus(null);
     try {
-      await onSubmit(values, file);
-      setFile(null);
+      await onSubmit(values, files);
+      setFiles([]);
       setFileKey((previous) => previous + 1);
       if (!initialValues) {
         setValues({});
@@ -126,7 +127,8 @@ const ContentForm = ({
             id={`field-${fileField.name}`}
             type="file"
             accept={fileField.accept}
-            onChange={(changeEvent) => setFile(changeEvent.target.files?.[0] ?? null)}
+            multiple={fileField.multiple}
+            onChange={(changeEvent) => setFiles(Array.from(changeEvent.target.files ?? []))}
           />
           {fileField.currentLabel ? <span className="muted">{fileField.currentLabel}</span> : null}
           {fileField.hint ? <span className="muted">{fileField.hint}</span> : null}

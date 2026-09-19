@@ -32,6 +32,11 @@ test('schema creates every content table idempotently', () => {
   }
 });
 
+test('events gain location and start time columns on existing databases', () => {
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'Location')"));
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'StartTime')"));
+});
+
 test('content tables record who changed them', () => {
   assert.ok(SCHEMA_SQL.includes('CreatedBy'));
   assert.ok(SCHEMA_SQL.includes('UpdatedBy'));

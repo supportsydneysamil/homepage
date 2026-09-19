@@ -17,6 +17,7 @@
   "routes": [
     { "route": "/api/roles", "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/contact", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/events/images", "allowedRoles": ["editor"] },
     { "route": "/api/events", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/events", "methods": ["POST", "PUT", "DELETE"], "allowedRoles": ["editor"] },
     { "route": "/api/sermons", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },

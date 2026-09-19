@@ -1,15 +1,57 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { parseEvents, parseSermons, parseResources } from './contentApi';
+import { parseEvents, parseSermons, parseResources, contentUrl } from './contentApi';
 
 test('parses an events payload', () => {
   const events = parseEvents({
     events: [
-      { id: '1', slug: 'a', date: '2026-01-01', title: 'A', description: 'd', youtubeUrl: '', images: [] },
+      {
+        id: '1',
+        slug: 'a',
+        date: '2026-01-01',
+        title: 'A',
+        description: 'd',
+        location: 'Church hall',
+        startTime: '10:00',
+        youtubeUrl: '',
+        published: true,
+        images: ['/api/files/download/img-1'],
+      },
     ],
   });
   assert.strictEqual(events.length, 1);
   assert.strictEqual(events[0].slug, 'a');
+  assert.strictEqual(events[0].location, 'Church hall');
+  assert.strictEqual(events[0].startTime, '10:00');
+  assert.strictEqual(events[0].published, true);
+  assert.deepStrictEqual(events[0].images, ['/api/files/download/img-1']);
+});
+
+test('list urls have no lookup query', () => {
+  assert.strictEqual(contentUrl('/api/events'), '/api/events');
+  assert.strictEqual(contentUrl('/api/sermons'), '/api/sermons');
+  assert.strictEqual(contentUrl('/api/resources'), '/api/resources');
+});
+
+test('a single-item url carries id or slug', () => {
+  assert.strictEqual(contentUrl('/api/events', { id: 'e1' }), '/api/events?id=e1');
+  assert.strictEqual(contentUrl('/api/events', { slug: 'youth-retreat' }), '/api/events?slug=youth-retreat');
+  assert.strictEqual(contentUrl('/api/sermons', { id: 's1' }), '/api/sermons?id=s1');
+  assert.strictEqual(contentUrl('/api/resources', { id: 'r1' }), '/api/resources?id=r1');
+});
+
+test('parses a list event with no photos', () => {
+  const events = parseEvents({
+    events: [{ id: '1', slug: 'a', date: '2026-01-01', title: 'A', published: true }],
+  });
+  assert.deepStrictEqual(events[0].images, []);
+});
+
+test('parses a draft event as unpublished', () => {
+  const events = parseEvents({
+    events: [{ id: '1', slug: 'draft', date: '2026-01-01', title: 'D', published: false }],
+  });
+  assert.strictEqual(events[0].published, false);
 });
 
 test('returns an empty list for a malformed events payload', () => {

@@ -2,24 +2,42 @@ import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import { useMemo, useState } from 'react';
 import PageHero from '../../components/PageHero';
+import Pager from '../../components/Pager';
 import ContentForm, { type FormField } from '../../components/manage/ContentForm';
 import ManageList from '../../components/manage/ManageList';
+import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
 import { useLanguage } from '../../lib/LanguageContext';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
 import { fileNameFromUrl, formatDisplayDate } from '../../lib/presentation';
+import { eventImageIdFromUrl, todayStamp } from '../../lib/events';
 import { MANAGE_TABS, buildManageHref, parseManageQuery, type ManageTab } from '../../lib/manageNav';
+import {
+  MANAGE_PAGE_SIZE,
+  eventStatusOf,
+  filterEvents,
+  filterSermons,
+  sermonYears,
+  type EventStatus,
+} from '../../lib/manageList';
 import {
   RESOURCE_CATEGORIES,
   RESOURCE_VISIBILITIES,
   categoryLabel,
+  filterResources,
+  paginate,
   visibilityLabel,
+  type ResourceCategory,
 } from '../../lib/library';
 import {
+  fetchEvent,
   fetchEvents,
+  fetchResource,
   fetchResources,
+  fetchSermon,
   fetchSermons,
   useContent,
+  useLookup,
   type ApiEvent,
   type ApiResource,
   type ApiSermon,
@@ -60,12 +78,26 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   // client-side router before choosing a tab or edit target.
   const { tab, editId } = parseManageQuery(router.isReady ? router.query : {});
 
-  const resources = useContent<ApiResource>(fetchResources);
-  const sermons = useContent<ApiSermon>(fetchSermons);
-  const events = useContent<ApiEvent>(fetchEvents);
+  const resources = useContent<ApiResource>(fetchResources, tab === 'resources');
+  const sermons = useContent<ApiSermon>(fetchSermons, tab === 'sermons');
+  const events = useContent<ApiEvent>(fetchEvents, tab === 'events');
+  const editingResourceLookup = useLookup(tab === 'resources' ? editId : null, fetchResource);
+  const editingSermonLookup = useLookup(tab === 'sermons' ? editId : null, fetchSermon);
+  const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  // Each tab remembers where its editor was reading, so saving does not
+  // throw them back to the newest page.
+  const [views, setViews] = useState<Record<ManageTab, { filter: string; search: string; page: number }>>({
+    resources: { filter: 'all', search: '', page: 1 },
+    sermons: { filter: 'all', search: '', page: 1 },
+    events: { filter: 'all', search: '', page: 1 },
+  });
+  const view = views[tab];
+  const setView = (changes: Partial<{ filter: string; search: string; page: number }>) =>
+    setViews((previous) => ({ ...previous, [tab]: { ...previous[tab], ...changes } }));
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState<string>(RESOURCE_CATEGORIES[0].id);
   const [uploadVisibility, setUploadVisibility] = useState<string>('member');
@@ -137,12 +169,44 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           ? `현재 파일: ${fileName} · 새 파일을 고르면 교체됩니다.`
           : `Current file: ${fileName} · choosing a new file replaces it.`,
       slug: isKo ? '주소 슬러그' : 'URL slug',
+      slugHint: isKo
+        ? '비워두면 제목으로 만듭니다. 한글 제목은 날짜 주소가 됩니다.'
+        : 'Leave empty to generate from the title. Korean titles fall back to the date.',
       description: isKo ? '설명' : 'Description',
+      location: isKo ? '장소' : 'Location',
+      startTime: isKo ? '시작 시각' : 'Start time',
+      published: isKo ? '공개' : 'Visibility',
+      publishedLive: isKo ? '공개' : 'Published',
+      publishedDraft: isKo ? '초안' : 'Draft',
+      photo: isKo ? '사진' : 'Photo',
+      photoHint: isKo
+        ? 'JPG, PNG, WebP 파일을 한 번에 여러 장 고를 수 있습니다. 고른 사진은 기존 사진 뒤에 추가됩니다.'
+        : 'Pick one or more JPG, PNG, or WebP files. They are added after the existing photos.',
+      photoCurrent: (count: number) =>
+        isKo ? `등록된 사진 ${count}장` : `${count} photo${count === 1 ? '' : 's'} attached`,
       emptyResources: isKo ? '등록된 자료가 없습니다.' : 'No resources yet.',
       emptySermons: isKo ? '등록된 설교가 없습니다.' : 'No sermons yet.',
       emptyEvents: isKo ? '등록된 이벤트가 없습니다.' : 'No events yet.',
       needFile: isKo ? '제목과 파일을 모두 입력해 주세요.' : 'Provide both a title and a file.',
       uploadFailed: isKo ? '업로드에 실패했습니다.' : 'Upload failed.',
+      all: isKo ? '전체' : 'All',
+      filterCategory: isKo ? '자료 분류' : 'Resource categories',
+      filterYear: isKo ? '설교 연도' : 'Sermon year',
+      filterStatus: isKo ? '이벤트 상태' : 'Event status',
+      allYears: isKo ? '전체 연도' : 'All years',
+      upcoming: isKo ? '다가올' : 'Upcoming',
+      past: isKo ? '지난' : 'Past',
+      draft: isKo ? '초안' : 'Draft',
+      searchByTitle: isKo ? '제목으로 검색' : 'Search by title',
+      searchSermons: isKo ? '제목 · 설교자로 검색' : 'Search title or speaker',
+      searchEvents: isKo ? '제목 · 장소로 검색' : 'Search title or place',
+      clearSearch: isKo ? '검색어 지우기' : 'Clear search',
+      countRange: (from: number, to: number, total: number) =>
+        total ? (isKo ? `${total}건 중 ${from}–${to}` : `${from}–${to} of ${total}`) : isKo ? '0건' : 'No items',
+      noMatch: isKo ? '조건에 맞는 자료가 없습니다.' : 'Nothing matches that filter.',
+      pages: isKo ? '목록 페이지' : 'List pages',
+      previous: isKo ? '이전' : 'Previous',
+      next: isKo ? '다음' : 'Next',
     }),
     [isKo]
   );
@@ -169,12 +233,57 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const goTo = (nextTab: ManageTab, nextEditId?: string) => {
     setPendingDeleteId(null);
     setNotice(null);
+    setIsAdding(false);
     void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true });
   };
 
-  const editingResource = resources.items.find((item) => item.id === editId) ?? null;
-  const editingSermon = sermons.items.find((item) => item.id === editId) ?? null;
-  const editingEvent = events.items.find((item) => item.id === editId) ?? null;
+  const openAdd = () => {
+    setPendingDeleteId(null);
+    setNotice(null);
+    setIsAdding(true);
+    if (editId) {
+      void router.push(buildManageHref(tab), undefined, { shallow: true });
+    }
+  };
+
+  const editingResource = editingResourceLookup.item;
+  const editingSermon = editingSermonLookup.item;
+  const editingEvent = editingEventLookup.item;
+
+  const today = todayStamp();
+
+  const matchedResources = filterResources(
+    resources.items,
+    views.resources.filter as ResourceCategory | 'all',
+    views.resources.search
+  );
+  const resourcePage = paginate(matchedResources, views.resources.page, MANAGE_PAGE_SIZE);
+  const resourceFilterOptions: ManageFilterOption[] = [
+    { value: 'all', label: labels.all, count: resources.items.length },
+    ...RESOURCE_CATEGORIES.map((entry) => ({
+      value: entry.id as string,
+      label: categoryLabel(entry.id, lang),
+      count: resources.items.filter((item) => item.category === entry.id).length,
+    })).filter((option) => option.count > 0),
+  ];
+
+  const matchedSermons = filterSermons(sermons.items, views.sermons.filter, views.sermons.search);
+  const sermonPage = paginate(matchedSermons, views.sermons.page, MANAGE_PAGE_SIZE);
+  const sermonFilterOptions: ManageFilterOption[] = [
+    { value: 'all', label: labels.allYears },
+    ...sermonYears(sermons.items).map((year) => ({ value: year, label: year })),
+  ];
+
+  const matchedEvents = filterEvents(events.items, views.events.filter, views.events.search, today);
+  const eventPage = paginate(matchedEvents, views.events.page, MANAGE_PAGE_SIZE);
+  const countByStatus = (status: EventStatus) =>
+    events.items.filter((item) => eventStatusOf(item, today) === status).length;
+  const eventFilterOptions: ManageFilterOption[] = [
+    { value: 'all', label: labels.all, count: events.items.length },
+    { value: 'upcoming', label: labels.upcoming, count: countByStatus('upcoming') },
+    { value: 'past', label: labels.past, count: countByStatus('past') },
+    { value: 'draft', label: labels.draft, count: countByStatus('draft') },
+  ];
 
   const onUpload = async (formEvent: React.FormEvent) => {
     formEvent.preventDefault();
@@ -219,6 +328,16 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     }
   };
 
+  const onRemovePhoto = async (imageUrl: string) => {
+    try {
+      await deleteContent('/api/events/images', eventImageIdFromUrl(imageUrl));
+      await Promise.all([events.reload(), editingEventLookup.reload()]);
+      setNotice(labels.deleted);
+    } catch (error) {
+      setNotice(labels.deleteFailed);
+    }
+  };
+
   return (
     <article className="site-page manage-page">
       <PageHero
@@ -253,33 +372,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
 
       {tab === 'resources' ? (
         <section className="manage-panel">
-          <ManageList
-            items={resources.items.map((item) => ({
-              id: item.id,
-              primary: item.title,
-              secondary: [
-                categoryLabel(item.category, lang),
-                visibilityLabel(item.visibility, lang),
-                item.resourceDate ? formatDisplayDate(item.resourceDate, lang) : '',
-                item.fileName,
-              ]
-                .filter(Boolean)
-                .join(' · '),
-            }))}
-            activeId={editId}
-            emptyLabel={labels.emptyResources}
-            editLabel={labels.edit}
-            deleteLabel={labels.remove}
-            confirmLabel={labels.confirm}
-            cancelLabel={labels.cancel}
-            pendingDeleteId={pendingDeleteId}
-            onEdit={(id) => goTo('resources', id)}
-            onRequestDelete={setPendingDeleteId}
-            onConfirmDelete={(id) => onDelete('/api/resources', id, resources.reload)}
-            onCancelDelete={() => setPendingDeleteId(null)}
-          />
+          <div className="manage-actions">
+            <button type="button" className="manage-button" onClick={openAdd}>
+              + {labels.addResource}
+            </button>
+          </div>
 
-          {editingResource ? (
+          {editId && editingResourceLookup.isLoading ? null : editingResource ? (
             <div className="manage-editor">
               <h2>{labels.editResource}</h2>
               <ContentForm
@@ -314,7 +413,8 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 busyLabel={labels.saving}
                 cancelLabel={labels.cancel}
                 onCancel={() => goTo('resources')}
-                onSubmit={async (values, file) => {
+                onSubmit={async (values, files) => {
+                  const [file] = files;
                   const replacement = file ? await uploadFile(file, 'resources') : null;
                   await sendContent('/api/resources', 'PUT', {
                     id: editingResource.id,
@@ -332,7 +432,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 }}
               />
             </div>
-          ) : (
+          ) : isAdding ? (
             <div className="manage-editor">
               <h2>{labels.addResource}</h2>
               <form className="manage-form" onSubmit={onUpload}>
@@ -405,17 +505,152 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   <button type="submit" className="manage-button" disabled={isUploading}>
                     {isUploading ? labels.uploading : labels.upload}
                   </button>
+                  <button
+                    type="button"
+                    className="manage-button manage-button--ghost"
+                    onClick={() => setIsAdding(false)}
+                  >
+                    {labels.cancel}
+                  </button>
                 </div>
               </form>
             </div>
-          )}
+          ) : null}
+
+          <ManageToolbar
+            id="manage-resources"
+            filterLabel={labels.filterCategory}
+            filterValue={views.resources.filter}
+            filterOptions={resourceFilterOptions}
+            filterAs="chips"
+            onFilterChange={(value) => setView({ filter: value, page: 1 })}
+            searchLabel={labels.filterCategory}
+            searchPlaceholder={labels.searchByTitle}
+            searchValue={views.resources.search}
+            clearLabel={labels.clearSearch}
+            onSearchChange={(value) => setView({ search: value, page: 1 })}
+            countLabel={labels.countRange(resourcePage.from, resourcePage.to, matchedResources.length)}
+          />
+
+          <ManageList
+            items={resourcePage.items.map((item) => ({
+              id: item.id,
+              primary: item.title,
+              secondary: [
+                categoryLabel(item.category, lang),
+                visibilityLabel(item.visibility, lang),
+                item.resourceDate ? formatDisplayDate(item.resourceDate, lang) : '',
+                item.fileName,
+              ]
+                .filter(Boolean)
+                .join(' · '),
+            }))}
+            activeId={editId}
+            emptyLabel={resources.items.length ? labels.noMatch : labels.emptyResources}
+            editLabel={labels.edit}
+            deleteLabel={labels.remove}
+            confirmLabel={labels.confirm}
+            cancelLabel={labels.cancel}
+            pendingDeleteId={pendingDeleteId}
+            onEdit={(id) => goTo('resources', id)}
+            onRequestDelete={setPendingDeleteId}
+            onConfirmDelete={(id) => onDelete('/api/resources', id, resources.reload)}
+            onCancelDelete={() => setPendingDeleteId(null)}
+          />
+
+          <Pager
+            page={resourcePage.page}
+            pageCount={resourcePage.pageCount}
+            label={labels.pages}
+            previousLabel={labels.previous}
+            nextLabel={labels.next}
+            onChange={(page) => setView({ page })}
+          />
         </section>
       ) : null}
 
       {tab === 'sermons' ? (
         <section className="manage-panel">
+          <div className="manage-actions">
+            <button type="button" className="manage-button" onClick={openAdd}>
+              + {labels.addSermon}
+            </button>
+          </div>
+
+          {(editId && editingSermonLookup.isLoading) || !(editId || isAdding) ? null : (
+            <div className="manage-editor">
+              <h2>{editingSermon ? labels.editSermon : labels.addSermon}</h2>
+              <ContentForm
+                fields={
+                  [
+                    { name: 'date', label: labels.date, type: 'date', required: true },
+                    { name: 'title', label: labels.title, type: 'text', required: true },
+                    { name: 'speaker', label: labels.speaker, type: 'text' },
+                    { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
+                  ] as FormField[]
+                }
+                initialValues={
+                  editingSermon
+                    ? {
+                        date: editingSermon.date,
+                        title: editingSermon.title,
+                        speaker: editingSermon.speaker,
+                        youtubeUrl: editingSermon.youtubeUrl,
+                      }
+                    : undefined
+                }
+                fileField={{
+                  name: 'sermon-media',
+                  label: labels.recording,
+                  accept: '.mp3,.m4a,.wav,.mp4,.webm',
+                  hint: labels.recordingHint,
+                  currentLabel: editingSermon?.mediaUrl
+                    ? labels.recordingCurrent(fileNameFromUrl(editingSermon.mediaUrl))
+                    : undefined,
+                }}
+                submitLabel={labels.save}
+                busyLabel={labels.saving}
+                cancelLabel={labels.cancel}
+                onCancel={() => goTo('sermons')}
+                onSubmit={async (values, files) => {
+                  const [file] = files;
+                  let media = editingSermon
+                    ? { mediaUrl: editingSermon.mediaUrl, mediaContentType: editingSermon.mediaContentType }
+                    : { mediaUrl: '', mediaContentType: '' };
+                  if (file) {
+                    const uploaded = await uploadFile(file, 'media');
+                    media = { mediaUrl: uploaded.publicUrl ?? '', mediaContentType: uploaded.contentType };
+                  }
+                  const payload = { ...values, ...media };
+                  if (editingSermon) {
+                    await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload });
+                  } else {
+                    await sendContent('/api/sermons', 'POST', payload);
+                  }
+                  await sermons.reload();
+                  goTo('sermons');
+                }}
+              />
+            </div>
+          )}
+
+          <ManageToolbar
+            id="manage-sermons"
+            filterLabel={labels.filterYear}
+            filterValue={views.sermons.filter}
+            filterOptions={sermonFilterOptions}
+            filterAs="select"
+            onFilterChange={(value) => setView({ filter: value, page: 1 })}
+            searchLabel={labels.searchSermons}
+            searchPlaceholder={labels.searchSermons}
+            searchValue={views.sermons.search}
+            clearLabel={labels.clearSearch}
+            onSearchChange={(value) => setView({ search: value, page: 1 })}
+            countLabel={labels.countRange(sermonPage.from, sermonPage.to, matchedSermons.length)}
+          />
+
           <ManageList
-            items={sermons.items.map((item) => ({
+            items={sermonPage.items.map((item) => ({
               id: item.id,
               primary: item.title,
               secondary: [
@@ -428,7 +663,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 .join(' · '),
             }))}
             activeId={editId}
-            emptyLabel={labels.emptySermons}
+            emptyLabel={sermons.items.length ? labels.noMatch : labels.emptySermons}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
             confirmLabel={labels.confirm}
@@ -440,72 +675,155 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             onCancelDelete={() => setPendingDeleteId(null)}
           />
 
-          <div className="manage-editor">
-            <h2>{editingSermon ? labels.editSermon : labels.addSermon}</h2>
-            <ContentForm
-              fields={
-                [
-                  { name: 'date', label: labels.date, type: 'date', required: true },
-                  { name: 'title', label: labels.title, type: 'text', required: true },
-                  { name: 'speaker', label: labels.speaker, type: 'text' },
-                  { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
-                ] as FormField[]
-              }
-              initialValues={
-                editingSermon
-                  ? {
-                      date: editingSermon.date,
-                      title: editingSermon.title,
-                      speaker: editingSermon.speaker,
-                      youtubeUrl: editingSermon.youtubeUrl,
-                    }
-                  : undefined
-              }
-              fileField={{
-                name: 'sermon-media',
-                label: labels.recording,
-                accept: '.mp3,.m4a,.wav,.mp4,.webm',
-                hint: labels.recordingHint,
-                currentLabel: editingSermon?.mediaUrl
-                  ? labels.recordingCurrent(fileNameFromUrl(editingSermon.mediaUrl))
-                  : undefined,
-              }}
-              submitLabel={labels.save}
-              busyLabel={labels.saving}
-              cancelLabel={editingSermon ? labels.cancel : undefined}
-              onCancel={editingSermon ? () => goTo('sermons') : undefined}
-              onSubmit={async (values, file) => {
-                let media = editingSermon
-                  ? { mediaUrl: editingSermon.mediaUrl, mediaContentType: editingSermon.mediaContentType }
-                  : { mediaUrl: '', mediaContentType: '' };
-                if (file) {
-                  const uploaded = await uploadFile(file, 'media');
-                  media = { mediaUrl: uploaded.publicUrl ?? '', mediaContentType: uploaded.contentType };
-                }
-                const payload = { ...values, ...media };
-                if (editingSermon) {
-                  await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload });
-                } else {
-                  await sendContent('/api/sermons', 'POST', payload);
-                }
-                await sermons.reload();
-                goTo('sermons');
-              }}
-            />
-          </div>
+          <Pager
+            page={sermonPage.page}
+            pageCount={sermonPage.pageCount}
+            label={labels.pages}
+            previousLabel={labels.previous}
+            nextLabel={labels.next}
+            onChange={(page) => setView({ page })}
+          />
         </section>
       ) : null}
 
       {tab === 'events' ? (
         <section className="manage-panel">
+          <div className="manage-actions">
+            <button type="button" className="manage-button" onClick={openAdd}>
+              + {labels.addEvent}
+            </button>
+          </div>
+
+          {(editId && editingEventLookup.isLoading) || !(editId || isAdding) ? null : (
+            <div className="manage-editor">
+              <h2>{editingEvent ? labels.editEvent : labels.addEvent}</h2>
+
+            {editingEvent?.images.length ? (
+              <div className="manage-gallery">
+                <span className="muted">{labels.photoCurrent(editingEvent.images.length)}</span>
+                <ul>
+                  {editingEvent.images.map((image) => (
+                    <li key={image}>
+                      <img src={image} alt="" />
+                      <button
+                        type="button"
+                        className="manage-button manage-button--ghost"
+                        onClick={() => onRemovePhoto(image)}
+                      >
+                        {labels.remove}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <ContentForm
+              fields={
+                [
+                  { name: 'title', label: labels.title, type: 'text', required: true },
+                  { name: 'date', label: labels.date, type: 'date', required: true },
+                  { name: 'startTime', label: labels.startTime, type: 'time' },
+                  { name: 'location', label: labels.location, type: 'text' },
+                  {
+                    name: 'slug',
+                    label: labels.slug,
+                    type: 'text',
+                    hint: labels.slugHint,
+                  },
+                  { name: 'description', label: labels.description, type: 'textarea' },
+                  { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
+                  {
+                    name: 'published',
+                    label: labels.published,
+                    type: 'select',
+                    options: [
+                      { value: 'true', label: labels.publishedLive },
+                      { value: 'false', label: labels.publishedDraft },
+                    ],
+                  },
+                ] as FormField[]
+              }
+              fileField={{
+                name: 'event-photo',
+                label: labels.photo,
+                accept: '.jpg,.jpeg,.png,.webp',
+                hint: labels.photoHint,
+                multiple: true,
+              }}
+              initialValues={
+                editingEvent
+                  ? {
+                      slug: editingEvent.slug,
+                      date: editingEvent.date,
+                      title: editingEvent.title,
+                      description: editingEvent.description,
+                      location: editingEvent.location,
+                      startTime: editingEvent.startTime,
+                      youtubeUrl: editingEvent.youtubeUrl,
+                      published: editingEvent.published ? 'true' : 'false',
+                    }
+                  : undefined
+              }
+              submitLabel={labels.save}
+              busyLabel={labels.saving}
+              cancelLabel={labels.cancel}
+              onCancel={() => goTo('events')}
+              onSubmit={async (values, files) => {
+                const uploaded = await Promise.all(files.map((file) => uploadFile(file, 'events')));
+                const imageBlobPaths = uploaded.map((item) => item.blobPath);
+                const payload = {
+                  slug: values.slug,
+                  date: values.date,
+                  title: values.title,
+                  description: values.description,
+                  location: values.location,
+                  startTime: values.startTime,
+                  youtubeUrl: values.youtubeUrl,
+                  published: values.published !== 'false',
+                  imageBlobPaths,
+                };
+                if (editingEvent) {
+                  await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload });
+                } else {
+                  await sendContent('/api/events', 'POST', payload);
+                }
+                await events.reload();
+                goTo('events');
+              }}
+            />
+            </div>
+          )}
+
+          <ManageToolbar
+            id="manage-events"
+            filterLabel={labels.filterStatus}
+            filterValue={views.events.filter}
+            filterOptions={eventFilterOptions}
+            filterAs="chips"
+            onFilterChange={(value) => setView({ filter: value, page: 1 })}
+            searchLabel={labels.searchEvents}
+            searchPlaceholder={labels.searchEvents}
+            searchValue={views.events.search}
+            clearLabel={labels.clearSearch}
+            onSearchChange={(value) => setView({ search: value, page: 1 })}
+            countLabel={labels.countRange(eventPage.from, eventPage.to, matchedEvents.length)}
+          />
+
           <ManageList
-            items={events.items.map((item) => ({
+            items={eventPage.items.map((item) => ({
               id: item.id,
               primary: item.title,
-              secondary: formatDisplayDate(item.date, lang),
+              secondary: [
+                formatDisplayDate(item.date, lang),
+                item.location,
+                item.published ? '' : labels.draft,
+              ]
+                .filter(Boolean)
+                .join(' · '),
             }))}
             activeId={editId}
-            emptyLabel={labels.emptyEvents}
+            emptyLabel={events.items.length ? labels.noMatch : labels.emptyEvents}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
             confirmLabel={labels.confirm}
@@ -517,44 +835,14 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             onCancelDelete={() => setPendingDeleteId(null)}
           />
 
-          <div className="manage-editor">
-            <h2>{editingEvent ? labels.editEvent : labels.addEvent}</h2>
-            <ContentForm
-              fields={
-                [
-                  { name: 'slug', label: labels.slug, type: 'text', required: true },
-                  { name: 'date', label: labels.date, type: 'date', required: true },
-                  { name: 'title', label: labels.title, type: 'text', required: true },
-                  { name: 'description', label: labels.description, type: 'textarea' },
-                  { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
-                ] as FormField[]
-              }
-              initialValues={
-                editingEvent
-                  ? {
-                      slug: editingEvent.slug,
-                      date: editingEvent.date,
-                      title: editingEvent.title,
-                      description: editingEvent.description,
-                      youtubeUrl: editingEvent.youtubeUrl,
-                    }
-                  : undefined
-              }
-              submitLabel={labels.save}
-              busyLabel={labels.saving}
-              cancelLabel={editingEvent ? labels.cancel : undefined}
-              onCancel={editingEvent ? () => goTo('events') : undefined}
-              onSubmit={async (values) => {
-                if (editingEvent) {
-                  await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...values });
-                } else {
-                  await sendContent('/api/events', 'POST', values);
-                }
-                await events.reload();
-                goTo('events');
-              }}
-            />
-          </div>
+          <Pager
+            page={eventPage.page}
+            pageCount={eventPage.pageCount}
+            label={labels.pages}
+            previousLabel={labels.previous}
+            nextLabel={labels.next}
+            onChange={(page) => setView({ page })}
+          />
         </section>
       ) : null}
     </article>

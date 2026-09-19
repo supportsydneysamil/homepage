@@ -2,6 +2,7 @@ import type { NextPage } from 'next';
 import { useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
+import Pager from '../components/Pager';
 import { useLanguage } from '../lib/LanguageContext';
 import { formatDisplayDate } from '../lib/presentation';
 import { fetchResources, useContent, type ApiResource } from '../lib/contentApi';
@@ -161,45 +162,14 @@ const Resources: NextPage & {
             </ul>
           ) : null}
 
-          {current.pageCount > 1 ? (
-            <nav className="library-pager" aria-label={isKo ? '자료 페이지' : 'Resource pages'}>
-              <button
-                type="button"
-                className="library-pager__step"
-                onClick={() => setPage(current.page - 1)}
-                disabled={current.page === 1}
-              >
-                {isKo ? '이전' : 'Previous'}
-              </button>
-
-              <span className="library-pager__pages">
-                {Array.from({ length: current.pageCount }, (_, index) => index + 1).map((number) => (
-                  <button
-                    key={number}
-                    type="button"
-                    className={
-                      number === current.page
-                        ? 'library-pager__page library-pager__page--active'
-                        : 'library-pager__page'
-                    }
-                    aria-current={number === current.page ? 'page' : undefined}
-                    onClick={() => setPage(number)}
-                  >
-                    {number}
-                  </button>
-                ))}
-              </span>
-
-              <button
-                type="button"
-                className="library-pager__step"
-                onClick={() => setPage(current.page + 1)}
-                disabled={current.page === current.pageCount}
-              >
-                {isKo ? '다음' : 'Next'}
-              </button>
-            </nav>
-          ) : null}
+          <Pager
+            page={current.page}
+            pageCount={current.pageCount}
+            label={isKo ? '자료 페이지' : 'Resource pages'}
+            previousLabel={isKo ? '이전' : 'Previous'}
+            nextLabel={isKo ? '다음' : 'Next'}
+            onChange={setPage}
+          />
 
           {!visible.length ? (
             <p className="muted library-no-match">

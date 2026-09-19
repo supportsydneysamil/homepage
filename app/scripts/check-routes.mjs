@@ -71,13 +71,23 @@ test('upload url issuance requires the editor role', () => {
   assert.deepStrictEqual(find('/api/files/upload-url').allowedRoles, ['editor']);
 });
 
+test('removing an event photo requires the editor role', () => {
+  assert.deepStrictEqual(find('/api/events/images').allowedRoles, ['editor']);
+});
+
 test('site settings writes require the admin role', () => {
   assert.deepStrictEqual(find('/api/site-settings', 'PUT').allowedRoles, ['admin']);
 });
 
 test('every role-scoped route appears before the catch-all', () => {
   const catchAllIndex = routes.findIndex((entry) => entry.route === '/api/*');
-  const scoped = ['/api/events', '/api/sermons', '/api/resources', '/api/files/upload-url'];
+  const scoped = [
+    '/api/events',
+    '/api/events/images',
+    '/api/sermons',
+    '/api/resources',
+    '/api/files/upload-url',
+  ];
   for (const route of scoped) {
     assert.ok(
       routes.findIndex((entry) => entry.route === route) < catchAllIndex,
