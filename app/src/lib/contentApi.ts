@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type ApiEvent = {
   id: string;
@@ -87,27 +87,37 @@ export const useContent = <T,>(loader: () => Promise<T[]>) => {
   const [items, setItems] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+  // Callers pass an inline arrow, so pin the loader to keep reload stable.
+  const loaderRef = useRef(loader);
+  loaderRef.current = loader;
 
-  useEffect(() => {
-    let isMounted = true;
-    loader()
-      .then((result) => {
-        if (isMounted) {
-          setItems(result);
-          setIsLoading(false);
-        }
-      })
-      .catch((cause: Error) => {
-        if (isMounted) {
-          setError(cause.message);
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await loaderRef.current();
+      if (isMountedRef.current) {
+        setItems(result);
+      }
+    } catch (cause) {
+      if (isMountedRef.current) {
+        setError((cause as Error).message);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
+    }
   }, []);
 
-  return { items, isLoading, error };
+  useEffect(() => {
+    isMountedRef.current = true;
+    void reload();
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [reload]);
+
+  return { items, isLoading, error, reload };
 };
