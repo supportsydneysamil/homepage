@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 export type FormField = {
   name: string;
   label: string;
-  type: 'text' | 'date' | 'url' | 'textarea';
+  type: 'text' | 'date' | 'url' | 'textarea' | 'select';
   required?: boolean;
   readOnly?: boolean;
+  options?: { value: string; label: string }[];
+  hint?: string;
 };
 
 export type FileField = {
@@ -74,7 +76,22 @@ const ContentForm = ({
       {fields.map((field) => (
         <div className="manage-form__field" key={field.name}>
           <label htmlFor={`field-${field.name}`}>{field.label}</label>
-          {field.type === 'textarea' ? (
+          {field.type === 'select' ? (
+            <select
+              id={`field-${field.name}`}
+              value={values[field.name] ?? field.options?.[0]?.value ?? ''}
+              onChange={(changeEvent) =>
+                setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
+              }
+              required={field.required}
+            >
+              {(field.options ?? []).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ) : field.type === 'textarea' ? (
             <textarea
               id={`field-${field.name}`}
               value={values[field.name] ?? ''}
@@ -97,6 +114,7 @@ const ContentForm = ({
               readOnly={field.readOnly}
             />
           )}
+          {field.hint ? <span className="muted">{field.hint}</span> : null}
         </div>
       ))}
 

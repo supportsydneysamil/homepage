@@ -3538,7 +3538,8 @@ body {
 }
 
 .manage-form__field input,
-.manage-form__field textarea {
+.manage-form__field textarea,
+.manage-form__field select {
   width: 100%;
   padding: 0.85rem 1rem;
   border: 1px solid var(--site-line);
@@ -3550,7 +3551,7 @@ body {
   transition: border 160ms ease, box-shadow 160ms ease;
 }
 
-.manage-form__field :where(input, textarea):focus {
+.manage-form__field :where(input, textarea, select):focus {
   border-color: var(--site-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--site-accent) 16%, transparent);
 }
@@ -3650,4 +3651,76 @@ body {
   display: flex;
   justify-content: center;
   margin-top: 2rem;
+}
+
+.library-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.6rem;
+}
+
+.library-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.library-tab {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  background: var(--site-surface);
+  color: var(--site-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.library-tab:hover {
+  color: var(--site-ink);
+  border-color: var(--site-accent);
+}
+
+.library-tab--active {
+  background: var(--site-accent);
+  border-color: var(--site-accent);
+  color: var(--site-canvas);
+}
+
+.library-search input {
+  min-width: 14rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  background: var(--site-canvas);
+  color: var(--site-ink);
+  font: inherit;
+  outline: none;
+}
+
+.library-search input:focus {
+  border-color: var(--site-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--site-accent) 16%, transparent);
+}
+
+.library-no-match {
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
