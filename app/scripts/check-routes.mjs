@@ -47,10 +47,16 @@ test('public content reads stay anonymous', () => {
 
 test('content writes require the editor role', () => {
   for (const route of ['/api/events', '/api/sermons', '/api/resources']) {
-    const write = routes.find(
-      (entry) => entry.route === route && (entry.methods || []).includes('POST')
-    );
-    assert.deepStrictEqual(write.allowedRoles, ['editor'], `${route} POST must be editor-only`);
+    for (const method of ['POST', 'PUT', 'DELETE']) {
+      const write = routes.find(
+        (entry) => entry.route === route && (entry.methods || []).includes(method)
+      );
+      assert.deepStrictEqual(
+        write?.allowedRoles,
+        ['editor'],
+        `${route} ${method} must be editor-only`
+      );
+    }
   }
 });
 

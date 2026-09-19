@@ -19,6 +19,19 @@ const validateResourceInput = (body) => {
   return { value: { title, blobPath, contentType, sizeBytes } };
 };
 
+// Editors rename a resource; the stored file itself is never repointed, so a
+// caller-supplied blobPath is deliberately dropped.
+const validateResourceUpdate = (body) => {
+  const input = body || {};
+  const id = String(input.id || '').trim();
+  const title = String(input.title || '').trim();
+
+  if (!id) return { error: 'Resource id is required.' };
+  if (!title || title.length > 200) return { error: 'Title is required and must be 200 characters or fewer.' };
+
+  return { value: { id, title } };
+};
+
 const toResourceResponse = (row) => ({
   id: row.Id,
   title: row.Title,
@@ -74,6 +87,31 @@ VALUES (@title, @blobPath, @contentType, @sizeBytes, @actor, @actor);
       return;
     }
 
+    if (req.method === 'PUT') {
+      const parsed = validateResourceUpdate(req.body);
+      if (parsed.error) {
+        context.res = { status: 400, body: { error: parsed.error } };
+        return;
+      }
+      const updated = await pool
+        .request()
+        .input('id', sql.UniqueIdentifier, parsed.value.id)
+        .input('title', sql.NVarChar(200), parsed.value.title)
+        .input('actor', sql.NVarChar(256), actor)
+        .query(`
+UPDATE dbo.Resources
+SET Title = @title, UpdatedBy = @actor, UpdatedAt = SYSUTCDATETIME()
+OUTPUT inserted.Id, inserted.Title, inserted.ContentType, inserted.SizeBytes
+WHERE Id = @id;
+`);
+      if (!updated.recordset.length) {
+        context.res = { status: 404, body: { error: 'Resource not found.' } };
+        return;
+      }
+      context.res = { status: 200, body: { resource: toResourceResponse(updated.recordset[0]) } };
+      return;
+    }
+
     if (req.method === 'DELETE') {
       const id = String((req.query && req.query.id) || '').trim();
       if (!id) {
@@ -103,4 +141,5 @@ VALUES (@title, @blobPath, @contentType, @sizeBytes, @actor, @actor);
 };
 
 module.exports.validateResourceInput = validateResourceInput;
+module.exports.validateResourceUpdate = validateResourceUpdate;
 module.exports.toResourceResponse = toResourceResponse;

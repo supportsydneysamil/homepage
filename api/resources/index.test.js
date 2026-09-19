@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { validateResourceInput, toResourceResponse } = require('./index');
+const { validateResourceInput, validateResourceUpdate, toResourceResponse } = require('./index');
 
 test('accepts a registered upload', () => {
   const result = validateResourceInput({
@@ -28,6 +28,33 @@ test('rejects a blob path containing traversal', () => {
     validateResourceInput({ title: 'T', blobPath: 'resources/../secret', contentType: 'application/pdf', sizeBytes: 1 })
       .error
   );
+});
+
+test('accepts a title-only update', () => {
+  const result = validateResourceUpdate({
+    id: '11111111-1111-1111-1111-111111111111',
+    title: 'Bulletin, week 2',
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.strictEqual(result.value.title, 'Bulletin, week 2');
+});
+
+test('rejects an update without an id', () => {
+  assert.ok(validateResourceUpdate({ title: 'T' }).error);
+});
+
+test('rejects an update without a title', () => {
+  assert.ok(validateResourceUpdate({ id: '11111111-1111-1111-1111-111111111111' }).error);
+});
+
+test('an update cannot repoint the stored file', () => {
+  const result = validateResourceUpdate({
+    id: '11111111-1111-1111-1111-111111111111',
+    title: 'T',
+    blobPath: 'resources/someone-elses.pdf',
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.strictEqual(result.value.blobPath, undefined);
 });
 
 test('the response never exposes a storage url', () => {
