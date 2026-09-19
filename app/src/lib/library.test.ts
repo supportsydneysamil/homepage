@@ -7,7 +7,51 @@ import {
   visibilityLabel,
   filterResources,
   fileTypeLabel,
+  paginate,
 } from './library';
+
+test('slices a page and reports the range', () => {
+  const items = Array.from({ length: 45 }, (_, index) => index);
+  const page1 = paginate(items, 1, 20);
+  assert.deepStrictEqual(page1.items, items.slice(0, 20));
+  assert.strictEqual(page1.pageCount, 3);
+  assert.strictEqual(page1.from, 1);
+  assert.strictEqual(page1.to, 20);
+});
+
+test('the last page holds the remainder', () => {
+  const items = Array.from({ length: 45 }, (_, index) => index);
+  const page3 = paginate(items, 3, 20);
+  assert.strictEqual(page3.items.length, 5);
+  assert.strictEqual(page3.from, 41);
+  assert.strictEqual(page3.to, 45);
+});
+
+test('a page beyond the end clamps to the last page', () => {
+  const page = paginate(Array.from({ length: 45 }, (_, i) => i), 9, 20);
+  assert.strictEqual(page.page, 3);
+  assert.strictEqual(page.items.length, 5);
+});
+
+test('a page below one clamps to the first page', () => {
+  const page = paginate([1, 2, 3], 0, 20);
+  assert.strictEqual(page.page, 1);
+  assert.strictEqual(page.items.length, 3);
+});
+
+test('an empty list has one page and an empty range', () => {
+  const page = paginate([], 1, 20);
+  assert.strictEqual(page.pageCount, 1);
+  assert.strictEqual(page.from, 0);
+  assert.strictEqual(page.to, 0);
+  assert.deepStrictEqual(page.items, []);
+});
+
+test('a list shorter than one page needs no second page', () => {
+  const page = paginate([1, 2, 3], 1, 20);
+  assert.strictEqual(page.pageCount, 1);
+  assert.strictEqual(page.to, 3);
+});
 
 test('names the common file types compactly', () => {
   assert.strictEqual(fileTypeLabel('application/pdf', 'ko'), 'PDF');
@@ -36,6 +80,7 @@ import type { ApiResource } from './contentApi';
 const resource = (over: Partial<ApiResource>): ApiResource => ({
   id: 'r1',
   title: 'Weekly Bulletin',
+  fileName: 'bulletin.pdf',
   contentType: 'application/pdf',
   sizeBytes: 100,
   category: 'bulletin',

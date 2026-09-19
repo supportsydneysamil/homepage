@@ -73,9 +73,19 @@ const toIsoDate = (value) => {
   return value instanceof Date ? value.toISOString().slice(0, 10) : String(value);
 };
 
+// Uploads are stored as `<uuid>-<original name>`. Editors need the name they
+// chose, but the storage path itself must never leave the API.
+const GENERATED_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i;
+
+const displayFileName = (blobPath) => {
+  const last = String(blobPath || '').split('/').pop() || '';
+  return last.replace(GENERATED_PREFIX, '');
+};
+
 const toResourceResponse = (row) => ({
   id: row.Id,
   title: row.Title,
+  fileName: displayFileName(row.BlobPath),
   contentType: row.ContentType || '',
   sizeBytes: row.SizeBytes || 0,
   category: row.Category || 'bulletin',
@@ -101,7 +111,7 @@ module.exports = async function (context, req) {
       });
 
       const result = await request.query(`
-SELECT Id, Title, ContentType, SizeBytes, Category, Visibility, ResourceDate
+SELECT Id, Title, BlobPath, ContentType, SizeBytes, Category, Visibility, ResourceDate
 FROM dbo.Resources
 WHERE Visibility IN (${params.join(', ')})
 ORDER BY COALESCE(ResourceDate, CAST(CreatedAt AS DATE)) DESC, CreatedAt DESC
@@ -136,7 +146,7 @@ ORDER BY COALESCE(ResourceDate, CAST(CreatedAt AS DATE)) DESC, CreatedAt DESC
         .query(`
 INSERT INTO dbo.Resources
   (Title, BlobPath, ContentType, SizeBytes, Category, Visibility, ResourceDate, CreatedBy, UpdatedBy)
-OUTPUT inserted.Id, inserted.Title, inserted.ContentType, inserted.SizeBytes,
+OUTPUT inserted.Id, inserted.Title, inserted.BlobPath, inserted.ContentType, inserted.SizeBytes,
        inserted.Category, inserted.Visibility, inserted.ResourceDate
 VALUES (@title, @blobPath, @contentType, @sizeBytes, @category, @visibility, @resourceDate, @actor, @actor);
 `);
@@ -162,7 +172,7 @@ VALUES (@title, @blobPath, @contentType, @sizeBytes, @category, @visibility, @re
 UPDATE dbo.Resources
 SET Title = @title, Category = @category, Visibility = @visibility, ResourceDate = @resourceDate,
     UpdatedBy = @actor, UpdatedAt = SYSUTCDATETIME()
-OUTPUT inserted.Id, inserted.Title, inserted.ContentType, inserted.SizeBytes,
+OUTPUT inserted.Id, inserted.Title, inserted.BlobPath, inserted.ContentType, inserted.SizeBytes,
        inserted.Category, inserted.Visibility, inserted.ResourceDate
 WHERE Id = @id;
 `);

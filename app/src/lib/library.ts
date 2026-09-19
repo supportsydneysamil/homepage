@@ -61,6 +61,23 @@ export const fileTypeLabel = (contentType: string, lang: DisplayLanguage) => {
   return lang === 'ko' ? match.ko : match.en;
 };
 
+export const RESOURCES_PER_PAGE = 20;
+
+export const paginate = <T,>(items: T[], requestedPage: number, perPage: number) => {
+  const pageCount = Math.max(1, Math.ceil(items.length / perPage));
+  const page = Math.min(Math.max(1, Math.trunc(requestedPage) || 1), pageCount);
+  const start = (page - 1) * perPage;
+  const slice = items.slice(start, start + perPage);
+
+  return {
+    items: slice,
+    page,
+    pageCount,
+    from: slice.length ? start + 1 : 0,
+    to: start + slice.length,
+  };
+};
+
 export const filterResources = (
   resources: ApiResource[],
   category: ResourceCategory | 'all',

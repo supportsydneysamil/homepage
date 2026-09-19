@@ -136,6 +136,32 @@ test('an update cannot repoint the stored file', () => {
   assert.strictEqual(result.value.blobPath, undefined);
 });
 
+test('the response carries a readable file name without the storage path', () => {
+  const response = toResourceResponse({
+    Id: '33333333-3333-3333-3333-333333333333',
+    Title: '주보',
+    BlobPath: 'resources/1b4e28ba-2fa1-11d2-883f-0016d3cca427-bulletin.pdf',
+    ContentType: 'application/pdf',
+    SizeBytes: 10,
+  });
+  assert.strictEqual(response.fileName, 'bulletin.pdf');
+  assert.strictEqual(response.blobPath, undefined);
+  assert.ok(!JSON.stringify(response).includes('resources/'));
+});
+
+test('a file name survives when there is no generated prefix', () => {
+  const response = toResourceResponse({
+    Id: '44444444-4444-4444-4444-444444444444',
+    Title: '주보',
+    BlobPath: 'resources/bulletin20260906.pdf',
+  });
+  assert.strictEqual(response.fileName, 'bulletin20260906.pdf');
+});
+
+test('a missing blob path yields an empty file name', () => {
+  assert.strictEqual(toResourceResponse({ Id: 'x', Title: 'T' }).fileName, '');
+});
+
 test('the response never exposes a storage url', () => {
   const response = toResourceResponse({
     Id: '11111111-1111-1111-1111-111111111111',

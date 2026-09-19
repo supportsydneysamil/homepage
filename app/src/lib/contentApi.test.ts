@@ -52,6 +52,22 @@ test('parses a resources payload and keeps the proxied download url', () => {
   assert.strictEqual(resources[0].downloadUrl, '/api/files/download/r1');
 });
 
+test('keeps the display file name when the API sends one', () => {
+  const resources = parseResources({
+    resources: [
+      {
+        id: 'r1',
+        title: 'Bulletin',
+        fileName: 'bulletin.pdf',
+        contentType: 'application/pdf',
+        sizeBytes: 10,
+        downloadUrl: '/api/files/download/r1',
+      },
+    ],
+  });
+  assert.strictEqual(resources[0].fileName, 'bulletin.pdf');
+});
+
 test('drops resource entries that point at raw storage', () => {
   const resources = parseResources({
     resources: [

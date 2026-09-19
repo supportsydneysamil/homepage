@@ -10,7 +10,9 @@ import {
   categoryLabel,
   fileTypeLabel,
   filterResources,
+  paginate,
   visibilityLabel,
+  RESOURCES_PER_PAGE,
   type ResourceCategory,
 } from '../lib/library';
 const formatSize = (bytes: number) => {
@@ -27,8 +29,18 @@ const Resources: NextPage & {
   const { items: resources, isLoading, error } = useContent<ApiResource>(fetchResources);
   const [category, setCategory] = useState<ResourceCategory | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
-  const visible = filterResources(resources, category, search);
+  const matched = filterResources(resources, category, search);
+  const current = paginate(matched, page, RESOURCES_PER_PAGE);
+  const visible = current.items;
+
+  // Narrowing the list can leave the reader on a page that no longer exists.
+  const showFrom = (nextCategory: ResourceCategory | 'all', nextSearch: string) => {
+    setCategory(nextCategory);
+    setSearch(nextSearch);
+    setPage(1);
+  };
   const countFor = (id: ResourceCategory) =>
     resources.filter((resource) => resource.category === id).length;
 
@@ -60,7 +72,7 @@ const Resources: NextPage & {
                 type="button"
                 className={category === 'all' ? 'library-tab library-tab--active' : 'library-tab'}
                 aria-current={category === 'all' ? 'true' : undefined}
-                onClick={() => setCategory('all')}
+                onClick={() => showFrom('all', search)}
               >
                 {isKo ? '전체' : 'All'} ({resources.length})
               </button>
@@ -70,7 +82,7 @@ const Resources: NextPage & {
                   type="button"
                   className={category === entry.id ? 'library-tab library-tab--active' : 'library-tab'}
                   aria-current={category === entry.id ? 'true' : undefined}
-                  onClick={() => setCategory(entry.id)}
+                  onClick={() => showFrom(entry.id, search)}
                 >
                   {categoryLabel(entry.id, lang)} ({countFor(entry.id)})
                 </button>
@@ -86,13 +98,13 @@ const Resources: NextPage & {
                 type="search"
                 value={search}
                 placeholder={isKo ? '제목으로 검색' : 'Search by title'}
-                onChange={(changeEvent) => setSearch(changeEvent.target.value)}
+                onChange={(changeEvent) => showFrom(category, changeEvent.target.value)}
               />
               {search ? (
                 <button
                   type="button"
                   className="library-search__clear"
-                  onClick={() => setSearch('')}
+                  onClick={() => showFrom(category, '')}
                   aria-label={isKo ? '검색어 지우기' : 'Clear search'}
                 >
                   <span aria-hidden="true">×</span>
@@ -102,7 +114,13 @@ const Resources: NextPage & {
           </div>
 
           <p className="library-count" role="status" aria-live="polite">
-            {isKo ? `${visible.length}건` : `${visible.length} item${visible.length === 1 ? '' : 's'}`}
+            {matched.length
+              ? isKo
+                ? `${matched.length}건 중 ${current.from}–${current.to}`
+                : `${current.from}–${current.to} of ${matched.length}`
+              : isKo
+                ? '0건'
+                : 'No items'}
           </p>
 
           {visible.length ? (
@@ -141,11 +159,53 @@ const Resources: NextPage & {
                 );
               })}
             </ul>
-          ) : (
+          ) : null}
+
+          {current.pageCount > 1 ? (
+            <nav className="library-pager" aria-label={isKo ? '자료 페이지' : 'Resource pages'}>
+              <button
+                type="button"
+                className="library-pager__step"
+                onClick={() => setPage(current.page - 1)}
+                disabled={current.page === 1}
+              >
+                {isKo ? '이전' : 'Previous'}
+              </button>
+
+              <span className="library-pager__pages">
+                {Array.from({ length: current.pageCount }, (_, index) => index + 1).map((number) => (
+                  <button
+                    key={number}
+                    type="button"
+                    className={
+                      number === current.page
+                        ? 'library-pager__page library-pager__page--active'
+                        : 'library-pager__page'
+                    }
+                    aria-current={number === current.page ? 'page' : undefined}
+                    onClick={() => setPage(number)}
+                  >
+                    {number}
+                  </button>
+                ))}
+              </span>
+
+              <button
+                type="button"
+                className="library-pager__step"
+                onClick={() => setPage(current.page + 1)}
+                disabled={current.page === current.pageCount}
+              >
+                {isKo ? '다음' : 'Next'}
+              </button>
+            </nav>
+          ) : null}
+
+          {!visible.length ? (
             <p className="muted library-no-match">
               {isKo ? '조건에 맞는 자료가 없습니다.' : 'No resources match that filter.'}
             </p>
-          )}
+          ) : null}
         </>
       ) : null}
 

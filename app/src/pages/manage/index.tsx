@@ -253,6 +253,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 categoryLabel(item.category, lang),
                 visibilityLabel(item.visibility, lang),
                 item.resourceDate ? formatDisplayDate(item.resourceDate, lang) : '',
+                item.fileName,
               ]
                 .filter(Boolean)
                 .join(' · '),
