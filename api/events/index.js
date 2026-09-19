@@ -88,6 +88,16 @@ const mapRow = (row) => ({
   images: Array.isArray(row.images) ? row.images : [],
 });
 
+const lookupFromQuery = (query) => {
+  const id = String((query && query.id) || '').trim();
+  const slug = String((query && query.slug) || '').trim();
+  if (id) return { id };
+  if (slug) return { slug };
+  return null;
+};
+
+const isEventVisible = (row, includeDrafts) => includeDrafts || Boolean(row && row.IsPublished);
+
 const assembleEvents = (eventRows, imageRows) => {
   const imagesByEvent = new Map();
   for (const image of imageRows || []) {
@@ -122,12 +132,8 @@ const listEvents = async (includeDrafts) => {
   const result = await pool.request().query(
     `${EVENT_SELECT}${includeDrafts ? '' : ' WHERE IsPublished = 1'} ORDER BY EventDate DESC`
   );
-  const rows = result.recordset || [];
-  const images = await loadImages(
-    pool,
-    rows.map((row) => row.Id)
-  );
-  return assembleEvents(rows, images);
+  // ponytail: list payload stays small; photos load on the one-event GET
+  return assembleEvents(result.recordset || [], []);
 };
 
 const getEventById = async (id) => {
@@ -136,6 +142,22 @@ const getEventById = async (id) => {
   const row = result.recordset && result.recordset[0];
   if (!row) return null;
   const images = await loadImages(pool, [id]);
+  return assembleEvents([row], images)[0];
+};
+
+const getReadableEvent = async (lookup, includeDrafts) => {
+  await ensureSchema();
+  const pool = await getPool();
+  const request = pool.request();
+  const sqlText = lookup.id
+    ? `${EVENT_SELECT} WHERE Id = @id`
+    : `${EVENT_SELECT} WHERE Slug = @slug`;
+  if (lookup.id) request.input('id', sql.UniqueIdentifier, lookup.id);
+  else request.input('slug', sql.NVarChar(120), lookup.slug);
+  const result = await request.query(sqlText);
+  const row = result.recordset && result.recordset[0];
+  if (!row || !isEventVisible(row, includeDrafts)) return null;
+  const images = await loadImages(pool, [row.Id]);
   return assembleEvents([row], images)[0];
 };
 
@@ -164,6 +186,12 @@ module.exports = async function (context, req) {
     if (req.method === 'GET') {
       const principal = getClientPrincipal(req);
       const includeDrafts = Boolean(principal && principal.userRoles.includes(ROLES.EDITOR));
+      const lookup = lookupFromQuery(req.query);
+      if (lookup) {
+        const event = await getReadableEvent(lookup, includeDrafts);
+        context.res = { status: 200, body: { events: event ? [event] : [] } };
+        return;
+      }
       context.res = { status: 200, body: { events: await listEvents(includeDrafts) } };
       return;
     }
@@ -268,3 +296,5 @@ SELECT @@ROWCOUNT AS Affected;
 
 module.exports.validateEventInput = validateEventInput;
 module.exports.assembleEvents = assembleEvents;
+module.exports.lookupFromQuery = lookupFromQuery;
+module.exports.isEventVisible = isEventVisible;

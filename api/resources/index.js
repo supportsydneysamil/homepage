@@ -124,10 +124,14 @@ module.exports = async function (context, req) {
         return `@level${index}`;
       });
 
+      const id = String((req.query && req.query.id) || '').trim();
+      if (id) request.input('id', sql.UniqueIdentifier, id);
+
       const result = await request.query(`
 SELECT Id, Title, BlobPath, ContentType, SizeBytes, Category, Visibility, ResourceDate
 FROM dbo.Resources
 WHERE Visibility IN (${params.join(', ')})
+${id ? 'AND Id = @id' : ''}
 ORDER BY COALESCE(ResourceDate, CAST(CreatedAt AS DATE)) DESC, CreatedAt DESC
 `);
       context.res = { status: 200, body: { resources: (result.recordset || []).map(toResourceResponse) } };

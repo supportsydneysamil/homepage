@@ -54,21 +54,24 @@ const mapRow = (row) => ({
   mediaContentType: row.MediaContentType || '',
 });
 
-const listSermons = async () => {
+const listSermons = async (id) => {
   await ensureSchema();
   const pool = await getPool();
-  const result = await pool
-    .request()
-    .query(
-      'SELECT Id, SermonDate, Title, Speaker, YouTubeUrl, MediaUrl, MediaContentType FROM dbo.Sermons WHERE IsPublished = 1 ORDER BY SermonDate DESC'
-    );
+  const request = pool.request();
+  if (id) request.input('id', sql.UniqueIdentifier, id);
+  const result = await request.query(
+    `SELECT Id, SermonDate, Title, Speaker, YouTubeUrl, MediaUrl, MediaContentType FROM dbo.Sermons WHERE IsPublished = 1${
+      id ? ' AND Id = @id' : ''
+    } ORDER BY SermonDate DESC`
+  );
   return (result.recordset || []).map(mapRow);
 };
 
 module.exports = async function (context, req) {
   try {
     if (req.method === 'GET') {
-      context.res = { status: 200, body: { sermons: await listSermons() } };
+      const id = String((req.query && req.query.id) || '').trim();
+      context.res = { status: 200, body: { sermons: await listSermons(id) } };
       return;
     }
 

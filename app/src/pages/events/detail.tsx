@@ -15,8 +15,8 @@ const EventDetailPage: NextPage & {
   const isKo = lang === 'ko';
   const router = useRouter();
   const slug = typeof router.query.slug === 'string' ? router.query.slug : '';
-  const { items: events, isLoading } = useContent<ApiEvent>(fetchEvents);
-  const event = events.find((item) => item.slug === slug);
+  const { items: events, isLoading } = useContent<ApiEvent>(() => fetchEvents({ slug }), Boolean(slug));
+  const event = events[0];
   const images = event ? visibleEventImages(event.images) : [];
   const embedUrl = event ? toYouTubeEmbedUrl(event.youtubeUrl) : null;
 

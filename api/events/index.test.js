@@ -86,6 +86,33 @@ test('rejects an image path outside the events folder', () => {
   );
 });
 
+test('GET with id looks up one event', () => {
+  const { lookupFromQuery } = require('./index');
+  assert.deepStrictEqual(lookupFromQuery({ id: ' e1 ' }), { id: 'e1' });
+});
+
+test('GET with slug looks up one event by address', () => {
+  const { lookupFromQuery } = require('./index');
+  assert.deepStrictEqual(lookupFromQuery({ slug: 'christmas-2026' }), { slug: 'christmas-2026' });
+});
+
+test('GET without id or slug is a list', () => {
+  const { lookupFromQuery } = require('./index');
+  assert.strictEqual(lookupFromQuery({}), null);
+});
+
+test('id wins when both id and slug are sent', () => {
+  const { lookupFromQuery } = require('./index');
+  assert.deepStrictEqual(lookupFromQuery({ id: 'e1', slug: 'christmas-2026' }), { id: 'e1' });
+});
+
+test('a public visitor cannot see a draft event', () => {
+  const { isEventVisible } = require('./index');
+  assert.strictEqual(isEventVisible({ IsPublished: 0 }, false), false);
+  assert.strictEqual(isEventVisible({ IsPublished: 1 }, false), true);
+  assert.strictEqual(isEventVisible({ IsPublished: 0 }, true), true);
+});
+
 test('attaches download urls to matching events', () => {
   const { assembleEvents } = require('./index');
   const events = assembleEvents(

@@ -3243,6 +3243,7 @@ body {
   }
 
   .content-row time,
+  .content-row__body,
   .content-row > a {
     grid-column: 2;
   }
@@ -3435,6 +3436,40 @@ body {
 .manage-panel {
   display: grid;
   gap: 1.8rem;
+}
+
+.manage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.manage-filter select {
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  background: var(--site-canvas);
+  color: var(--site-ink);
+  font: inherit;
+}
+
+.manage-filter select:focus {
+  border-color: var(--site-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--site-accent) 16%, transparent);
+}
+
+.manage-toolbar {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.manage-toolbar .library-controls,
+.manage-toolbar .library-count {
+  margin: 0;
+}
+
+.manage-panel .library-pager {
+  margin-top: 0;
 }
 
 .manage-list {
