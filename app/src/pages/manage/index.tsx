@@ -7,7 +7,7 @@ import ManageList from '../../components/manage/ManageList';
 import { useLanguage } from '../../lib/LanguageContext';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
-import { formatDisplayDate } from '../../lib/presentation';
+import { fileNameFromUrl, formatDisplayDate } from '../../lib/presentation';
 import { MANAGE_TABS, buildManageHref, parseManageQuery, type ManageTab } from '../../lib/manageNav';
 import {
   fetchEvents,
@@ -97,9 +97,10 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       recordingHint: isKo
         ? 'MP3, M4A, WAV, MP4, WebM 파일을 최대 200MB까지 올릴 수 있습니다. 유튜브만 쓰신다면 비워두세요.'
         : 'MP3, M4A, WAV, MP4, or WebM up to 200 MB. Leave empty when you only use YouTube.',
-      recordingCurrent: isKo
-        ? '이미 올린 파일이 있습니다. 새 파일을 고르면 교체됩니다.'
-        : 'A recording is already attached. Choosing a new file replaces it.',
+      recordingCurrent: (fileName: string) =>
+        isKo
+          ? `현재 파일: ${fileName} · 새 파일을 고르면 교체됩니다.`
+          : `Current file: ${fileName} · choosing a new file replaces it.`,
       slug: isKo ? '주소 슬러그' : 'URL slug',
       description: isKo ? '설명' : 'Description',
       emptyResources: isKo ? '등록된 자료가 없습니다.' : 'No resources yet.',
@@ -286,7 +287,14 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             items={sermons.items.map((item) => ({
               id: item.id,
               primary: item.title,
-              secondary: `${formatDisplayDate(item.date, lang)}${item.speaker ? ` · ${item.speaker}` : ''}`,
+              secondary: [
+                formatDisplayDate(item.date, lang),
+                item.speaker,
+                item.mediaUrl ? fileNameFromUrl(item.mediaUrl) : '',
+                item.youtubeUrl ? 'YouTube' : '',
+              ]
+                .filter(Boolean)
+                .join(' · '),
             }))}
             activeId={editId}
             emptyLabel={labels.emptySermons}
@@ -327,7 +335,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 label: labels.recording,
                 accept: '.mp3,.m4a,.wav,.mp4,.webm',
                 hint: labels.recordingHint,
-                currentLabel: editingSermon?.mediaUrl ? labels.recordingCurrent : undefined,
+                currentLabel: editingSermon?.mediaUrl
+                  ? labels.recordingCurrent(fileNameFromUrl(editingSermon.mediaUrl))
+                  : undefined,
               }}
               submitLabel={labels.save}
               busyLabel={labels.saving}

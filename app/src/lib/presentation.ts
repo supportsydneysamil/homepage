@@ -44,6 +44,21 @@ export const isPlaceholderUrl = (value?: string) => {
   }
 };
 
+// Uploads are stored as `<uuid>-<original name>`, so drop the prefix to show
+// the editor the name they picked.
+const GENERATED_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i;
+
+export const fileNameFromUrl = (value?: string): string => {
+  if (!value) return '';
+  try {
+    const { pathname } = new URL(value);
+    const last = pathname.split('/').pop() || '';
+    return decodeURIComponent(last).replace(GENERATED_PREFIX, '');
+  } catch {
+    return '';
+  }
+};
+
 export const toYouTubeEmbedUrl = (value?: string): string | null => {
   if (!value || isPlaceholderUrl(value)) return null;
 
