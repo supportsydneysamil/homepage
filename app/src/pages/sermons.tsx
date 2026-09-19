@@ -4,6 +4,8 @@ import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
 import { formatDisplayDate, toYouTubeEmbedUrl } from '../lib/presentation';
 import { fetchSermons, useContent, type ApiSermon } from '../lib/contentApi';
+import { useRoles } from '../lib/useRoles';
+import { buildManageHref } from '../lib/manageNav';
 
 const Sermons: NextPage & {
   meta?: { title?: string; description?: string };
@@ -11,6 +13,7 @@ const Sermons: NextPage & {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { items: sermons, isLoading } = useContent<ApiSermon>(fetchSermons);
+  const { isEditor } = useRoles();
 
   return (
     <article className="site-page sermons-page">
@@ -37,6 +40,11 @@ const Sermons: NextPage & {
                   <time dateTime={sermon.date}>{formatDisplayDate(sermon.date, lang)}</time>
                   <h2>{sermon.title}</h2>
                   <p>{isKo ? `설교자 · ${sermon.speaker}` : `Speaker · ${sermon.speaker}`}</p>
+                  {isEditor ? (
+                    <a className="manage-edit-link" href={buildManageHref('sermons', sermon.id)}>
+                      {isKo ? '편집' : 'Edit'}
+                    </a>
+                  ) : null}
                 </div>
                 {embedUrl ? (
                   <div className="site-video">

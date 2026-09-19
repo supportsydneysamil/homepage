@@ -3,6 +3,8 @@ import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
 import { fetchResources, useContent, type ApiResource } from '../lib/contentApi';
+import { useRoles } from '../lib/useRoles';
+import { buildManageHref } from '../lib/manageNav';
 
 const formatSize = (bytes: number) => {
   if (!bytes) return '';
@@ -16,6 +18,7 @@ const Resources: NextPage & {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { items: resources, isLoading, error } = useContent<ApiResource>(fetchResources);
+  const { isEditor } = useRoles();
 
   return (
     <article className="site-page resources-page">
@@ -47,6 +50,11 @@ const Resources: NextPage & {
               <a href={resource.downloadUrl} rel="noreferrer">
                 {isKo ? '다운로드' : 'Download'} <span aria-hidden="true">↓</span>
               </a>
+              {isEditor ? (
+                <a className="manage-edit-link" href={buildManageHref('resources', resource.id)}>
+                  {isKo ? '편집' : 'Edit'}
+                </a>
+              ) : null}
             </li>
           ))}
         </ol>

@@ -5,6 +5,8 @@ import PageHero from '../../components/PageHero';
 import { useLanguage } from '../../lib/LanguageContext';
 import { formatDisplayDate } from '../../lib/presentation';
 import { fetchEvents, useContent, type ApiEvent } from '../../lib/contentApi';
+import { useRoles } from '../../lib/useRoles';
+import { buildManageHref } from '../../lib/manageNav';
 
 const EventsPage: NextPage & {
   meta?: { title?: string; description?: string };
@@ -12,6 +14,7 @@ const EventsPage: NextPage & {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { items: events, isLoading } = useContent<ApiEvent>(fetchEvents);
+  const { isEditor } = useRoles();
 
   return (
     <article className="site-page events-page">
@@ -36,6 +39,11 @@ const EventsPage: NextPage & {
               <div className="content-row__body">
                 <h2>{event.title}</h2>
                 <p>{event.description}</p>
+                {isEditor ? (
+                  <a className="manage-edit-link" href={buildManageHref('events', event.id)}>
+                    {isKo ? '편집' : 'Edit'}
+                  </a>
+                ) : null}
               </div>
               <Link href={`/events/${event.slug}`} className="site-text-link">
                 {isKo ? '자세히 보기' : 'View details'} <span aria-hidden="true">→</span>
