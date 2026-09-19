@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../lib/LanguageContext';
+import { useRoles } from '../lib/useRoles';
 import AuthButton from './AuthButton';
 
 const navItems = [
@@ -16,6 +17,7 @@ const navItems = [
 
 const Header = () => {
   const { lang, toggleLang } = useLanguage();
+  const { isEditor } = useRoles();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const isKo = lang === 'ko';
@@ -75,6 +77,16 @@ const Header = () => {
               </Link>
             </li>
           ))}
+          {isEditor ? (
+            <li className="nav__item">
+              <Link
+                href="/manage"
+                className={isActive('/manage') ? 'nav__link nav__link--active' : 'nav__link'}
+              >
+                {isKo ? '자료 관리' : 'Manage'}
+              </Link>
+            </li>
+          ) : null}
         </ul>
         <div className="site-nav__controls">
           <button

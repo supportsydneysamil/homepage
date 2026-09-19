@@ -28,6 +28,14 @@ test('manage area requires the editor role', () => {
   assert.deepStrictEqual(find('/manage/*').allowedRoles, ['editor']);
 });
 
+test('the manage landing page is protected, not only its children', () => {
+  assert.deepStrictEqual(find('/manage').allowedRoles, ['editor']);
+});
+
+test('the profile landing page is protected, not only its children', () => {
+  assert.deepStrictEqual(find('/profile').allowedRoles, ['authenticated']);
+});
+
 test('settings requires the admin role', () => {
   assert.deepStrictEqual(find('/settings').allowedRoles, ['admin']);
 });
