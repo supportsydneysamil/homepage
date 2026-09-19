@@ -39,7 +39,9 @@ const Sermons: NextPage & {
                   <span>0{index + 1}</span>
                   <time dateTime={sermon.date}>{formatDisplayDate(sermon.date, lang)}</time>
                   <h2>{sermon.title}</h2>
-                  <p>{isKo ? `설교자 · ${sermon.speaker}` : `Speaker · ${sermon.speaker}`}</p>
+                  {sermon.speaker ? (
+                    <p>{isKo ? `설교자 · ${sermon.speaker}` : `Speaker · ${sermon.speaker}`}</p>
+                  ) : null}
                   {isEditor ? (
                     <a className="manage-edit-link" href={buildManageHref('sermons', sermon.id)}>
                       {isKo ? '편집' : 'Edit'}
