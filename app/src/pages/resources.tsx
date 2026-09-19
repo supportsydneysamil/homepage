@@ -12,9 +12,6 @@ import {
   visibilityLabel,
   type ResourceCategory,
 } from '../lib/library';
-import { useRoles } from '../lib/useRoles';
-import { buildManageHref } from '../lib/manageNav';
-
 const formatSize = (bytes: number) => {
   if (!bytes) return '';
   const mb = bytes / (1024 * 1024);
@@ -27,7 +24,6 @@ const Resources: NextPage & {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { items: resources, isLoading, error } = useContent<ApiResource>(fetchResources);
-  const { isEditor } = useRoles();
   const [category, setCategory] = useState<ResourceCategory | 'all'>('all');
   const [search, setSearch] = useState('');
 
@@ -111,11 +107,6 @@ const Resources: NextPage & {
                   <a href={resource.downloadUrl} rel="noreferrer">
                     {isKo ? '다운로드' : 'Download'} <span aria-hidden="true">↓</span>
                   </a>
-                  {isEditor ? (
-                    <a className="manage-edit-link" href={buildManageHref('resources', resource.id)}>
-                      {isKo ? '편집' : 'Edit'}
-                    </a>
-                  ) : null}
                 </li>
               ))}
             </ol>

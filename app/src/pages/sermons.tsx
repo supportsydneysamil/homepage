@@ -5,9 +5,6 @@ import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
 import { formatDisplayDate, formatListIndex, toYouTubeEmbedUrl } from '../lib/presentation';
 import { fetchSermons, useContent, type ApiSermon } from '../lib/contentApi';
-import { useRoles } from '../lib/useRoles';
-import { buildManageHref } from '../lib/manageNav';
-
 const PAGE_SIZE = 12;
 
 const Sermons: NextPage & {
@@ -16,7 +13,6 @@ const Sermons: NextPage & {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { items: sermons, isLoading } = useContent<ApiSermon>(fetchSermons);
-  const { isEditor } = useRoles();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const visibleSermons = sermons.slice(0, visibleCount);
   const remaining = sermons.length - visibleSermons.length;
@@ -47,11 +43,6 @@ const Sermons: NextPage & {
                   <h2>{sermon.title}</h2>
                   {sermon.speaker ? (
                     <p>{isKo ? `설교자 · ${sermon.speaker}` : `Speaker · ${sermon.speaker}`}</p>
-                  ) : null}
-                  {isEditor ? (
-                    <a className="manage-edit-link" href={buildManageHref('sermons', sermon.id)}>
-                      {isKo ? '편집' : 'Edit'}
-                    </a>
                   ) : null}
                 </div>
                 {embedUrl ? (

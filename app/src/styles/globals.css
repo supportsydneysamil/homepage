@@ -3600,21 +3600,6 @@ body {
   color: #fff;
 }
 
-.manage-edit-link {
-  font-size: 0.8rem;
-  font-weight: 650;
-  color: var(--site-accent);
-  text-decoration: none;
-  border: 1px dashed var(--site-accent);
-  border-radius: 999px;
-  padding: 0.2rem 0.7rem;
-  white-space: nowrap;
-}
-
-.manage-edit-link:hover {
-  background: color-mix(in srgb, var(--site-accent) 10%, transparent);
-}
-
 @media (max-width: 640px) {
   .manage-list__row {
     align-items: flex-start;
