@@ -4,8 +4,30 @@ import PageHero from '../../components/PageHero';
 import { useLanguage } from '../../lib/LanguageContext';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
-import { fetchResources, useContent, type ApiResource } from '../../lib/contentApi';
+import ContentForm, { type FormField } from '../../components/manage/ContentForm';
+import {
+  fetchEvents,
+  fetchResources,
+  fetchSermons,
+  useContent,
+  type ApiEvent,
+  type ApiResource,
+  type ApiSermon,
+} from '../../lib/contentApi';
 import { uploadFile } from '../../lib/uploadFile';
+
+const postContent = async (endpoint: string, values: Record<string, string>) => {
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(values),
+  });
+  if (!res.ok) {
+    const detail = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(detail.error || `Request failed (${res.status})`);
+  }
+};
 
 const ManagePage: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { isAuthenticated, isLoading } = useRequireAuth();
@@ -13,6 +35,8 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { items: resources } = useContent<ApiResource>(fetchResources);
+  const { items: events } = useContent<ApiEvent>(fetchEvents);
+  const { items: sermons } = useContent<ApiSermon>(fetchSermons);
   const [title, setTitle] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -122,6 +146,47 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         ) : (
           <p className="muted">{isKo ? '등록된 자료가 없습니다.' : 'No resources yet.'}</p>
         )}
+      </section>
+
+      <section className="settings-card">
+        <h2>{isKo ? '이벤트 추가' : 'Add an event'}</h2>
+        <ContentForm
+          fields={
+            [
+              { name: 'slug', label: isKo ? '주소 슬러그' : 'URL slug', type: 'text', required: true },
+              { name: 'date', label: isKo ? '날짜' : 'Date', type: 'date', required: true },
+              { name: 'title', label: isKo ? '제목' : 'Title', type: 'text', required: true },
+              { name: 'description', label: isKo ? '설명' : 'Description', type: 'textarea' },
+              { name: 'youtubeUrl', label: isKo ? '유튜브 주소' : 'YouTube URL', type: 'url' },
+            ] as FormField[]
+          }
+          submitLabel={isKo ? '이벤트 저장' : 'Save event'}
+          busyLabel={isKo ? '저장 중...' : 'Saving...'}
+          onSubmit={(values) => postContent('/api/events', values)}
+        />
+        <p className="muted">
+          {isKo ? `등록된 이벤트 ${events.length}건` : `${events.length} events published`}
+        </p>
+      </section>
+
+      <section className="settings-card">
+        <h2>{isKo ? '설교 추가' : 'Add a sermon'}</h2>
+        <ContentForm
+          fields={
+            [
+              { name: 'date', label: isKo ? '날짜' : 'Date', type: 'date', required: true },
+              { name: 'title', label: isKo ? '제목' : 'Title', type: 'text', required: true },
+              { name: 'speaker', label: isKo ? '설교자' : 'Speaker', type: 'text' },
+              { name: 'youtubeUrl', label: isKo ? '유튜브 주소' : 'YouTube URL', type: 'url' },
+            ] as FormField[]
+          }
+          submitLabel={isKo ? '설교 저장' : 'Save sermon'}
+          busyLabel={isKo ? '저장 중...' : 'Saving...'}
+          onSubmit={(values) => postContent('/api/sermons', values)}
+        />
+        <p className="muted">
+          {isKo ? `등록된 설교 ${sermons.length}건` : `${sermons.length} sermons published`}
+        </p>
       </section>
     </article>
   );
