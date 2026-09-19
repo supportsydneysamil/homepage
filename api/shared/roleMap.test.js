@@ -20,8 +20,19 @@ test('member group grants member only', () => {
   assert.deepStrictEqual(resolveRoles(['g-member'], config), ['member']);
 });
 
-test('unknown groups grant nothing', () => {
+test('unknown groups grant nothing when a member group is configured', () => {
   assert.deepStrictEqual(resolveRoles(['g-other'], config), []);
+});
+
+test('every signed-in user is a member when no member group is configured', () => {
+  const openConfig = { memberGroupId: '', editorGroupId: 'g-editor', adminGroupId: 'g-admin' };
+  assert.deepStrictEqual(resolveRoles(['g-other'], openConfig), ['member']);
+  assert.deepStrictEqual(resolveRoles([], openConfig), ['member']);
+});
+
+test('an editor still outranks the open member default', () => {
+  const openConfig = { memberGroupId: '', editorGroupId: 'g-editor', adminGroupId: 'g-admin' };
+  assert.deepStrictEqual(resolveRoles(['g-editor'], openConfig).sort(), ['editor', 'member']);
 });
 
 test('overlapping groups do not duplicate roles', () => {
@@ -32,8 +43,10 @@ test('group matching ignores casing of object ids', () => {
   assert.deepStrictEqual(resolveRoles(['G-EDITOR'], config).sort(), ['editor', 'member']);
 });
 
-test('missing configuration never grants a role', () => {
-  assert.deepStrictEqual(resolveRoles([''], { memberGroupId: '', editorGroupId: '', adminGroupId: '' }), []);
+test('with nothing configured a signed-in user is only a member', () => {
+  assert.deepStrictEqual(resolveRoles([''], { memberGroupId: '', editorGroupId: '', adminGroupId: '' }), [
+    'member',
+  ]);
 });
 
 test('role constants are stable', () => {

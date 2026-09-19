@@ -109,23 +109,28 @@ To restrict sign-in to your church tenant, use custom Entra ID auth:
 
 ## Roles and permissions
 
-The site uses three Entra security groups mapped to Static Web Apps roles by `/api/roles`:
+`/api/roles` turns Entra group membership into Static Web Apps roles at sign-in:
 
-| Entra group | SWA role | Capability |
+| Who | SWA role | Capability |
 | --- | --- | --- |
-| Samil-Members | `member` | View and download the resource library and sermon files |
-| Samil-Editors | `editor` | Everything above, plus upload files and maintain events and sermons |
-| Samil-Admins | `admin` | Everything above, plus site settings at `/settings` |
+| Any signed-in church account | `member` | View and download the resource library and sermon files |
+| `Samil-Homepage-Editors` | `editor` | Everything above, plus upload files and maintain events and sermons |
+| `Samil-Homepage-Admins` | `admin` | Everything above, plus site settings at `/settings` |
 
 Roles are cumulative and resolved from group **object IDs**, not names.
+
+Sign-in is already restricted to the church tenant, so `member` needs no group of its
+own: everyone who can sign in gets it. To tighten that later, create a members group and
+set `SAMIL_GROUP_MEMBER_ID`; once that setting has a value, only members of that group
+receive the `member` role.
 
 ### Required application settings
 
 | Setting | Purpose |
 | --- | --- |
-| `SAMIL_GROUP_MEMBER_ID` | Object ID of `Samil-Members` |
-| `SAMIL_GROUP_EDITOR_ID` | Object ID of `Samil-Editors` |
-| `SAMIL_GROUP_ADMIN_ID` | Object ID of `Samil-Admins` |
+| `SAMIL_GROUP_EDITOR_ID` | Object ID of `Samil-Homepage-Editors` |
+| `SAMIL_GROUP_ADMIN_ID` | Object ID of `Samil-Homepage-Admins` |
+| `SAMIL_GROUP_MEMBER_ID` | Optional. Leave unset to treat every signed-in user as a member |
 | `AZURE_STORAGE_ACCOUNT` | Storage account name holding church files |
 | `AZURE_STORAGE_KEY` | Storage account key used to sign SAS URLs |
 | `AZURE_STORAGE_CONTAINER` | Private container name, default `church-files` |

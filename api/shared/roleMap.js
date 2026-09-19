@@ -18,7 +18,9 @@ const resolveRoles = (groupIds, config) => {
     roles.add(ROLES.EDITOR);
     roles.add(ROLES.MEMBER);
   }
-  if (memberId && ids.has(memberId)) {
+  // Sign-in is already restricted to the church tenant, so when no member
+  // group is configured every signed-in user counts as a member.
+  if (!memberId || ids.has(memberId)) {
     roles.add(ROLES.MEMBER);
   }
 

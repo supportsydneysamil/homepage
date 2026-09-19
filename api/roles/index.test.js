@@ -16,10 +16,10 @@ test('returns cumulative roles for an admin group member', async () => {
   assert.deepStrictEqual(context.res.body.roles.sort(), ['admin', 'editor', 'member']);
 });
 
-test('returns an empty role list for a user in no church group', async () => {
+test('a signed-in user in no church group is still a member', async () => {
   const context = contextOf();
   await handler(context, { body: { userDetails: 'b@church.org' } }, deps(['g-unrelated']));
-  assert.deepStrictEqual(context.res.body.roles, []);
+  assert.deepStrictEqual(context.res.body.roles, ['member']);
 });
 
 test('returns empty roles rather than failing when Graph is unavailable', async () => {
