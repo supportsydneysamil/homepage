@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  PAST_EVENT_PAGE_SIZE,
   eventDetailHref,
   eventDetailPath,
   eventImageIdFromUrl,
   slugFromTitle,
   splitUpcomingAndPast,
+  takePage,
   visibleEventImages,
 } from './events';
 
@@ -74,6 +76,19 @@ test('reads the photo id back out of a download url', () => {
 test('has no photo id for anything but a download url', () => {
   assert.equal(eventImageIdFromUrl('https://example.com/a.jpg'), '');
   assert.equal(eventImageIdFromUrl(''), '');
+});
+
+test('the past-events page is small enough to scan', () => {
+  assert.equal(PAST_EVENT_PAGE_SIZE, 8);
+});
+
+test('takes the first page and reports how many are left', () => {
+  const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  assert.deepEqual(takePage(items, 8), { items: [1, 2, 3, 4, 5, 6, 7, 8], remaining: 2 });
+});
+
+test('a short list needs no second page', () => {
+  assert.deepEqual(takePage(['a', 'b'], 8), { items: ['a', 'b'], remaining: 0 });
 });
 
 test('keeps only real image urls for galleries', () => {

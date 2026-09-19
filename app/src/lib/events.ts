@@ -34,6 +34,13 @@ export const splitUpcomingAndPast = <T extends DatedEvent>(items: T[], today: st
   return { upcoming, past };
 };
 
+export const PAST_EVENT_PAGE_SIZE = 8;
+
+export const takePage = <T>(items: T[], visibleCount: number) => ({
+  items: items.slice(0, visibleCount),
+  remaining: Math.max(0, items.length - visibleCount),
+});
+
 export const todayStamp = (now = new Date()) => {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
