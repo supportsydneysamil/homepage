@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getLoginUrl, getLogoutUrl, useSwaAuth } from '../lib/swaAuth';
 import { useLanguage } from '../lib/LanguageContext';
-import { useGlobalAdmin } from '../lib/useGlobalAdmin';
+import { useRoles } from '../lib/useRoles';
 
 const GRAPH_PHOTO_ENDPOINT = '/api/profile/photo';
 
@@ -20,7 +20,7 @@ const AuthButton = () => {
   const isKo = lang === 'ko';
   const devBypass =
     process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS !== '0';
-  const { isGlobalAdmin } = useGlobalAdmin(isAuthenticated);
+  const { isAdmin } = useRoles();
   const userLabel = user?.userDetails || 'Account';
   const labels = {
     login: isKo ? '로그인' : 'Login',
@@ -112,7 +112,7 @@ const AuthButton = () => {
           <Link className="dropdown-link" href="/profile" role="menuitem" onClick={() => setOpen(false)}>
             {labels.profile}
           </Link>
-          {isGlobalAdmin ? (
+          {isAdmin ? (
             <Link className="dropdown-link" href="/settings" role="menuitem" onClick={() => setOpen(false)}>
               {labels.settings}
             </Link>

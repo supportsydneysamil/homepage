@@ -4,14 +4,14 @@ import PageHero from '../components/PageHero';
 import { THEME_OPTIONS, type ThemeId, useTheme } from '../lib/ThemeContext';
 import { useRequireAuth } from '../lib/swaAuth';
 import { useLanguage } from '../lib/LanguageContext';
-import { useGlobalAdmin } from '../lib/useGlobalAdmin';
+import { useRoles } from '../lib/useRoles';
 
 const SettingsPage: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { themeId, setThemeLocal, saveTheme } = useTheme();
-  const { isGlobalAdmin, isChecking } = useGlobalAdmin(isAuthenticated);
+  const { isAdmin, isLoading: isChecking } = useRoles();
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(themeId);
   const [status, setStatus] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -24,10 +24,10 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     () => ({
       title: isKo ? '글로벌 설정' : 'Global Settings',
       subtitle: isKo
-        ? 'Global Administrator만 홈페이지 전체 테마를 변경할 수 있습니다.'
-        : 'Only Global Administrators can update site-wide theme settings.',
+        ? '관리자만 홈페이지 전체 테마를 변경할 수 있습니다.'
+        : 'Only administrators can update site-wide theme settings.',
       loading: isKo ? '권한 확인 중...' : 'Checking permissions...',
-      forbidden: isKo ? 'Global Administrator 권한이 필요합니다.' : 'Global Administrator role is required.',
+      forbidden: isKo ? '관리자 권한이 필요합니다.' : 'Administrator role is required.',
       themeTitle: isKo ? '홈페이지 테마' : 'Website Theme',
       save: isKo ? '전체 적용 저장' : 'Save and Apply Globally',
       saving: isKo ? '저장 중...' : 'Saving...',
@@ -46,7 +46,7 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     return null;
   }
 
-  if (!isGlobalAdmin) {
+  if (!isAdmin) {
     return (
       <section className="site-page settings-page">
         <div className="site-empty-state settings-card">

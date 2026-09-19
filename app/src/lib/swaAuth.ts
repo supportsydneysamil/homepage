@@ -49,7 +49,7 @@ export const useSwaAuth = () => {
         userId: 'dev-user',
         userDetails: 'dev@local',
         identityProvider: 'dev',
-        userRoles: ['authenticated'],
+        userRoles: ['authenticated', 'member', 'editor', 'admin'],
       });
       return;
     }
