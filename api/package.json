@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "commonjs",
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
     "@azure/communication-email": "^1.1.0",
     "mssql": "^11.0.1"
