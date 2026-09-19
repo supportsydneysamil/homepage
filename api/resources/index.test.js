@@ -2,6 +2,85 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { validateResourceInput, validateResourceUpdate, toResourceResponse } = require('./index');
 
+test('defaults category and visibility when they are omitted', () => {
+  const result = validateResourceInput({
+    title: 'Weekly Bulletin',
+    blobPath: 'resources/abc-bulletin.pdf',
+    contentType: 'application/pdf',
+    sizeBytes: 2048,
+  });
+  assert.strictEqual(result.value.category, 'bulletin');
+  assert.strictEqual(result.value.visibility, 'member');
+  assert.strictEqual(result.value.resourceDate, null);
+});
+
+test('accepts a category, visibility, and date', () => {
+  const result = validateResourceInput({
+    title: '9월 소식지',
+    blobPath: 'resources/abc-news.pdf',
+    contentType: 'application/pdf',
+    sizeBytes: 2048,
+    category: 'newsletter',
+    visibility: 'public',
+    resourceDate: '2026-09-01',
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.strictEqual(result.value.category, 'newsletter');
+  assert.strictEqual(result.value.visibility, 'public');
+  assert.strictEqual(result.value.resourceDate, '2026-09-01');
+});
+
+test('an unknown visibility never becomes public', () => {
+  const result = validateResourceInput({
+    title: 'T',
+    blobPath: 'resources/a.pdf',
+    contentType: 'application/pdf',
+    sizeBytes: 1,
+    visibility: 'everyone',
+  });
+  assert.strictEqual(result.value.visibility, 'member');
+});
+
+test('rejects a malformed resource date', () => {
+  assert.ok(
+    validateResourceInput({
+      title: 'T',
+      blobPath: 'resources/a.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 1,
+      resourceDate: '1 Sep 2026',
+    }).error
+  );
+});
+
+test('an update can move a file between categories and visibility levels', () => {
+  const result = validateResourceUpdate({
+    id: '11111111-1111-1111-1111-111111111111',
+    title: '당회 회의록',
+    category: 'minutes',
+    visibility: 'admin',
+    resourceDate: '2026-09-07',
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.strictEqual(result.value.category, 'minutes');
+  assert.strictEqual(result.value.visibility, 'admin');
+});
+
+test('the response carries category, visibility, and date', () => {
+  const response = toResourceResponse({
+    Id: '22222222-2222-2222-2222-222222222222',
+    Title: '주보',
+    ContentType: 'application/pdf',
+    SizeBytes: 10,
+    Category: 'bulletin',
+    Visibility: 'public',
+    ResourceDate: new Date('2026-09-06T00:00:00Z'),
+  });
+  assert.strictEqual(response.category, 'bulletin');
+  assert.strictEqual(response.visibility, 'public');
+  assert.strictEqual(response.resourceDate, '2026-09-06');
+});
+
 test('accepts a registered upload', () => {
   const result = validateResourceInput({
     title: 'Weekly Bulletin',

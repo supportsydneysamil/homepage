@@ -173,6 +173,17 @@ BEGIN
   );
 END;
 
+IF COL_LENGTH('dbo.Resources', 'Category') IS NULL
+  ALTER TABLE dbo.Resources ADD Category NVARCHAR(40) NOT NULL
+    CONSTRAINT DF_Resources_Category DEFAULT 'bulletin';
+
+IF COL_LENGTH('dbo.Resources', 'Visibility') IS NULL
+  ALTER TABLE dbo.Resources ADD Visibility NVARCHAR(20) NOT NULL
+    CONSTRAINT DF_Resources_Visibility DEFAULT 'member';
+
+IF COL_LENGTH('dbo.Resources', 'ResourceDate') IS NULL
+  ALTER TABLE dbo.Resources ADD ResourceDate DATE NULL;
+
 IF OBJECT_ID('dbo.EventImages', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.EventImages (

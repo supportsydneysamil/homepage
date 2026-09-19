@@ -20,8 +20,8 @@ test('roles endpoint is reachable anonymously', () => {
   assert.ok(find('/api/roles').allowedRoles.includes('anonymous'));
 });
 
-test('resources page requires the member role', () => {
-  assert.deepStrictEqual(find('/resources').allowedRoles, ['member']);
+test('the resource library is reachable anonymously so public files can be shared', () => {
+  assert.ok(find('/resources').allowedRoles.includes('anonymous'));
 });
 
 test('manage area requires the editor role', () => {
@@ -60,9 +60,11 @@ test('content writes require the editor role', () => {
   }
 });
 
-test('resource listing and downloads require the member role', () => {
-  assert.deepStrictEqual(find('/api/resources', 'GET').allowedRoles, ['member']);
-  assert.deepStrictEqual(find('/api/files/download/*').allowedRoles, ['member']);
+// Access is decided per file inside the Function, because one library holds
+// public, member, and admin material.
+test('resource listing and downloads are reachable anonymously', () => {
+  assert.ok(find('/api/resources', 'GET').allowedRoles.includes('anonymous'));
+  assert.ok(find('/api/files/download/*').allowedRoles.includes('anonymous'));
 });
 
 test('upload url issuance requires the editor role', () => {
