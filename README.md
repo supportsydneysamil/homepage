@@ -107,6 +107,51 @@ To restrict sign-in to your church tenant, use custom Entra ID auth:
 - Enterprise application → Properties → **User assignment required = Yes**
 - Assign only church users/groups
 
+## Roles and permissions
+
+The site uses three Entra security groups mapped to Static Web Apps roles by `/api/roles`:
+
+| Entra group | SWA role | Capability |
+| --- | --- | --- |
+| Samil-Members | `member` | View and download the resource library and sermon files |
+| Samil-Editors | `editor` | Everything above, plus upload files and maintain events and sermons |
+| Samil-Admins | `admin` | Everything above, plus site settings at `/settings` |
+
+Roles are cumulative and resolved from group **object IDs**, not names.
+
+### Required application settings
+
+| Setting | Purpose |
+| --- | --- |
+| `SAMIL_GROUP_MEMBER_ID` | Object ID of `Samil-Members` |
+| `SAMIL_GROUP_EDITOR_ID` | Object ID of `Samil-Editors` |
+| `SAMIL_GROUP_ADMIN_ID` | Object ID of `Samil-Admins` |
+| `AZURE_STORAGE_ACCOUNT` | Storage account name holding church files |
+| `AZURE_STORAGE_KEY` | Storage account key used to sign SAS URLs |
+| `AZURE_STORAGE_CONTAINER` | Private container name, default `church-files` |
+
+### Required Graph application permission
+
+Add `GroupMember.Read.All` with admin consent so `/api/roles` can read group membership.
+
+### File handling
+
+The Blob container must be **private**. Uploads use a 10-minute single-blob SAS and downloads
+use a 5-minute read SAS issued by `/api/files/download/{id}` after the role check. No permanent
+storage URL is ever sent to a browser.
+
+### Seeding existing content
+
+```bash
+cd api
+node scripts/seed-content.js
+```
+
+### Local development bypass
+
+`NEXT_PUBLIC_DEV_ROLE_BYPASS=0` disables the development role bypass, which otherwise grants
+all three roles under `next dev`.
+
 ## Entra group sync (GitHub Actions, optional)
 To keep app access aligned with a specific Entra group without paid group assignment,
 this repo includes a scheduled GitHub Actions workflow that syncs group members to app assignments.
