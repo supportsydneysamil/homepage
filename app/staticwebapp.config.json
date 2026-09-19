@@ -1,5 +1,6 @@
 {
   "auth": {
+    "rolesSource": "/api/roles",
     "identityProviders": {
       "azureActiveDirectory": {
         "registration": {
@@ -14,50 +15,25 @@
     "apiRuntime": "node:20"
   },
   "routes": [
-    {
-      "route": "/api/contact",
-      "allowedRoles": [
-        "anonymous",
-        "authenticated"
-      ]
-    },
-    {
-      "route": "/api/site-settings",
-      "methods": [
-        "PUT"
-      ],
-      "allowedRoles": [
-        "authenticated"
-      ]
-    },
-    {
-      "route": "/api/site-settings",
-      "methods": [
-        "GET"
-      ],
-      "allowedRoles": [
-        "anonymous",
-        "authenticated"
-      ]
-    },
-    {
-      "route": "/profile/*",
-      "allowedRoles": [
-        "authenticated"
-      ]
-    },
-    {
-      "route": "/settings",
-      "allowedRoles": [
-        "authenticated"
-      ]
-    },
-    {
-      "route": "/api/*",
-      "allowedRoles": [
-        "authenticated"
-      ]
-    }
+    { "route": "/api/roles", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/contact", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/events", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/events", "methods": ["POST", "PUT", "DELETE"], "allowedRoles": ["editor"] },
+    { "route": "/api/sermons", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/sermons", "methods": ["POST", "PUT", "DELETE"], "allowedRoles": ["editor"] },
+    { "route": "/api/resources", "methods": ["GET"], "allowedRoles": ["member"] },
+    { "route": "/api/resources", "methods": ["POST", "PUT", "DELETE"], "allowedRoles": ["editor"] },
+    { "route": "/api/files/upload-url", "allowedRoles": ["editor"] },
+    { "route": "/api/files/download/*", "allowedRoles": ["member"] },
+    { "route": "/api/site-settings", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/site-settings", "methods": ["PUT"], "allowedRoles": ["admin"] },
+    { "route": "/resources", "allowedRoles": ["member"] },
+    { "route": "/manage", "allowedRoles": ["editor"] },
+    { "route": "/manage/*", "allowedRoles": ["editor"] },
+    { "route": "/settings", "allowedRoles": ["admin"] },
+    { "route": "/profile", "allowedRoles": ["authenticated"] },
+    { "route": "/profile/*", "allowedRoles": ["authenticated"] },
+    { "route": "/api/*", "allowedRoles": ["authenticated"] }
   ],
   "responseOverrides": {
     "401": {

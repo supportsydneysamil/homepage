@@ -31,6 +31,8 @@ export const formatShortDate = (value: string, lang: DisplayLanguage) => {
     : `${parts.day} ${EN_MONTHS[parts.month - 1]}`;
 };
 
+export const formatListIndex = (index: number) => String(index + 1).padStart(2, '0');
+
 export const isPlaceholderUrl = (value?: string) => {
   if (!value) return true;
   try {
@@ -41,6 +43,21 @@ export const isPlaceholderUrl = (value?: string) => {
     );
   } catch {
     return true;
+  }
+};
+
+// Uploads are stored as `<uuid>-<original name>`, so drop the prefix to show
+// the editor the name they picked.
+const GENERATED_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i;
+
+export const fileNameFromUrl = (value?: string): string => {
+  if (!value) return '';
+  try {
+    const { pathname } = new URL(value);
+    const last = pathname.split('/').pop() || '';
+    return decodeURIComponent(last).replace(GENERATED_PREFIX, '');
+  } catch {
+    return '';
   }
 };
 

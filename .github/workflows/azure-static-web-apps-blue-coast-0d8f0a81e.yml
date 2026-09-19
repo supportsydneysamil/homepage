@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
@@ -26,6 +27,10 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BLUE_COAST_0D8F0A81E }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
           action: "upload"
+          production_branch: "main"
+          # Pushes to a non-production branch get a stable preview environment
+          # named after the branch. Pull requests keep the default numbered preview.
+          deployment_environment: ${{ github.event_name == 'push' && github.ref_name != 'main' && github.ref_name || '' }}
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "app" # App source code path

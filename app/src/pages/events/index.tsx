@@ -1,27 +1,20 @@
 import Link from 'next/link';
-import type { GetStaticProps, NextPage } from 'next';
+import type { NextPage } from 'next';
 import EmptyState from '../../components/EmptyState';
 import PageHero from '../../components/PageHero';
-import eventsData from '../../content/events.json';
 import { useLanguage } from '../../lib/LanguageContext';
-import { formatDisplayDate } from '../../lib/presentation';
+import { formatDisplayDate, formatListIndex } from '../../lib/presentation';
+import { fetchEvents, useContent, type ApiEvent } from '../../lib/contentApi';
+import { useRoles } from '../../lib/useRoles';
+import { buildManageHref } from '../../lib/manageNav';
 
-type Event = {
-  slug: string;
-  date: string;
-  title: string;
-  description: string;
-  images: string[];
-  youtubeUrl?: string;
-};
-
-type EventsPageProps = { events: Event[] };
-
-const EventsPage: NextPage<EventsPageProps> & {
+const EventsPage: NextPage & {
   meta?: { title?: string; description?: string };
-} = ({ events }) => {
+} = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const { items: events, isLoading } = useContent<ApiEvent>(fetchEvents);
+  const { isEditor } = useRoles();
 
   return (
     <article className="site-page events-page">
@@ -35,15 +28,22 @@ const EventsPage: NextPage<EventsPageProps> & {
         }
       />
 
-      {events.length ? (
+      {isLoading ? <p className="account-state">{isKo ? '불러오는 중...' : 'Loading...'}</p> : null}
+
+      {!isLoading && events.length ? (
         <section className="content-list">
           {events.map((event, index) => (
             <article className="content-row" key={event.slug}>
-              <div className="content-row__index">0{index + 1}</div>
+              <div className="content-row__index">{formatListIndex(index)}</div>
               <time dateTime={event.date}>{formatDisplayDate(event.date, lang)}</time>
               <div className="content-row__body">
                 <h2>{event.title}</h2>
                 <p>{event.description}</p>
+                {isEditor ? (
+                  <a className="manage-edit-link" href={buildManageHref('events', event.id)}>
+                    {isKo ? '편집' : 'Edit'}
+                  </a>
+                ) : null}
               </div>
               <Link href={`/events/${event.slug}`} className="site-text-link">
                 {isKo ? '자세히 보기' : 'View details'} <span aria-hidden="true">→</span>
@@ -51,12 +51,14 @@ const EventsPage: NextPage<EventsPageProps> & {
             </article>
           ))}
         </section>
-      ) : (
+      ) : null}
+
+      {!isLoading && !events.length ? (
         <EmptyState
           title={isKo ? '새로운 행사를 준비 중입니다' : 'New gatherings are on the way'}
           description={isKo ? '곧 새로운 소식으로 찾아뵙겠습니다.' : 'Please check back soon for updates.'}
         />
-      )}
+      ) : null}
     </article>
   );
 };
@@ -65,9 +67,5 @@ EventsPage.meta = {
   title: 'Events',
   description: 'Events and gatherings at Sydney Samil Church.',
 };
-
-export const getStaticProps: GetStaticProps<EventsPageProps> = async () => ({
-  props: { events: eventsData },
-});
 
 export default EventsPage;

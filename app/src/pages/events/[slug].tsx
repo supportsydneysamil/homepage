@@ -9,6 +9,9 @@ import {
   isPlaceholderUrl,
   toYouTubeEmbedUrl,
 } from '../../lib/presentation';
+import { fetchEvents, useContent, type ApiEvent } from '../../lib/contentApi';
+import { useRoles } from '../../lib/useRoles';
+import { buildManageHref } from '../../lib/manageNav';
 
 type Event = {
   slug: string;
@@ -26,27 +29,37 @@ const EventDetail: NextPage<EventDetailProps> & {
 } = ({ event }) => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
-  const images = event.images.filter((image) => !isPlaceholderUrl(image));
-  const embedUrl = toYouTubeEmbedUrl(event.youtubeUrl);
+  // The build-time props keep the static route; live data keeps the content current.
+  const { items: liveEvents } = useContent<ApiEvent>(fetchEvents);
+  const { isEditor } = useRoles();
+  const liveMatch = liveEvents.find((item) => item.slug === event.slug);
+  const liveEvent = liveMatch ?? event;
+  const images = liveEvent.images.filter((image) => !isPlaceholderUrl(image));
+  const embedUrl = toYouTubeEmbedUrl(liveEvent.youtubeUrl);
 
   return (
     <article className="site-page event-detail-page">
       <Head>
-        <title>{event.title} | Sydney Samil Church</title>
-        <meta name="description" content={event.description} />
+        <title>{liveEvent.title} | Sydney Samil Church</title>
+        <meta name="description" content={liveEvent.description} />
       </Head>
 
       <header className="event-detail-hero">
         <Link href="/events" className="site-text-link">← {isKo ? '모든 이벤트' : 'All events'}</Link>
-        <p className="site-kicker">{formatDisplayDate(event.date, lang)}</p>
-        <h1>{event.title}</h1>
-        <p>{event.description}</p>
+        <p className="site-kicker">{formatDisplayDate(liveEvent.date, lang)}</p>
+        <h1>{liveEvent.title}</h1>
+        <p>{liveEvent.description}</p>
+        {isEditor && liveMatch ? (
+          <a className="manage-edit-link" href={buildManageHref('events', liveMatch.id)}>
+            {isKo ? '편집' : 'Edit'}
+          </a>
+        ) : null}
       </header>
 
       {images.length ? (
         <section className="event-gallery">
           {images.map((image) => (
-            <img src={image} alt={event.title} key={image} />
+            <img src={image} alt={liveEvent.title} key={image} />
           ))}
         </section>
       ) : null}
@@ -55,7 +68,7 @@ const EventDetail: NextPage<EventDetailProps> & {
         <div className="site-video">
           <iframe
             src={embedUrl}
-            title={event.title}
+            title={liveEvent.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />

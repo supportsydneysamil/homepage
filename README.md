@@ -107,6 +107,56 @@ To restrict sign-in to your church tenant, use custom Entra ID auth:
 - Enterprise application → Properties → **User assignment required = Yes**
 - Assign only church users/groups
 
+## Roles and permissions
+
+`/api/roles` turns Entra group membership into Static Web Apps roles at sign-in:
+
+| Who | SWA role | Capability |
+| --- | --- | --- |
+| Any signed-in church account | `member` | View and download the resource library and sermon files |
+| `Samil-Homepage-Editors` | `editor` | Everything above, plus upload files and maintain events and sermons |
+| `Samil-Homepage-Admins` | `admin` | Everything above, plus site settings at `/settings` |
+
+Roles are cumulative and resolved from group **object IDs**, not names.
+
+Sign-in is already restricted to the church tenant, so `member` needs no group of its
+own: everyone who can sign in gets it. To tighten that later, create a members group and
+set `SAMIL_GROUP_MEMBER_ID`; once that setting has a value, only members of that group
+receive the `member` role.
+
+### Required application settings
+
+| Setting | Purpose |
+| --- | --- |
+| `SAMIL_GROUP_EDITOR_ID` | Object ID of `Samil-Homepage-Editors` |
+| `SAMIL_GROUP_ADMIN_ID` | Object ID of `Samil-Homepage-Admins` |
+| `SAMIL_GROUP_MEMBER_ID` | Optional. Leave unset to treat every signed-in user as a member |
+| `AZURE_STORAGE_ACCOUNT` | Storage account name holding church files |
+| `AZURE_STORAGE_KEY` | Storage account key used to sign SAS URLs |
+| `AZURE_STORAGE_CONTAINER` | Private container name, default `church-files` |
+
+### Required Graph application permission
+
+Add `GroupMember.Read.All` with admin consent so `/api/roles` can read group membership.
+
+### File handling
+
+The Blob container must be **private**. Uploads use a 10-minute single-blob SAS and downloads
+use a 5-minute read SAS issued by `/api/files/download/{id}` after the role check. No permanent
+storage URL is ever sent to a browser.
+
+### Seeding existing content
+
+```bash
+cd api
+node scripts/seed-content.js
+```
+
+### Local development bypass
+
+`NEXT_PUBLIC_DEV_ROLE_BYPASS=0` disables the development role bypass, which otherwise grants
+all three roles under `next dev`.
+
 ## Entra group sync (GitHub Actions, optional)
 To keep app access aligned with a specific Entra group without paid group assignment,
 this repo includes a scheduled GitHub Actions workflow that syncs group members to app assignments.

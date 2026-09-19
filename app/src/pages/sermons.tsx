@@ -1,24 +1,25 @@
-import type { GetStaticProps, NextPage } from 'next';
+import type { NextPage } from 'next';
+import { useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
-import sermonsData from '../content/sermons.json';
 import { useLanguage } from '../lib/LanguageContext';
-import { formatDisplayDate, toYouTubeEmbedUrl } from '../lib/presentation';
+import { formatDisplayDate, formatListIndex, toYouTubeEmbedUrl } from '../lib/presentation';
+import { fetchSermons, useContent, type ApiSermon } from '../lib/contentApi';
+import { useRoles } from '../lib/useRoles';
+import { buildManageHref } from '../lib/manageNav';
 
-type Sermon = {
-  date: string;
-  title: string;
-  speaker: string;
-  youtubeUrl: string;
-};
+const PAGE_SIZE = 12;
 
-type SermonsPageProps = { sermons: Sermon[] };
-
-const Sermons: NextPage<SermonsPageProps> & {
+const Sermons: NextPage & {
   meta?: { title?: string; description?: string };
-} = ({ sermons }) => {
+} = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const { items: sermons, isLoading } = useContent<ApiSermon>(fetchSermons);
+  const { isEditor } = useRoles();
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const visibleSermons = sermons.slice(0, visibleCount);
+  const remaining = sermons.length - visibleSermons.length;
 
   return (
     <article className="site-page sermons-page">
@@ -32,17 +33,26 @@ const Sermons: NextPage<SermonsPageProps> & {
         }
       />
 
-      {sermons.length ? (
+      {isLoading ? <p className="account-state">{isKo ? '불러오는 중...' : 'Loading...'}</p> : null}
+
+      {!isLoading && sermons.length ? (
         <section className="sermon-editorial-list">
-          {sermons.map((sermon, index) => {
+          {visibleSermons.map((sermon, index) => {
             const embedUrl = toYouTubeEmbedUrl(sermon.youtubeUrl);
             return (
               <article className="sermon-editorial-card" key={`${sermon.date}-${sermon.title}`}>
                 <div className="sermon-editorial-card__copy">
-                  <span>0{index + 1}</span>
+                  <span>{formatListIndex(index)}</span>
                   <time dateTime={sermon.date}>{formatDisplayDate(sermon.date, lang)}</time>
                   <h2>{sermon.title}</h2>
-                  <p>{isKo ? `설교자 · ${sermon.speaker}` : `Speaker · ${sermon.speaker}`}</p>
+                  {sermon.speaker ? (
+                    <p>{isKo ? `설교자 · ${sermon.speaker}` : `Speaker · ${sermon.speaker}`}</p>
+                  ) : null}
+                  {isEditor ? (
+                    <a className="manage-edit-link" href={buildManageHref('sermons', sermon.id)}>
+                      {isKo ? '편집' : 'Edit'}
+                    </a>
+                  ) : null}
                 </div>
                 {embedUrl ? (
                   <div className="site-video">
@@ -52,6 +62,14 @@ const Sermons: NextPage<SermonsPageProps> & {
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
+                  </div>
+                ) : sermon.mediaUrl && sermon.mediaContentType.startsWith('video/') ? (
+                  <div className="site-video">
+                    <video src={sermon.mediaUrl} controls preload="none" />
+                  </div>
+                ) : sermon.mediaUrl ? (
+                  <div className="sermon-audio">
+                    <audio src={sermon.mediaUrl} controls preload="none" />
                   </div>
                 ) : (
                   <div className="media-unavailable">
@@ -63,12 +81,26 @@ const Sermons: NextPage<SermonsPageProps> & {
             );
           })}
         </section>
-      ) : (
+      ) : null}
+
+      {remaining > 0 ? (
+        <div className="sermon-more">
+          <button
+            type="button"
+            className="manage-button manage-button--ghost"
+            onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          >
+            {isKo ? `지난 설교 더 보기 (${remaining}건)` : `Show earlier messages (${remaining})`}
+          </button>
+        </div>
+      ) : null}
+
+      {!isLoading && !sermons.length ? (
         <EmptyState
           title={isKo ? '설교를 준비 중입니다' : 'Messages are on the way'}
           description={isKo ? '새로운 말씀으로 곧 찾아뵙겠습니다.' : 'New messages will be available soon.'}
         />
-      )}
+      ) : null}
     </article>
   );
 };
@@ -77,9 +109,5 @@ Sermons.meta = {
   title: 'Sermons',
   description: 'Recent messages from Sydney Samil Church.',
 };
-
-export const getStaticProps: GetStaticProps<SermonsPageProps> = async () => ({
-  props: { sermons: sermonsData },
-});
 
 export default Sermons;

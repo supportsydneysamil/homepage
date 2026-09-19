@@ -1,282 +1,9 @@
-const sql = require('mssql');
+const { sql, getPool, ensureSchema } = require('../shared/db');
+const { requireRole, actorOf, ROLES } = require('../shared/principal');
 
-const GRAPH_SCOPE = 'https://graph.microsoft.com/.default';
 const SUPPORTED_THEMES = ['dark', 'light', 'church', 'modern-sky', 'modern-sand'];
 const DEFAULT_THEME = 'church';
 const DEFAULT_SETTING_KEY = 'theme';
-
-let poolPromise;
-let schemaReadyPromise;
-
-const getEnv = (name) => process.env[name] || '';
-
-const toSingleHeader = (value) => {
-  if (Array.isArray(value)) {
-    return value[0] || '';
-  }
-  return typeof value === 'string' ? value : '';
-};
-
-const getClientPrincipal = (req) => {
-  const headers = req.headers || {};
-  const encoded = toSingleHeader(headers['x-ms-client-principal']);
-  if (encoded) {
-    try {
-      const decoded = Buffer.from(encoded, 'base64').toString('utf8');
-      const parsed = JSON.parse(decoded);
-      if (parsed?.userDetails || parsed?.userId) {
-        return parsed;
-      }
-    } catch (error) {
-      // Fall through to individual headers.
-    }
-  }
-
-  const userId = toSingleHeader(headers['x-ms-client-principal-id']);
-  const userDetails = toSingleHeader(headers['x-ms-client-principal-name']);
-  if (!userId && !userDetails) {
-    return null;
-  }
-
-  return {
-    userId,
-    userDetails,
-    identityProvider: toSingleHeader(headers['x-ms-client-principal-idp']),
-    userRoles: [],
-  };
-};
-
-const getGraphToken = async (tenantId, clientId, clientSecret) => {
-  const tokenRes = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: 'client_credentials',
-      scope: GRAPH_SCOPE,
-    }),
-  });
-
-  if (!tokenRes.ok) {
-    const text = await tokenRes.text();
-    return { error: { status: tokenRes.status, detail: text.slice(0, 200) } };
-  }
-
-  const tokenJson = await tokenRes.json();
-  if (!tokenJson.access_token) {
-    return { error: { status: 500, detail: 'Missing access token from client credentials.' } };
-  }
-
-  return { token: tokenJson.access_token };
-};
-
-const hasGlobalAdminRole = async (principal, graphToken) => {
-  const userKey = encodeURIComponent(principal.userDetails || principal.userId);
-  const rolesRes = await fetch(
-    `https://graph.microsoft.com/v1.0/users/${userKey}/memberOf?$select=id,displayName,description`,
-    { headers: { Authorization: `Bearer ${graphToken}` } }
-  );
-
-  if (!rolesRes.ok) {
-    const detail = await rolesRes.text();
-    return { error: { status: rolesRes.status, detail: detail.slice(0, 200) } };
-  }
-
-  const rolesJson = await rolesRes.json();
-  const directoryRoles =
-    rolesJson.value?.filter((item) => item['@odata.type'] === '#microsoft.graph.directoryRole') ?? [];
-
-  const isGlobalAdmin = directoryRoles.some(
-    (role) => (role.displayName || '').toLowerCase() === 'global administrator'
-  );
-
-  return { isGlobalAdmin };
-};
-
-const parseBool = (value, defaultValue) => {
-  if (value === undefined || value === null || value === '') return defaultValue;
-  const normalized = String(value).trim().toLowerCase();
-  if (['true', '1', 'yes'].includes(normalized)) return true;
-  if (['false', '0', 'no'].includes(normalized)) return false;
-  return defaultValue;
-};
-
-const parseSqlConnectionString = (connectionString) => {
-  let raw = String(connectionString || '').trim();
-  if (!raw) return null;
-  if (
-    (raw.startsWith('"') && raw.endsWith('"')) ||
-    (raw.startsWith("'") && raw.endsWith("'"))
-  ) {
-    raw = raw.slice(1, -1).trim();
-  }
-  if (!raw) return null;
-
-  if (raw.startsWith('mssql://') || raw.startsWith('sqlserver://')) {
-    return {
-      connectionString: raw,
-      options: {
-        encrypt: true,
-        trustServerCertificate: false,
-      },
-      pool: {
-        max: 5,
-        min: 0,
-        idleTimeoutMillis: 30000,
-      },
-    };
-  }
-
-  const map = {};
-  for (const segment of raw.split(';')) {
-    if (!segment.trim()) continue;
-    const idx = segment.indexOf('=');
-    if (idx < 0) continue;
-    const key = segment.slice(0, idx).trim().toLowerCase();
-    const value = segment.slice(idx + 1).trim();
-    map[key] = value;
-  }
-
-  const serverToken =
-    map.server ||
-    map['data source'] ||
-    map.addr ||
-    map.address ||
-    map['network address'] ||
-    '';
-
-  let server = serverToken;
-  let port;
-
-  if (server.startsWith('tcp:')) {
-    server = server.slice(4);
-  }
-  if (server.includes(',')) {
-    const [host, maybePort] = server.split(',', 2);
-    server = host;
-    const parsedPort = Number.parseInt(maybePort, 10);
-    if (Number.isFinite(parsedPort)) {
-      port = parsedPort;
-    }
-  }
-
-  const explicitPort = Number.parseInt(map.port || '', 10);
-  if (Number.isFinite(explicitPort)) {
-    port = explicitPort;
-  }
-
-  const database = map.database || map['initial catalog'] || '';
-  const user = map.user || map.uid || map['user id'] || '';
-  const password = map.password || map.pwd || '';
-  const encrypt = parseBool(map.encrypt, true);
-  const trustServerCertificate = parseBool(map.trustservercertificate, false);
-  const connectTimeoutSeconds = Number.parseInt(
-    map['connection timeout'] || map.connecttimeout || map.timeout || '',
-    10
-  );
-
-  if (!server) {
-    return null;
-  }
-
-  const config = {
-    server,
-    database,
-    user,
-    password,
-    options: {
-      encrypt,
-      trustServerCertificate,
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      idleTimeoutMillis: 30000,
-    },
-  };
-
-  if (port) {
-    config.port = port;
-  }
-
-  if (Number.isFinite(connectTimeoutSeconds) && connectTimeoutSeconds > 0) {
-    config.connectionTimeout = connectTimeoutSeconds * 1000;
-  }
-
-  return config;
-};
-
-const getSqlConfig = () => {
-  const connectionString = getEnv('AZURE_SQL_CONNECTION_STRING');
-  if (connectionString) {
-    const parsed = parseSqlConnectionString(connectionString);
-    if (parsed) {
-      return parsed;
-    }
-  }
-
-  const server = getEnv('AZURE_SQL_SERVER');
-  const database = getEnv('AZURE_SQL_DATABASE');
-  const user = getEnv('AZURE_SQL_USER');
-  const password = getEnv('AZURE_SQL_PASSWORD');
-
-  if (!server || !database || !user || !password) {
-    return null;
-  }
-
-  return {
-    server,
-    database,
-    user,
-    password,
-    options: {
-      encrypt: true,
-      trustServerCertificate: false,
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      idleTimeoutMillis: 30000,
-    },
-  };
-};
-
-const getPool = async () => {
-  if (!poolPromise) {
-    const config = getSqlConfig();
-    if (!config) {
-      throw new Error(
-        'Missing SQL config. Set AZURE_SQL_CONNECTION_STRING or AZURE_SQL_SERVER/AZURE_SQL_DATABASE/AZURE_SQL_USER/AZURE_SQL_PASSWORD.'
-      );
-    }
-    poolPromise = sql.connect(config);
-  }
-  return poolPromise;
-};
-
-const ensureSchema = async () => {
-  if (!schemaReadyPromise) {
-    schemaReadyPromise = (async () => {
-      const pool = await getPool();
-      await pool.request().query(`
-IF OBJECT_ID('dbo.SiteSettings', 'U') IS NULL
-BEGIN
-  CREATE TABLE dbo.SiteSettings (
-    SettingKey NVARCHAR(100) NOT NULL PRIMARY KEY,
-    ThemeId NVARCHAR(50) NOT NULL,
-    UpdatedBy NVARCHAR(256) NULL,
-    UpdatedAt DATETIME2 NOT NULL CONSTRAINT DF_SiteSettings_UpdatedAt DEFAULT SYSUTCDATETIME()
-  );
-END
-`);
-    })().catch((error) => {
-      schemaReadyPromise = null;
-      throw error;
-    });
-  }
-  return schemaReadyPromise;
-};
 
 const getCurrentTheme = async () => {
   await ensureSchema();
@@ -284,11 +11,9 @@ const getCurrentTheme = async () => {
   const result = await pool
     .request()
     .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
-    .query(
-      'SELECT TOP 1 ThemeId, UpdatedAt, UpdatedBy FROM dbo.SiteSettings WHERE SettingKey = @settingKey'
-    );
+    .query('SELECT TOP 1 ThemeId, UpdatedAt, UpdatedBy FROM dbo.SiteSettings WHERE SettingKey = @settingKey');
 
-  const row = result.recordset?.[0];
+  const row = result.recordset && result.recordset[0];
   if (row) {
     return {
       themeId: row.ThemeId,
@@ -301,16 +26,9 @@ const getCurrentTheme = async () => {
     .request()
     .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
     .input('themeId', sql.NVarChar(50), DEFAULT_THEME)
-    .query(`
-INSERT INTO dbo.SiteSettings (SettingKey, ThemeId)
-VALUES (@settingKey, @themeId)
-`);
+    .query('INSERT INTO dbo.SiteSettings (SettingKey, ThemeId) VALUES (@settingKey, @themeId)');
 
-  return {
-    themeId: DEFAULT_THEME,
-    updatedAt: null,
-    updatedBy: null,
-  };
+  return { themeId: DEFAULT_THEME, updatedAt: null, updatedBy: null };
 };
 
 const saveTheme = async (themeId, updatedBy) => {
@@ -338,8 +56,7 @@ WHEN NOT MATCHED THEN
 module.exports = async function (context, req) {
   try {
     if (req.method === 'GET') {
-      const currentTheme = await getCurrentTheme();
-      context.res = { status: 200, body: currentTheme };
+      context.res = { status: 200, body: await getCurrentTheme() };
       return;
     }
 
@@ -348,65 +65,29 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const principal = getClientPrincipal(req);
-    if (!principal?.userDetails && !principal?.userId) {
-      context.res = { status: 401, body: { error: 'Missing authenticated user context.' } };
+    const auth = requireRole(req, ROLES.ADMIN);
+    if (auth.error) {
+      context.res = { status: auth.error.status, body: auth.error.body };
       return;
     }
 
-    const tenantId = getEnv('AZURE_TENANT_ID');
-    const clientId = getEnv('AZURE_CLIENT_ID');
-    const clientSecret = getEnv('AZURE_CLIENT_SECRET');
-    if (!tenantId || !clientId || !clientSecret) {
-      context.res = {
-        status: 500,
-        body: { error: 'Missing AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET in app settings.' },
-      };
-      return;
-    }
-
-    const nextThemeId = req.body?.themeId;
+    const nextThemeId = req.body && req.body.themeId;
     if (!SUPPORTED_THEMES.includes(nextThemeId)) {
       context.res = { status: 400, body: { error: 'Invalid themeId.', allowed: SUPPORTED_THEMES } };
       return;
     }
 
-    const tokenResult = await getGraphToken(tenantId, clientId, clientSecret);
-    if (tokenResult.error) {
-      context.res = {
-        status: tokenResult.error.status || 500,
-        body: { error: 'Graph token exchange failed.', detail: tokenResult.error.detail },
-      };
-      return;
-    }
-
-    const accessCheck = await hasGlobalAdminRole(principal, tokenResult.token);
-    if (accessCheck.error) {
-      context.res = {
-        status: accessCheck.error.status || 500,
-        body: { error: 'Directory role lookup failed.', detail: accessCheck.error.detail },
-      };
-      return;
-    }
-
-    if (!accessCheck.isGlobalAdmin) {
-      context.res = {
-        status: 403,
-        body: { error: 'Only Global Administrator can update site settings.' },
-      };
-      return;
-    }
-
-    const updated = await saveTheme(nextThemeId, principal.userDetails || principal.userId || 'unknown');
-    context.res = { status: 200, body: updated };
+    context.res = { status: 200, body: await saveTheme(nextThemeId, actorOf(auth.principal)) };
   } catch (error) {
-    context.log.error('site-settings error:', error?.message || error);
+    context.log.error('site-settings error:', (error && error.message) || error);
     context.res = {
       status: 500,
       body: {
         error: 'Unable to process site settings with Azure SQL.',
-        detail: String(error?.message || error).slice(0, 220),
+        detail: String((error && error.message) || error).slice(0, 220),
       },
     };
   }
 };
+
+module.exports.SUPPORTED_THEMES = SUPPORTED_THEMES;

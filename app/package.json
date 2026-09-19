@@ -7,7 +7,10 @@
     "dev:swa": "swa start http://localhost:3000 --run \"npm run dev\" --api-location ../api",
     "build": "next build && cp staticwebapp.config.json out/staticwebapp.config.json",
     "start": "next start",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:routes": "node --test scripts/check-routes.mjs",
+    "test:lib": "tsx --test src/lib/*.test.ts",
+    "test": "npm run test:lib && npm run test:routes"
   },
   "dependencies": {
     "next": "16.3.5",

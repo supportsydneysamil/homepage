@@ -8,21 +8,34 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    if: ${{ secrets.GRAPH_TENANT_ID != '' && secrets.GRAPH_CLIENT_ID != '' && secrets.GRAPH_CLIENT_SECRET != '' && secrets.ENTRA_GROUP_ID != '' && secrets.ENTRA_APP_SP_ID != '' }}
+    env:
+      GRAPH_TENANT_ID: ${{ secrets.GRAPH_TENANT_ID }}
+      GRAPH_CLIENT_ID: ${{ secrets.GRAPH_CLIENT_ID }}
+      GRAPH_CLIENT_SECRET: ${{ secrets.GRAPH_CLIENT_SECRET }}
+      ENTRA_GROUP_ID: ${{ secrets.ENTRA_GROUP_ID }}
+      ENTRA_APP_SP_ID: ${{ secrets.ENTRA_APP_SP_ID }}
     steps:
+      # The secrets context is unavailable in a job-level `if`, so the
+      # configuration check has to happen inside a step.
+      - name: Check required secrets
+        id: guard
+        shell: bash
+        run: |
+          if [ -z "$GRAPH_TENANT_ID" ] || [ -z "$GRAPH_CLIENT_ID" ] || [ -z "$GRAPH_CLIENT_SECRET" ] || [ -z "$ENTRA_GROUP_ID" ] || [ -z "$ENTRA_APP_SP_ID" ]; then
+            echo "Graph secrets are not configured; skipping the sync."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install Microsoft Graph PowerShell
+        if: steps.guard.outputs.configured == 'true'
         shell: pwsh
         run: |
           Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
           Install-Module Microsoft.Graph -Scope CurrentUser -Force
       - name: Sync group members to app assignments
+        if: steps.guard.outputs.configured == 'true'
         shell: pwsh
-        env:
-          GRAPH_TENANT_ID: ${{ secrets.GRAPH_TENANT_ID }}
-          GRAPH_CLIENT_ID: ${{ secrets.GRAPH_CLIENT_ID }}
-          GRAPH_CLIENT_SECRET: ${{ secrets.GRAPH_CLIENT_SECRET }}
-          ENTRA_GROUP_ID: ${{ secrets.ENTRA_GROUP_ID }}
-          ENTRA_APP_SP_ID: ${{ secrets.ENTRA_APP_SP_ID }}
         run: |
           $ErrorActionPreference = "Stop"
 
