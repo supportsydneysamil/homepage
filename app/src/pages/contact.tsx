@@ -23,6 +23,7 @@ const Contact: NextPage & { meta?: { title?: string; description?: string } } = 
         body: JSON.stringify({
           name: (formData.get('name') || '').toString(),
           email: (formData.get('email') || '').toString(),
+          phone: (formData.get('phone') || '').toString(),
           message: (formData.get('message') || '').toString(),
         }),
       });
@@ -74,6 +75,10 @@ const Contact: NextPage & { meta?: { title?: string; description?: string } } = 
           <label>
             <span>{isKo ? '이메일' : 'Email'}</span>
             <input type="email" name="email" autoComplete="email" required />
+          </label>
+          <label>
+            <span>{isKo ? '연락처 (선택)' : 'Phone (optional)'}</span>
+            <input type="tel" name="phone" autoComplete="tel" />
           </label>
           <label>
             <span>{isKo ? '메시지' : 'Message'}</span>

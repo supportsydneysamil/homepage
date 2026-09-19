@@ -1,3 +1,5 @@
+const { EmailClient } = require('@azure/communication-email');
+
 const getEnv = (name) => process.env[name] || '';
 
 const parseBody = (req) => {
@@ -14,6 +16,8 @@ const parseBody = (req) => {
 
 const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value || '');
 
+const limit = (value, max) => value.slice(0, max);
+
 module.exports = async function (context, req) {
   if (req.method && req.method.toUpperCase() !== 'POST') {
     context.res = { status: 405, body: { error: 'Method not allowed.' } };
@@ -21,21 +25,21 @@ module.exports = async function (context, req) {
   }
 
   const body = parseBody(req) || {};
-  const name = (body.name || '').toString().trim();
-  const email = (body.email || '').toString().trim();
-  const message = (body.message || '').toString().trim();
+  const name = limit((body.name || '').toString().trim(), 200);
+  const email = limit((body.email || '').toString().trim(), 320);
+  const phone = limit((body.phone || '').toString().trim(), 80);
+  const message = limit((body.message || '').toString().trim(), 8000);
 
   if (!name || !email || !message || !isValidEmail(email)) {
     context.res = { status: 400, body: { error: 'Invalid form submission.' } };
     return;
   }
 
-  const apiKey = getEnv('SENDGRID_API_KEY');
-  const toEmail = getEnv('CONTACT_TO') || 'support@sydneysamil.org';
+  const connectionString = getEnv('ACS_CONNECTION_STRING');
+  const toEmail = getEnv('CONTACT_TO') || 'info@sydneysamil.org';
   const fromEmail = getEnv('CONTACT_FROM');
-  const fromName = getEnv('CONTACT_FROM_NAME') || 'Sydney Samil Church';
 
-  if (!apiKey || !fromEmail) {
+  if (!connectionString || !fromEmail) {
     context.res = {
       status: 500,
       body: { error: 'Email service is not configured.' },
@@ -44,36 +48,41 @@ module.exports = async function (context, req) {
   }
 
   const subject = `Contact form: ${name}`;
-  const text = `Name: ${name}\nEmail: ${email}\n\n${message}`;
+  const text = [
+    `Name: ${name}`,
+    `Email: ${email}`,
+    phone ? `Phone: ${phone}` : null,
+    '',
+    message,
+  ]
+    .filter((line) => line !== null)
+    .join('\n');
 
   try {
-    const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+    const client = new EmailClient(connectionString);
+    const poller = await client.beginSend({
+      senderAddress: fromEmail,
+      replyTo: [{ address: email, displayName: name }],
+      recipients: {
+        to: [{ address: toEmail }],
       },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: toEmail }],
-            subject,
-          },
-        ],
-        from: { email: fromEmail, name: fromName },
-        reply_to: { email, name },
-        content: [{ type: 'text/plain', value: text }],
-      }),
+      content: {
+        subject,
+        plainText: text,
+      },
     });
+    const result = await poller.pollUntilDone();
+    const status = (result && result.status) || '';
 
-    if (!res.ok) {
-      const detail = await res.text();
-      context.res = { status: 502, body: { error: 'Email provider rejected request.', detail: detail.slice(0, 200) } };
+    if (status && status !== 'Succeeded') {
+      context.log.warn(`ACS email send finished with status ${status}`);
+      context.res = { status: 502, body: { error: 'Email provider rejected request.' } };
       return;
     }
 
     context.res = { status: 202, body: { ok: true } };
   } catch (error) {
+    context.log.error('ACS email send failed', error);
     context.res = { status: 500, body: { error: 'Unable to reach email provider.' } };
   }
 };

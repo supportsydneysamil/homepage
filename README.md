@@ -139,9 +139,8 @@ The workflow runs weekly on `ubuntu-latest` and can be triggered manually.
 - Media assets are loaded from external URLs (e.g., Azure Blob Storage, YouTube).
 - Content can be updated by editing the JSON files under `src/content/`.
 
-## Contact form (SendGrid)
-The contact form posts to `/api/contact`. Configure these Static Web Apps environment variables:
-- `SENDGRID_API_KEY`
-- `CONTACT_FROM` (must be a verified sender in SendGrid)
-- `CONTACT_TO` (recipient email)
-- `CONTACT_FROM_NAME` (optional display name)
+## Contact form (Azure Communication Services)
+The contact form posts to `/api/contact`. Azure Communication Services sends the message. The visitor email is used as Reply-To (ACS can only send from a verified MailFrom address). Configure these Static Web Apps environment variables:
+- `ACS_CONNECTION_STRING` (Communication Services connection string)
+- `CONTACT_FROM` (verified ACS MailFrom address, e.g. `DoNotReply@....azurecomm.net`)
+- `CONTACT_TO` (recipient email, defaults to `info@sydneysamil.org`)
