@@ -1,27 +1,17 @@
 import Link from 'next/link';
-import type { GetStaticProps, NextPage } from 'next';
+import type { NextPage } from 'next';
 import EmptyState from '../../components/EmptyState';
 import PageHero from '../../components/PageHero';
-import eventsData from '../../content/events.json';
 import { useLanguage } from '../../lib/LanguageContext';
 import { formatDisplayDate } from '../../lib/presentation';
+import { fetchEvents, useContent, type ApiEvent } from '../../lib/contentApi';
 
-type Event = {
-  slug: string;
-  date: string;
-  title: string;
-  description: string;
-  images: string[];
-  youtubeUrl?: string;
-};
-
-type EventsPageProps = { events: Event[] };
-
-const EventsPage: NextPage<EventsPageProps> & {
+const EventsPage: NextPage & {
   meta?: { title?: string; description?: string };
-} = ({ events }) => {
+} = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const { items: events, isLoading } = useContent<ApiEvent>(fetchEvents);
 
   return (
     <article className="site-page events-page">
@@ -35,7 +25,9 @@ const EventsPage: NextPage<EventsPageProps> & {
         }
       />
 
-      {events.length ? (
+      {isLoading ? <p className="account-state">{isKo ? '불러오는 중...' : 'Loading...'}</p> : null}
+
+      {!isLoading && events.length ? (
         <section className="content-list">
           {events.map((event, index) => (
             <article className="content-row" key={event.slug}>
@@ -51,12 +43,14 @@ const EventsPage: NextPage<EventsPageProps> & {
             </article>
           ))}
         </section>
-      ) : (
+      ) : null}
+
+      {!isLoading && !events.length ? (
         <EmptyState
           title={isKo ? '새로운 행사를 준비 중입니다' : 'New gatherings are on the way'}
           description={isKo ? '곧 새로운 소식으로 찾아뵙겠습니다.' : 'Please check back soon for updates.'}
         />
-      )}
+      ) : null}
     </article>
   );
 };
@@ -65,9 +59,5 @@ EventsPage.meta = {
   title: 'Events',
   description: 'Events and gatherings at Sydney Samil Church.',
 };
-
-export const getStaticProps: GetStaticProps<EventsPageProps> = async () => ({
-  props: { events: eventsData },
-});
 
 export default EventsPage;
