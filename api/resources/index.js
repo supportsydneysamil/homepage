@@ -44,18 +44,31 @@ const validateResourceInput = (body) => {
   };
 };
 
-// Editors rename a resource; the stored file itself is never repointed, so a
-// caller-supplied blobPath is deliberately dropped.
+// An update may swap in a freshly uploaded file, but only one that the upload
+// endpoint just created inside the resources folder.
 const validateResourceUpdate = (body) => {
   const input = body || {};
   const id = String(input.id || '').trim();
   const title = String(input.title || '').trim();
+  const blobPath = String(input.blobPath || '').trim();
 
   if (!id) return { error: 'Resource id is required.' };
   if (!title || title.length > 200) return { error: 'Title is required and must be 200 characters or fewer.' };
 
   const resourceDate = parseResourceDate(input.resourceDate);
   if (resourceDate.error) return { error: resourceDate.error };
+
+  let replacement = { blobPath: null, contentType: null, sizeBytes: null };
+  if (blobPath) {
+    if (!blobPath.startsWith('resources/') || blobPath.includes('..')) {
+      return { error: 'Blob path must be an uploaded file inside the resources folder.' };
+    }
+    const contentType = String(input.contentType || '').trim();
+    const sizeBytes = Number(input.sizeBytes);
+    if (!contentType) return { error: 'Content type is required.' };
+    if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return { error: 'Size must be a positive number.' };
+    replacement = { blobPath, contentType, sizeBytes };
+  }
 
   return {
     value: {
@@ -64,6 +77,7 @@ const validateResourceUpdate = (body) => {
       category: normalizeCategory(input.category),
       visibility: normalizeVisibility(input.visibility),
       resourceDate: resourceDate.value,
+      ...replacement,
     },
   };
 };
@@ -167,12 +181,19 @@ VALUES (@title, @blobPath, @contentType, @sizeBytes, @category, @visibility, @re
         .input('category', sql.NVarChar(40), parsed.value.category)
         .input('visibility', sql.NVarChar(20), parsed.value.visibility)
         .input('resourceDate', sql.Date, parsed.value.resourceDate)
+        .input('blobPath', sql.NVarChar(400), parsed.value.blobPath)
+        .input('contentType', sql.NVarChar(150), parsed.value.contentType)
+        .input('sizeBytes', sql.BigInt, parsed.value.sizeBytes)
         .input('actor', sql.NVarChar(256), actor)
         .query(`
 UPDATE dbo.Resources
 SET Title = @title, Category = @category, Visibility = @visibility, ResourceDate = @resourceDate,
+    BlobPath = COALESCE(@blobPath, BlobPath),
+    ContentType = COALESCE(@contentType, ContentType),
+    SizeBytes = COALESCE(@sizeBytes, SizeBytes),
     UpdatedBy = @actor, UpdatedAt = SYSUTCDATETIME()
-OUTPUT inserted.Id, inserted.Title, inserted.BlobPath, inserted.ContentType, inserted.SizeBytes,
+OUTPUT deleted.BlobPath AS PreviousBlobPath,
+       inserted.Id, inserted.Title, inserted.BlobPath, inserted.ContentType, inserted.SizeBytes,
        inserted.Category, inserted.Visibility, inserted.ResourceDate
 WHERE Id = @id;
 `);
@@ -180,7 +201,13 @@ WHERE Id = @id;
         context.res = { status: 404, body: { error: 'Resource not found.' } };
         return;
       }
-      context.res = { status: 200, body: { resource: toResourceResponse(updated.recordset[0]) } };
+
+      const row = updated.recordset[0];
+      if (parsed.value.blobPath && row.PreviousBlobPath && row.PreviousBlobPath !== parsed.value.blobPath) {
+        await deleteBlob(row.PreviousBlobPath, 'resources');
+      }
+
+      context.res = { status: 200, body: { resource: toResourceResponse(row) } };
       return;
     }
 
@@ -196,7 +223,7 @@ WHERE Id = @id;
         .query('DELETE FROM dbo.Resources OUTPUT deleted.BlobPath WHERE Id = @id');
       const row = deleted.recordset && deleted.recordset[0];
       if (row) {
-        await deleteBlob(row.BlobPath);
+        await deleteBlob(row.BlobPath, 'resources');
       }
       context.res = { status: 204 };
       return;

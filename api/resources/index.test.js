@@ -126,14 +126,50 @@ test('rejects an update without a title', () => {
   assert.ok(validateResourceUpdate({ id: '11111111-1111-1111-1111-111111111111' }).error);
 });
 
-test('an update cannot repoint the stored file', () => {
+test('an update keeps the existing file when none is supplied', () => {
   const result = validateResourceUpdate({
     id: '11111111-1111-1111-1111-111111111111',
     title: 'T',
-    blobPath: 'resources/someone-elses.pdf',
   });
   assert.strictEqual(result.error, undefined);
-  assert.strictEqual(result.value.blobPath, undefined);
+  assert.strictEqual(result.value.blobPath, null);
+});
+
+test('an update may attach a newly uploaded file', () => {
+  const result = validateResourceUpdate({
+    id: '11111111-1111-1111-1111-111111111111',
+    title: 'T',
+    blobPath: 'resources/abc-주보.pdf',
+    contentType: 'application/pdf',
+    sizeBytes: 2048,
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.strictEqual(result.value.blobPath, 'resources/abc-주보.pdf');
+  assert.strictEqual(result.value.sizeBytes, 2048);
+});
+
+test('a replacement file must live in the resources folder', () => {
+  assert.ok(
+    validateResourceUpdate({
+      id: '11111111-1111-1111-1111-111111111111',
+      title: 'T',
+      blobPath: 'media/abc-sermon.mp3',
+      contentType: 'audio/mpeg',
+      sizeBytes: 10,
+    }).error
+  );
+});
+
+test('a replacement file cannot traverse out of the folder', () => {
+  assert.ok(
+    validateResourceUpdate({
+      id: '11111111-1111-1111-1111-111111111111',
+      title: 'T',
+      blobPath: 'resources/../secret.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 10,
+    }).error
+  );
 });
 
 test('the response carries a readable file name without the storage path', () => {

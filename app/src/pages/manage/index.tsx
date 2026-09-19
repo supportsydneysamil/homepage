@@ -108,6 +108,14 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       uploading: isKo ? '업로드 중...' : 'Uploading...',
       title: isKo ? '제목' : 'Title',
       file: isKo ? '파일' : 'File',
+      fileCurrent: (fileName: string) =>
+        isKo ? `현재 파일: ${fileName}` : `Current file: ${fileName}`,
+      fileUnknown: isKo
+        ? '현재 파일 이름을 확인할 수 없습니다. 새 파일을 올리면 정리됩니다.'
+        : 'The current file name is unavailable. Uploading a new file will fix it.',
+      fileReplaceHint: isKo
+        ? '비워두면 기존 파일이 그대로 유지됩니다.'
+        : 'Leave empty to keep the current file.',
       category: isKo ? '분류' : 'Category',
       visibility: isKo ? '공개 범위' : 'Who can see it',
       visibilityHint: isKo
@@ -287,6 +295,15 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   },
                   { name: 'resourceDate', label: labels.resourceDate, type: 'date', hint: labels.dateHint },
                 ]}
+                fileField={{
+                  name: 'resource-replacement',
+                  label: labels.file,
+                  accept: '.pdf,.jpg,.jpeg,.png,.webp,.docx,.pptx',
+                  currentLabel: editingResource.fileName
+                    ? labels.fileCurrent(editingResource.fileName)
+                    : labels.fileUnknown,
+                  hint: labels.fileReplaceHint,
+                }}
                 initialValues={{
                   title: editingResource.title,
                   category: editingResource.category,
@@ -297,8 +314,19 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 busyLabel={labels.saving}
                 cancelLabel={labels.cancel}
                 onCancel={() => goTo('resources')}
-                onSubmit={async (values) => {
-                  await sendContent('/api/resources', 'PUT', { id: editingResource.id, ...values });
+                onSubmit={async (values, file) => {
+                  const replacement = file ? await uploadFile(file, 'resources') : null;
+                  await sendContent('/api/resources', 'PUT', {
+                    id: editingResource.id,
+                    ...values,
+                    ...(replacement
+                      ? {
+                          blobPath: replacement.blobPath,
+                          contentType: replacement.contentType,
+                          sizeBytes: replacement.sizeBytes,
+                        }
+                      : {}),
+                  });
                   await resources.reload();
                   goTo('resources');
                 }}
