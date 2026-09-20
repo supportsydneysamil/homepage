@@ -2604,6 +2604,19 @@ body {
   border-radius: 999px;
   background: color-mix(in srgb, var(--site-surface) 76%, transparent);
   color: var(--site-ink);
+  cursor: pointer;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+.lang-toggle:hover,
+.site-nav__controls .auth-button:not([disabled]):hover {
+  background: color-mix(in srgb, var(--site-surface) 94%, transparent);
+  border-color: color-mix(in srgb, var(--site-accent) 45%, var(--site-line));
+}
+
+.lang-toggle:active,
+.site-nav__controls .auth-button:not([disabled]):active {
+  transform: scale(0.96);
 }
 
 .nav-toggle {
