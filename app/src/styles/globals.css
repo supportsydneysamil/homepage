@@ -1375,8 +1375,10 @@ p {
   border-radius: 48% 48% 1rem 1rem;
 }
 
+/* Narrower than the hero frame by exactly enough to match its height, so both
+   captions start on the same line and stay there as the cards resize. */
 .settings-photo__frame--pastor {
-  width: min(100%, 300px);
+  width: calc(100% * 0.9 / 1.12);
   aspect-ratio: 0.9 / 1;
   margin-inline: auto;
   border-radius: 1.2rem;
