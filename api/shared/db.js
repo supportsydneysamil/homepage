@@ -5,6 +5,12 @@ let schemaReadyPromise;
 
 const getEnv = (name) => process.env[name] || '';
 
+// Visitors arrive minutes apart, so a short idle timeout made almost every
+// request pay for a fresh TDS login across the Pacific.
+const POOL_IDLE_TIMEOUT_MS = 600000;
+
+const poolSettings = () => ({ max: 5, min: 0, idleTimeoutMillis: POOL_IDLE_TIMEOUT_MS });
+
 const parseBool = (value, defaultValue) => {
   if (value === undefined || value === null || value === '') return defaultValue;
   const normalized = String(value).trim().toLowerCase();
@@ -25,7 +31,7 @@ const parseSqlConnectionString = (connectionString) => {
     return {
       connectionString: raw,
       options: { encrypt: true, trustServerCertificate: false },
-      pool: { max: 5, min: 0, idleTimeoutMillis: 30000 },
+      pool: poolSettings(),
     };
   }
 
@@ -59,7 +65,7 @@ const parseSqlConnectionString = (connectionString) => {
       encrypt: parseBool(map.encrypt, true),
       trustServerCertificate: parseBool(map.trustservercertificate, false),
     },
-    pool: { max: 5, min: 0, idleTimeoutMillis: 30000 },
+    pool: poolSettings(),
   };
   if (port) config.port = port;
 
@@ -91,7 +97,7 @@ const getSqlConfig = () => {
     user,
     password,
     options: { encrypt: true, trustServerCertificate: false },
-    pool: { max: 5, min: 0, idleTimeoutMillis: 30000 },
+    pool: poolSettings(),
   };
 };
 
@@ -239,4 +245,35 @@ const ensureSchema = async () => {
   return schemaReadyPromise;
 };
 
-module.exports = { sql, getPool, ensureSchema, parseSqlConnectionString, SCHEMA_SQL };
+// 208 is "invalid object name", 207 is "invalid column name": the two ways a
+// query fails when the database has not caught up with a deployment.
+const SCHEMA_ERROR_NUMBERS = [207, 208];
+
+const isMissingObjectError = (error) => {
+  if (!error) return false;
+  const number = error.number ?? (error.originalError && error.originalError.info && error.originalError.info.number);
+  return SCHEMA_ERROR_NUMBERS.includes(number);
+};
+
+// Reads skip the schema batch so a cold start goes straight to the query, and
+// only pay for it when the database really is missing a table or column.
+const withSchema = async (run, ensure = ensureSchema) => {
+  try {
+    return await run();
+  } catch (error) {
+    if (!isMissingObjectError(error)) throw error;
+    await ensure();
+    return run();
+  }
+};
+
+module.exports = {
+  sql,
+  getPool,
+  ensureSchema,
+  parseSqlConnectionString,
+  SCHEMA_SQL,
+  isMissingObjectError,
+  withSchema,
+  POOL_IDLE_TIMEOUT_MS,
+};

@@ -1,4 +1,4 @@
-const { sql, getPool, ensureSchema } = require('../shared/db');
+const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -126,15 +126,15 @@ ORDER BY SortOrder, CreatedAt
   return result.recordset || [];
 };
 
-const listEvents = async (includeDrafts) => {
-  await ensureSchema();
-  const pool = await getPool();
-  const result = await pool.request().query(
-    `${EVENT_SELECT}${includeDrafts ? '' : ' WHERE IsPublished = 1'} ORDER BY EventDate DESC`
-  );
-  // ponytail: list payload stays small; photos load on the one-event GET
-  return assembleEvents(result.recordset || [], []);
-};
+const listEvents = async (includeDrafts) =>
+  withSchema(async () => {
+    const pool = await getPool();
+    const result = await pool.request().query(
+      `${EVENT_SELECT}${includeDrafts ? '' : ' WHERE IsPublished = 1'} ORDER BY EventDate DESC`
+    );
+    // ponytail: list payload stays small; photos load on the one-event GET
+    return assembleEvents(result.recordset || [], []);
+  });
 
 const getEventById = async (id) => {
   const pool = await getPool();
@@ -145,21 +145,21 @@ const getEventById = async (id) => {
   return assembleEvents([row], images)[0];
 };
 
-const getReadableEvent = async (lookup, includeDrafts) => {
-  await ensureSchema();
-  const pool = await getPool();
-  const request = pool.request();
-  const sqlText = lookup.id
-    ? `${EVENT_SELECT} WHERE Id = @id`
-    : `${EVENT_SELECT} WHERE Slug = @slug`;
-  if (lookup.id) request.input('id', sql.UniqueIdentifier, lookup.id);
-  else request.input('slug', sql.NVarChar(120), lookup.slug);
-  const result = await request.query(sqlText);
-  const row = result.recordset && result.recordset[0];
-  if (!row || !isEventVisible(row, includeDrafts)) return null;
-  const images = await loadImages(pool, [row.Id]);
-  return assembleEvents([row], images)[0];
-};
+const getReadableEvent = async (lookup, includeDrafts) =>
+  withSchema(async () => {
+    const pool = await getPool();
+    const request = pool.request();
+    const sqlText = lookup.id
+      ? `${EVENT_SELECT} WHERE Id = @id`
+      : `${EVENT_SELECT} WHERE Slug = @slug`;
+    if (lookup.id) request.input('id', sql.UniqueIdentifier, lookup.id);
+    else request.input('slug', sql.NVarChar(120), lookup.slug);
+    const result = await request.query(sqlText);
+    const row = result.recordset && result.recordset[0];
+    if (!row || !isEventVisible(row, includeDrafts)) return null;
+    const images = await loadImages(pool, [row.Id]);
+    return assembleEvents([row], images)[0];
+  });
 
 const addEventImages = async (pool, eventId, blobPaths, actor) => {
   for (const blobPath of blobPaths) {
