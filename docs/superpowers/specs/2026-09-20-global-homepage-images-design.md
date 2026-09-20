@@ -88,7 +88,7 @@ After a successful settings update, a replaced prior `site/` blob is deleted on 
 
 ## Client Architecture and Data Flow
 
-The current theme provider already loads `/api/site-settings` for every page. Generalize it to expose the complete site settings without a second global request. Existing theme behavior remains available through the same provider API or a compatibility hook.
+The current theme provider already loads `/api/site-settings` for every page. Generalize it to expose the complete site settings without a second global request. Keep `useTheme` as a thin wrapper so existing theme consumers do not change.
 
 On page load:
 
