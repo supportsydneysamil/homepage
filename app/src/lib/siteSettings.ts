@@ -43,6 +43,18 @@ export const nextImagePath = (
 export const nextSrcOnError = (current: string, fallback: string): string =>
   current === fallback ? current : fallback;
 
+export const previewSrc = ({
+  pendingFileUrl,
+  pendingReset,
+  publishedUrl,
+  fallback,
+}: {
+  pendingFileUrl: string | null;
+  pendingReset: boolean;
+  publishedUrl: string;
+  fallback: string;
+}): string => pendingFileUrl || (pendingReset ? fallback : publishedUrl || fallback);
+
 export const fetchSiteSettings = async (): Promise<SiteSettings> => {
   const res = await fetch('/api/site-settings', { credentials: 'include' });
   if (!res.ok) throw new Error(`Settings fetch failed (${res.status})`);
