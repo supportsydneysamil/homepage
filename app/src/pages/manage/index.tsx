@@ -1,8 +1,9 @@
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import PageHero from '../../components/PageHero';
 import Pager from '../../components/Pager';
+import Toast, { type ToastMessage, type ToastTone } from '../../components/Toast';
 import ContentForm, { type FormField } from '../../components/manage/ContentForm';
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
@@ -86,7 +87,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<ToastMessage | null>(null);
+  const noticeCountRef = useRef(0);
+  const showNotice = (text: string, tone: ToastTone = 'success') => {
+    noticeCountRef.current += 1;
+    setNotice({ id: noticeCountRef.current, text, tone });
+  };
+  const dismissNotice = useCallback(() => setNotice(null), []);
   const [isAdding, setIsAdding] = useState(false);
   // Each tab remembers where its editor was reading, so saving does not
   // throw them back to the newest page.
@@ -204,6 +211,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       countRange: (from: number, to: number, total: number) =>
         total ? (isKo ? `${total}건 중 ${from}–${to}` : `${from}–${to} of ${total}`) : isKo ? '0건' : 'No items',
       noMatch: isKo ? '조건에 맞는 자료가 없습니다.' : 'Nothing matches that filter.',
+      closeNotice: isKo ? '알림 닫기' : 'Dismiss notification',
       pages: isKo ? '목록 페이지' : 'List pages',
       previous: isKo ? '이전' : 'Previous',
       next: isKo ? '다음' : 'Next',
@@ -230,16 +238,15 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     );
   }
 
+  // Navigation leaves any notice alone; the toast clears itself on a timer.
   const goTo = (nextTab: ManageTab, nextEditId?: string) => {
     setPendingDeleteId(null);
-    setNotice(null);
     setIsAdding(false);
     void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true });
   };
 
   const openAdd = () => {
     setPendingDeleteId(null);
-    setNotice(null);
     setIsAdding(true);
     if (editId) {
       void router.push(buildManageHref(tab), undefined, { shallow: true });
@@ -288,12 +295,11 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const onUpload = async (formEvent: React.FormEvent) => {
     formEvent.preventDefault();
     if (!uploadFileHandle || !uploadTitle.trim()) {
-      setNotice(labels.needFile);
+      showNotice(labels.needFile, 'error');
       return;
     }
 
     setIsUploading(true);
-    setNotice(null);
     try {
       const uploaded = await uploadFile(uploadFileHandle, 'resources');
       await sendContent('/api/resources', 'POST', {
@@ -307,9 +313,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       setUploadDate('');
       setUploadFileHandle(null);
       await resources.reload();
-      setNotice(labels.saved);
+      showNotice(labels.saved);
     } catch (error) {
-      setNotice(labels.uploadFailed);
+      showNotice(labels.uploadFailed, 'error');
     }
     setIsUploading(false);
   };
@@ -319,12 +325,12 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     try {
       await deleteContent(endpoint, id);
       await reload();
-      setNotice(labels.deleted);
       if (editId === id) {
         goTo(tab);
       }
+      showNotice(labels.deleted);
     } catch (error) {
-      setNotice(labels.deleteFailed);
+      showNotice(labels.deleteFailed, 'error');
     }
   };
 
@@ -332,9 +338,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     try {
       await deleteContent('/api/events/images', eventImageIdFromUrl(imageUrl));
       await Promise.all([events.reload(), editingEventLookup.reload()]);
-      setNotice(labels.deleted);
+      showNotice(labels.deleted);
     } catch (error) {
-      setNotice(labels.deleteFailed);
+      showNotice(labels.deleteFailed, 'error');
     }
   };
 
@@ -364,11 +370,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         ))}
       </nav>
 
-      {notice ? (
-        <p className="account-state" role="status" aria-live="polite">
-          {notice}
-        </p>
-      ) : null}
+      <Toast message={notice} closeLabel={labels.closeNotice} onDismiss={dismissNotice} />
 
       {tab === 'resources' ? (
         <section className="manage-panel">
@@ -429,6 +431,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   });
                   await resources.reload();
                   goTo('resources');
+                  showNotice(labels.saved);
                 }}
               />
             </div>
@@ -629,6 +632,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   }
                   await sermons.reload();
                   goTo('sermons');
+                  showNotice(labels.saved);
                 }}
               />
             </div>
@@ -790,6 +794,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 }
                 await events.reload();
                 goTo('events');
+                showNotice(labels.saved);
               }}
             />
             </div>
