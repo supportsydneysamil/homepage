@@ -20,14 +20,21 @@ export const ALLOWED_MEDIA_CONTENT_TYPES = [
   'video/webm',
 ];
 
-export type UploadFolder = 'resources' | 'sermons' | 'events' | 'media';
+const ALLOWED_SITE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export type UploadFolder = 'resources' | 'sermons' | 'events' | 'media' | 'site';
 
 export const validateFileForUpload = (
   file: { size: number; type: string },
   folder: UploadFolder = 'resources'
 ): string | null => {
   const isMedia = folder === 'media';
-  const allowed = isMedia ? ALLOWED_MEDIA_CONTENT_TYPES : ALLOWED_CONTENT_TYPES;
+  const isSite = folder === 'site';
+  const allowed = isMedia
+    ? ALLOWED_MEDIA_CONTENT_TYPES
+    : isSite
+      ? ALLOWED_SITE_CONTENT_TYPES
+      : ALLOWED_CONTENT_TYPES;
   const maxBytes = isMedia ? MAX_MEDIA_BYTES : MAX_UPLOAD_BYTES;
 
   if (!file.size) return 'empty';

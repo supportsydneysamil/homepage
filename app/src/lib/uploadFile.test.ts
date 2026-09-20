@@ -40,6 +40,14 @@ test('rejects a document in the media folder', () => {
   assert.strictEqual(validateFileForUpload({ size: 1024, type: 'application/pdf' }, 'media'), 'badType');
 });
 
+test('accepts a jpeg in the site folder', () => {
+  assert.strictEqual(validateFileForUpload({ size: 1024, type: 'image/jpeg' }, 'site'), null);
+});
+
+test('rejects a pdf in the site folder', () => {
+  assert.strictEqual(validateFileForUpload({ size: 1024, type: 'application/pdf' }, 'site'), 'badType');
+});
+
 test('the media limit is larger than the document limit', () => {
   assert.ok(MAX_MEDIA_BYTES > MAX_UPLOAD_BYTES);
 });
