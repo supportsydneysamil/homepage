@@ -37,6 +37,13 @@ test('events gain location and start time columns on existing databases', () => 
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'StartTime')"));
 });
 
+test('site settings gain nullable homepage image path columns', () => {
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'HeroImagePath')"));
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'PastorImagePath')"));
+  assert.ok(SCHEMA_SQL.includes('HeroImagePath NVARCHAR(400) NULL'));
+  assert.ok(SCHEMA_SQL.includes('PastorImagePath NVARCHAR(400) NULL'));
+});
+
 test('content tables record who changed them', () => {
   assert.ok(SCHEMA_SQL.includes('CreatedBy'));
   assert.ok(SCHEMA_SQL.includes('UpdatedBy'));

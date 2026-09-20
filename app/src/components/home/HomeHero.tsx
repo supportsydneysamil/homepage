@@ -1,11 +1,15 @@
 import Link from 'next/link';
 import type { Language } from './homeContent';
+import SitePhoto from '../SitePhoto';
+import { useSiteSettings } from '../../lib/ThemeContext';
+import { DEFAULT_HERO_IMAGE } from '../../lib/siteSettings';
 
 const DIRECTIONS_URL =
   'https://maps.google.com/?q=Corner%20Bellamy%20St%20%26%20Boundary%20Rd%20Pennant%20Hills%20NSW%202120';
 
 const HomeHero = ({ lang }: { lang: Language }) => {
   const isKo = lang === 'ko';
+  const { heroImageUrl } = useSiteSettings();
 
   return (
     <section className="home-hero">
@@ -51,8 +55,9 @@ const HomeHero = ({ lang }: { lang: Language }) => {
         <span className="home-hero__shape home-hero__shape--round" aria-hidden="true" />
         <span className="home-hero__shape home-hero__shape--gold" aria-hidden="true" />
         <div className="home-hero__photo">
-          <img
-            src="/church-bg.png"
+          <SitePhoto
+            src={heroImageUrl}
+            fallback={DEFAULT_HERO_IMAGE}
             alt={
               isKo
                 ? '푸른 하늘과 잔디가 보이는 시드니 삼일교회 외관'

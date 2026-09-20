@@ -9,10 +9,11 @@ const {
 
 const MAX_UPLOAD_BYTES = 26214400; // 25 MB for documents and images
 const MAX_MEDIA_BYTES = 209715200; // 200 MB for sermon recordings
-// `media` lives in the public container so recordings stream and seek without a
-// signed URL; every other folder lives in the private container.
 const MEDIA_FOLDER = 'media';
-const ALLOWED_FOLDERS = ['resources', 'sermons', 'events', MEDIA_FOLDER];
+const SITE_FOLDER = 'site';
+// Public media streams without a signed URL, and homepage images must also be
+// available to anonymous visitors. Other folders live in the private container.
+const ALLOWED_FOLDERS = ['resources', 'sermons', 'events', MEDIA_FOLDER, SITE_FOLDER];
 const ALLOWED_CONTENT_TYPES = [
   'application/pdf',
   'image/jpeg',
@@ -29,6 +30,7 @@ const ALLOWED_MEDIA_CONTENT_TYPES = [
   'video/mp4',
   'video/webm',
 ];
+const ALLOWED_SITE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const UPLOAD_SAS_SECONDS = 600;
 const READ_SAS_SECONDS = 300;
 
@@ -51,7 +53,7 @@ const buildBlobPath = (folder, fileName, id) => {
   return `${folder}/${id}-${safe}`;
 };
 
-const isPublicFolder = (folder) => folder === MEDIA_FOLDER;
+const isPublicFolder = (folder) => folder === MEDIA_FOLDER || folder === SITE_FOLDER;
 
 const validateUploadRequest = (input) => {
   const request = input || {};
@@ -63,15 +65,22 @@ const validateUploadRequest = (input) => {
     return { error: `Folder must be one of: ${ALLOWED_FOLDERS.join(', ')}.` };
   }
 
-  const isMedia = isPublicFolder(folder);
-  const allowedTypes = isMedia ? ALLOWED_MEDIA_CONTENT_TYPES : ALLOWED_CONTENT_TYPES;
+  const isMedia = folder === MEDIA_FOLDER;
+  const isSite = folder === SITE_FOLDER;
+  const allowedTypes = isMedia
+    ? ALLOWED_MEDIA_CONTENT_TYPES
+    : isSite
+      ? ALLOWED_SITE_CONTENT_TYPES
+      : ALLOWED_CONTENT_TYPES;
   const maxBytes = isMedia ? MAX_MEDIA_BYTES : MAX_UPLOAD_BYTES;
 
   if (!allowedTypes.includes(contentType)) {
     return {
       error: isMedia
         ? 'File type is not allowed. Upload an MP3, M4A, WAV, MP4, or WebM recording.'
-        : 'File type is not allowed. Upload PDF, image, Word, or PowerPoint files.',
+        : isSite
+          ? 'File type is not allowed. Upload a JPEG, PNG, or WebP image.'
+          : 'File type is not allowed. Upload PDF, image, Word, or PowerPoint files.',
     };
   }
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0 || sizeBytes > maxBytes) {
@@ -151,9 +160,11 @@ module.exports = {
   MAX_UPLOAD_BYTES,
   MAX_MEDIA_BYTES,
   MEDIA_FOLDER,
+  SITE_FOLDER,
   ALLOWED_FOLDERS,
   ALLOWED_CONTENT_TYPES,
   ALLOWED_MEDIA_CONTENT_TYPES,
+  ALLOWED_SITE_CONTENT_TYPES,
   UPLOAD_SAS_SECONDS,
   READ_SAS_SECONDS,
   buildBlobPath,

@@ -1,4 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  DEFAULT_HERO_IMAGE,
+  DEFAULT_PASTOR_IMAGE,
+  fetchSiteSettings,
+  putSiteSettings,
+  type SiteSettings,
+} from './siteSettings';
 
 export const THEME_IDS = ['dark', 'light', 'church', 'modern-sky', 'modern-sand'] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
@@ -49,15 +56,24 @@ export const THEME_OPTIONS: ThemeOption[] = [
   },
 ];
 
-type ThemeContextValue = {
+type ResolvedSiteSettings = Omit<SiteSettings, 'themeId'> & { themeId: ThemeId };
+
+type SiteSettingsContextValue = ResolvedSiteSettings & {
   themeId: ThemeId;
   isLoading: boolean;
   setThemeLocal: (nextThemeId: ThemeId) => void;
   saveTheme: (nextThemeId: ThemeId) => Promise<{ ok: boolean; message?: string }>;
+  saveSettings: (payload: {
+    themeId: ThemeId;
+    heroImagePath: string | null;
+    pastorImagePath: string | null;
+  }) => Promise<
+    { ok: true; settings: ResolvedSiteSettings } | { ok: false; message: string }
+  >;
   refreshTheme: () => Promise<void>;
 };
 
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+const SiteSettingsContext = createContext<SiteSettingsContextValue | undefined>(undefined);
 
 const isThemeId = (value: string): value is ThemeId =>
   THEME_IDS.includes(value as ThemeId);
@@ -65,31 +81,34 @@ const isThemeId = (value: string): value is ThemeId =>
 const normalizeTheme = (value?: string | null): ThemeId =>
   value && isThemeId(value) ? value : 'church';
 
+const normalizeSettings = (settings: SiteSettings): ResolvedSiteSettings => ({
+  ...settings,
+  themeId: normalizeTheme(settings.themeId),
+});
+
+const DEFAULT_SETTINGS: ResolvedSiteSettings = {
+  themeId: 'church',
+  heroImagePath: null,
+  pastorImagePath: null,
+  heroImageUrl: DEFAULT_HERO_IMAGE,
+  pastorImageUrl: DEFAULT_PASTOR_IMAGE,
+};
+
 const applyThemeClass = (themeId: ThemeId) => {
   if (typeof document === 'undefined') return;
   document.body.classList.remove(...THEME_IDS.map((id) => `theme-${id}`));
   document.body.classList.add(`theme-${themeId}`);
 };
 
-const fetchTheme = async (): Promise<ThemeId> => {
-  const res = await fetch('/api/site-settings', { credentials: 'include' });
-  if (!res.ok) {
-    throw new Error(`Theme fetch failed (${res.status})`);
-  }
-  const data = (await res.json()) as { themeId?: string };
-  return normalizeTheme(data.themeId);
-};
-
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [themeId, setThemeId] = useState<ThemeId>('church');
+  const [settings, setSettings] = useState<ResolvedSiteSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshTheme = async () => {
     try {
-      const latestTheme = await fetchTheme();
-      setThemeId(latestTheme);
+      setSettings(normalizeSettings(await fetchSiteSettings()));
     } catch (error) {
-      setThemeId('church');
+      setSettings(DEFAULT_SETTINGS);
     } finally {
       setIsLoading(false);
     }
@@ -100,54 +119,63 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    applyThemeClass(themeId);
-  }, [themeId]);
+    applyThemeClass(settings.themeId);
+  }, [settings.themeId]);
 
   const setThemeLocal = (nextThemeId: ThemeId) => {
-    setThemeId(normalizeTheme(nextThemeId));
+    setSettings((current) => ({ ...current, themeId: normalizeTheme(nextThemeId) }));
+  };
+
+  const saveSettings: SiteSettingsContextValue['saveSettings'] = async (payload) => {
+    const result = await putSiteSettings(payload);
+    if (!result.ok) return result;
+    const next = normalizeSettings(result.settings);
+    setSettings(next);
+    return { ok: true, settings: next };
   };
 
   const saveTheme = async (nextThemeId: ThemeId) => {
-    const payload = { themeId: normalizeTheme(nextThemeId) };
-    try {
-      const res = await fetch('/api/site-settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const detail = await res.text();
-        return { ok: false, message: detail.slice(0, 180) || `Theme update failed (${res.status})` };
-      }
-
-      const data = (await res.json()) as { themeId?: string };
-      setThemeId(normalizeTheme(data.themeId || payload.themeId));
-      return { ok: true };
-    } catch (error) {
-      return { ok: false, message: 'Unable to save theme settings.' };
+    const result = await saveSettings({
+      themeId: normalizeTheme(nextThemeId),
+      heroImagePath: settings.heroImagePath,
+      pastorImagePath: settings.pastorImagePath,
+    });
+    if (!result.ok) {
+      return { ok: false, message: result.message };
     }
+    return { ok: true };
   };
 
   const value = useMemo(
     () => ({
-      themeId,
+      ...settings,
       isLoading,
       setThemeLocal,
       saveTheme,
+      saveSettings,
       refreshTheme,
     }),
-    [themeId, isLoading]
+    [settings, isLoading]
   );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return <SiteSettingsContext.Provider value={value}>{children}</SiteSettingsContext.Provider>;
+};
+
+export const useSiteSettings = () => {
+  const context = useContext(SiteSettingsContext);
+  if (!context) {
+    throw new Error('useSiteSettings must be used within ThemeProvider');
+  }
+  return context;
 };
 
 export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
-  return context;
+  const {
+    themeId,
+    isLoading,
+    setThemeLocal,
+    saveTheme,
+    refreshTheme,
+  } = useSiteSettings();
+  return { themeId, isLoading, setThemeLocal, saveTheme, refreshTheme };
 };

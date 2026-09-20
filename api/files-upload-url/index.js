@@ -7,8 +7,11 @@ const {
   UPLOAD_SAS_SECONDS,
 } = require('../shared/blob');
 
-module.exports = async function (context, req) {
-  const auth = requireRole(req, ROLES.EDITOR);
+const defaultDeps = { createUploadSas };
+
+module.exports = async function (context, req, deps = defaultDeps) {
+  const folder = String((req.body && req.body.folder) || '').trim().toLowerCase();
+  const auth = requireRole(req, folder === 'site' ? ROLES.ADMIN : ROLES.EDITOR);
   if (auth.error) {
     context.res = { status: auth.error.status, body: auth.error.body };
     return;
@@ -21,7 +24,7 @@ module.exports = async function (context, req) {
   }
 
   try {
-    const uploadUrl = await createUploadSas(
+    const uploadUrl = await deps.createUploadSas(
       parsed.value.blobPath,
       parsed.value.contentType,
       parsed.value.folder
