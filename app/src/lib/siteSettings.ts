@@ -9,6 +9,12 @@ export type SiteSettings = {
   pastorImageUrl: string;
 };
 
+export type SiteSettingsPayload = {
+  themeId: string;
+  heroImagePath: string | null;
+  pastorImagePath: string | null;
+};
+
 type PendingImage = 'keep' | 'reset' | { uploadedPath: string };
 
 const stringOrNull = (value: unknown): string | null =>
@@ -32,4 +38,33 @@ export const nextImagePath = (
   if (pending === 'reset') return null;
   if (pending === 'keep') return publishedPath;
   return pending.uploadedPath;
+};
+
+export const fetchSiteSettings = async (): Promise<SiteSettings> => {
+  const res = await fetch('/api/site-settings', { credentials: 'include' });
+  if (!res.ok) throw new Error(`Settings fetch failed (${res.status})`);
+  return parseSiteSettings(await res.json());
+};
+
+export const putSiteSettings = async (
+  payload: SiteSettingsPayload
+): Promise<{ ok: true; settings: SiteSettings } | { ok: false; message: string }> => {
+  try {
+    const res = await fetch('/api/site-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      return {
+        ok: false,
+        message: detail.slice(0, 180) || `Settings update failed (${res.status})`,
+      };
+    }
+    return { ok: true, settings: parseSiteSettings(await res.json()) };
+  } catch (error) {
+    return { ok: false, message: 'Unable to save site settings.' };
+  }
 };

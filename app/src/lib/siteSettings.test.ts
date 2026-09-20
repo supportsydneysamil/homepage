@@ -5,6 +5,7 @@ import {
   DEFAULT_PASTOR_IMAGE,
   nextImagePath,
   parseSiteSettings,
+  putSiteSettings,
 } from './siteSettings';
 
 test('null api urls become built-in paths', () => {
@@ -34,4 +35,30 @@ test('reset sends null and keep reuses the published path', () => {
   assert.strictEqual(nextImagePath('reset', 'site/a.jpg'), null);
   assert.strictEqual(nextImagePath('keep', 'site/a.jpg'), 'site/a.jpg');
   assert.strictEqual(nextImagePath({ uploadedPath: 'site/new.jpg' }, 'site/a.jpg'), 'site/new.jpg');
+});
+
+test('putSiteSettings returns parsed settings when fetch succeeds', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () =>
+    ({
+      ok: true,
+      json: async () => ({
+        themeId: 'light',
+        heroImagePath: 'site/a.jpg',
+        pastorImagePath: null,
+        heroImageUrl: 'https://example.test/site/a.jpg',
+        pastorImageUrl: null,
+      }),
+    }) as Response;
+  try {
+    const result = await putSiteSettings({
+      themeId: 'light',
+      heroImagePath: 'site/a.jpg',
+      pastorImagePath: null,
+    });
+    assert.strictEqual(result.ok, true);
+    if (result.ok) assert.strictEqual(result.settings.heroImagePath, 'site/a.jpg');
+  } finally {
+    globalThis.fetch = original;
+  }
 });
