@@ -1,9 +1,8 @@
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import PageHero from '../../components/PageHero';
 import Pager from '../../components/Pager';
-import Toast, { type ToastMessage, type ToastTone } from '../../components/Toast';
 import ContentForm, { type FormField } from '../../components/manage/ContentForm';
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
@@ -45,6 +44,7 @@ import {
 } from '../../lib/contentApi';
 import { uploadFile } from '../../lib/uploadFile';
 
+// Every write returns the saved row, so the caller can highlight it in the list.
 const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: unknown) => {
   const res = await fetch(endpoint, {
     method,
@@ -52,10 +52,14 @@ const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: un
     credentials: 'include',
     body: JSON.stringify(payload),
   });
+  const body = (await res.json().catch(() => ({}))) as Record<string, { id?: string } | undefined> & {
+    error?: string;
+  };
   if (!res.ok) {
-    const detail = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(detail.error || `Request failed (${res.status})`);
+    throw new Error(body.error || `Request failed (${res.status})`);
   }
+  const saved = body.resource || body.sermon || body.event;
+  return saved && saved.id ? saved.id : null;
 };
 
 const deleteContent = async (endpoint: string, id: string) => {
@@ -87,13 +91,27 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<ToastMessage | null>(null);
-  const noticeCountRef = useRef(0);
-  const showNotice = (text: string, tone: ToastTone = 'success') => {
-    noticeCountRef.current += 1;
-    setNotice({ id: noticeCountRef.current, text, tone });
+  // Failures stay on screen next to the control that failed; successes are
+  // shown by the list itself, with a live region for screen readers.
+  const [failure, setFailure] = useState<{ scope: 'upload' | 'list' | 'gallery'; text: string } | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flashRow = (id: string | null, message: string) => {
+    setFailure(null);
+    setAnnouncement(message);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    if (!id) return;
+    setFlashId(id);
+    flashTimerRef.current = setTimeout(() => setFlashId(null), 2400);
   };
-  const dismissNotice = useCallback(() => setNotice(null), []);
+
+  const failWith = (scope: 'upload' | 'list' | 'gallery', text: string) => {
+    setAnnouncement(text);
+    setFailure({ scope, text });
+  };
+
   const [isAdding, setIsAdding] = useState(false);
   // Each tab remembers where its editor was reading, so saving does not
   // throw them back to the newest page.
@@ -211,7 +229,6 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       countRange: (from: number, to: number, total: number) =>
         total ? (isKo ? `${total}건 중 ${from}–${to}` : `${from}–${to} of ${total}`) : isKo ? '0건' : 'No items',
       noMatch: isKo ? '조건에 맞는 자료가 없습니다.' : 'Nothing matches that filter.',
-      closeNotice: isKo ? '알림 닫기' : 'Dismiss notification',
       pages: isKo ? '목록 페이지' : 'List pages',
       previous: isKo ? '이전' : 'Previous',
       next: isKo ? '다음' : 'Next',
@@ -238,15 +255,16 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     );
   }
 
-  // Navigation leaves any notice alone; the toast clears itself on a timer.
   const goTo = (nextTab: ManageTab, nextEditId?: string) => {
     setPendingDeleteId(null);
     setIsAdding(false);
+    setFailure(null);
     void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true });
   };
 
   const openAdd = () => {
     setPendingDeleteId(null);
+    setFailure(null);
     setIsAdding(true);
     if (editId) {
       void router.push(buildManageHref(tab), undefined, { shallow: true });
@@ -295,14 +313,15 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const onUpload = async (formEvent: React.FormEvent) => {
     formEvent.preventDefault();
     if (!uploadFileHandle || !uploadTitle.trim()) {
-      showNotice(labels.needFile, 'error');
+      failWith('upload', labels.needFile);
       return;
     }
 
     setIsUploading(true);
+    setFailure(null);
     try {
       const uploaded = await uploadFile(uploadFileHandle, 'resources');
-      await sendContent('/api/resources', 'POST', {
+      const savedId = await sendContent('/api/resources', 'POST', {
         title: uploadTitle.trim(),
         category: uploadCategory,
         visibility: uploadVisibility,
@@ -313,9 +332,12 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       setUploadDate('');
       setUploadFileHandle(null);
       await resources.reload();
-      showNotice(labels.saved);
+      // A filter or a later page would hide the new row, so go where it is.
+      setView({ filter: 'all', search: '', page: 1 });
+      setIsAdding(false);
+      flashRow(savedId, labels.saved);
     } catch (error) {
-      showNotice(labels.uploadFailed, 'error');
+      failWith('upload', labels.uploadFailed);
     }
     setIsUploading(false);
   };
@@ -328,9 +350,10 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       if (editId === id) {
         goTo(tab);
       }
-      showNotice(labels.deleted);
+      // The row leaving the list is the confirmation; only announce it.
+      flashRow(null, labels.deleted);
     } catch (error) {
-      showNotice(labels.deleteFailed, 'error');
+      failWith('list', labels.deleteFailed);
     }
   };
 
@@ -338,9 +361,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     try {
       await deleteContent('/api/events/images', eventImageIdFromUrl(imageUrl));
       await Promise.all([events.reload(), editingEventLookup.reload()]);
-      showNotice(labels.deleted);
+      flashRow(null, labels.deleted);
     } catch (error) {
-      showNotice(labels.deleteFailed, 'error');
+      failWith('gallery', labels.deleteFailed);
     }
   };
 
@@ -370,7 +393,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         ))}
       </nav>
 
-      <Toast message={notice} closeLabel={labels.closeNotice} onDismiss={dismissNotice} />
+      <p className="visually-hidden" role="status" aria-live="polite">
+        {announcement}
+      </p>
 
       {tab === 'resources' ? (
         <section className="manage-panel">
@@ -418,7 +443,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 onSubmit={async (values, files) => {
                   const [file] = files;
                   const replacement = file ? await uploadFile(file, 'resources') : null;
-                  await sendContent('/api/resources', 'PUT', {
+                  const savedId = await sendContent('/api/resources', 'PUT', {
                     id: editingResource.id,
                     ...values,
                     ...(replacement
@@ -431,7 +456,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   });
                   await resources.reload();
                   goTo('resources');
-                  showNotice(labels.saved);
+                  flashRow(savedId, labels.saved);
                 }}
               />
             </div>
@@ -504,6 +529,12 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   />
                 </div>
 
+                {failure?.scope === 'upload' ? (
+                  <p className="error-text" role="alert">
+                    {failure.text}
+                  </p>
+                ) : null}
+
                 <div className="manage-form__actions">
                   <button type="submit" className="manage-button" disabled={isUploading}>
                     {isUploading ? labels.uploading : labels.upload}
@@ -535,6 +566,12 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             countLabel={labels.countRange(resourcePage.from, resourcePage.to, matchedResources.length)}
           />
 
+          {failure?.scope === 'list' ? (
+            <p className="error-text" role="alert">
+              {failure.text}
+            </p>
+          ) : null}
+
           <ManageList
             items={resourcePage.items.map((item) => ({
               id: item.id,
@@ -549,6 +586,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 .join(' · '),
             }))}
             activeId={editId}
+            flashId={flashId}
             emptyLabel={resources.items.length ? labels.noMatch : labels.emptyResources}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
@@ -625,14 +663,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                     media = { mediaUrl: uploaded.publicUrl ?? '', mediaContentType: uploaded.contentType };
                   }
                   const payload = { ...values, ...media };
-                  if (editingSermon) {
-                    await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload });
-                  } else {
-                    await sendContent('/api/sermons', 'POST', payload);
-                  }
+                  const savedId = editingSermon
+                    ? await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload })
+                    : await sendContent('/api/sermons', 'POST', payload);
                   await sermons.reload();
+                  if (!editingSermon) setView({ filter: 'all', search: '', page: 1 });
                   goTo('sermons');
-                  showNotice(labels.saved);
+                  flashRow(savedId, labels.saved);
                 }}
               />
             </div>
@@ -653,6 +690,12 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             countLabel={labels.countRange(sermonPage.from, sermonPage.to, matchedSermons.length)}
           />
 
+          {failure?.scope === 'list' ? (
+            <p className="error-text" role="alert">
+              {failure.text}
+            </p>
+          ) : null}
+
           <ManageList
             items={sermonPage.items.map((item) => ({
               id: item.id,
@@ -667,6 +710,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 .join(' · '),
             }))}
             activeId={editId}
+            flashId={flashId}
             emptyLabel={sermons.items.length ? labels.noMatch : labels.emptySermons}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
@@ -701,6 +745,12 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           {(editId && editingEventLookup.isLoading) || !(editId || isAdding) ? null : (
             <div className="manage-editor">
               <h2>{editingEvent ? labels.editEvent : labels.addEvent}</h2>
+
+            {failure?.scope === 'gallery' ? (
+              <p className="error-text" role="alert">
+                {failure.text}
+              </p>
+            ) : null}
 
             {editingEvent?.images.length ? (
               <div className="manage-gallery">
@@ -787,14 +837,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   published: values.published !== 'false',
                   imageBlobPaths,
                 };
-                if (editingEvent) {
-                  await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload });
-                } else {
-                  await sendContent('/api/events', 'POST', payload);
-                }
+                const savedId = editingEvent
+                  ? await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload })
+                  : await sendContent('/api/events', 'POST', payload);
                 await events.reload();
+                if (!editingEvent) setView({ filter: 'all', search: '', page: 1 });
                 goTo('events');
-                showNotice(labels.saved);
+                flashRow(savedId, labels.saved);
               }}
             />
             </div>
@@ -815,6 +864,12 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             countLabel={labels.countRange(eventPage.from, eventPage.to, matchedEvents.length)}
           />
 
+          {failure?.scope === 'list' ? (
+            <p className="error-text" role="alert">
+              {failure.text}
+            </p>
+          ) : null}
+
           <ManageList
             items={eventPage.items.map((item) => ({
               id: item.id,
@@ -828,6 +883,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 .join(' · '),
             }))}
             activeId={editId}
+            flashId={flashId}
             emptyLabel={events.items.length ? labels.noMatch : labels.emptyEvents}
             editLabel={labels.edit}
             deleteLabel={labels.remove}

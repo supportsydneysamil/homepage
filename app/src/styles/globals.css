@@ -1263,7 +1263,7 @@ p {
 }
 
 .error-text {
-  color: #fca5a5;
+  color: var(--site-danger);
   font-weight: 700;
 }
 
@@ -2445,6 +2445,8 @@ body.theme-modern-sand .home-page {
   --site-gold: #dda95a;
   --site-line: rgba(30, 84, 73, 0.14);
   --site-shadow: 0 22px 55px rgba(23, 63, 58, 0.1);
+  /* Readable against each theme's surface; the light salmon only worked on dark. */
+  --site-danger: #a8332b;
 }
 
 body.theme-dark {
@@ -2458,6 +2460,7 @@ body.theme-dark {
   --site-gold: #d6a352;
   --site-line: rgba(207, 235, 226, 0.15);
   --site-shadow: 0 22px 55px rgba(0, 0, 0, 0.28);
+  --site-danger: #fca5a5;
 }
 
 body.theme-modern-sky {
@@ -3553,111 +3556,6 @@ body {
   gap: 1.8rem;
 }
 
-/* Action feedback follows the reader instead of sitting at the top of the page. */
-.site-toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(clamp(1rem, 4vw, 2.5rem) + env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: max-content;
-  max-width: min(32rem, calc(100vw - 2rem));
-  padding: 0.85rem 0.85rem 0.85rem 1.3rem;
-  border: 1px solid var(--site-line);
-  border-radius: 999px;
-  background: var(--site-surface);
-  box-shadow: var(--site-shadow);
-  animation: site-toast-in 220ms ease both;
-}
-
-.site-toast::before {
-  content: '';
-  width: 0.5rem;
-  height: 0.5rem;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: var(--site-accent);
-}
-
-.site-toast--error {
-  border-color: color-mix(in srgb, var(--site-gold) 55%, var(--site-line));
-  background: color-mix(in srgb, var(--site-gold) 12%, var(--site-surface));
-}
-
-.site-toast--error::before {
-  background: var(--site-gold);
-}
-
-.site-toast__text {
-  margin: 0;
-  color: var(--site-ink);
-  font-size: 0.92rem;
-  font-weight: 650;
-  overflow-wrap: anywhere;
-}
-
-.site-toast__close {
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  flex-shrink: 0;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--site-muted);
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 160ms ease, background 160ms ease;
-}
-
-.site-toast__close:hover {
-  color: var(--site-ink);
-  background: var(--site-surface-soft);
-}
-
-@keyframes site-toast-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 0.6rem);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-@media (max-width: 560px) {
-  .site-toast {
-    left: 1rem;
-    right: 1rem;
-    width: auto;
-    max-width: none;
-    transform: none;
-  }
-
-  @keyframes site-toast-in {
-    from {
-      opacity: 0;
-      transform: translateY(0.6rem);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .site-toast {
-    animation: none;
-  }
-}
-
 .manage-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3715,6 +3613,28 @@ body {
 .manage-list__row--active {
   border-color: var(--site-accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--site-accent) 18%, transparent);
+}
+
+/* A saved row settles back to normal, so the change is seen where it happened. */
+.manage-list__row--flash {
+  border-color: var(--site-accent);
+  animation: manage-row-settle 2.4s ease-out both;
+}
+
+@keyframes manage-row-settle {
+  0% {
+    background: color-mix(in srgb, var(--site-accent-soft) 70%, var(--site-surface));
+  }
+  100% {
+    background: var(--site-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manage-list__row--flash {
+    animation: none;
+    background: color-mix(in srgb, var(--site-accent-soft) 45%, var(--site-surface));
+  }
 }
 
 .manage-list__text {
