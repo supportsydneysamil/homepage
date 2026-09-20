@@ -139,6 +139,35 @@ test('a pdf cannot be hidden in the public media folder', () => {
   );
 });
 
+test('accepts a jpeg in the public site folder', () => {
+  const result = validateUploadRequest({
+    folder: 'site',
+    fileName: 'church.jpg',
+    contentType: 'image/jpeg',
+    sizeBytes: 2048,
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.ok(result.value.blobPath.startsWith('site/'));
+});
+
+test('rejects a pdf in the site folder', () => {
+  assert.ok(
+    validateUploadRequest({
+      folder: 'site',
+      fileName: 'a.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 10,
+    }).error
+  );
+});
+
+test('site uses the public media container', () => {
+  process.env.AZURE_STORAGE_CONTAINER = 'church-files';
+  process.env.AZURE_STORAGE_MEDIA_CONTAINER = 'samilmedia';
+  assert.strictEqual(containerFor('site'), 'samilmedia');
+  assert.strictEqual(isPublicFolder('site'), true);
+});
+
 test('media uses the public container and everything else the private one', () => {
   process.env.AZURE_STORAGE_CONTAINER = 'church-files';
   process.env.AZURE_STORAGE_MEDIA_CONTAINER = 'samilmedia';
