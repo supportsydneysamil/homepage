@@ -1,4 +1,4 @@
-const { sql, getPool, ensureSchema } = require('../shared/db');
+const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, ROLES } = require('../shared/principal');
 const { deleteBlob, publicUrlFor, SITE_FOLDER } = require('../shared/blob');
 
@@ -6,43 +6,43 @@ const SUPPORTED_THEMES = ['dark', 'light', 'church', 'modern-sky', 'modern-sand'
 const DEFAULT_THEME = 'church';
 const DEFAULT_SETTING_KEY = 'theme';
 
-const getCurrentSettings = async () => {
-  await ensureSchema();
-  const pool = await getPool();
-  const result = await pool
-    .request()
-    .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
-    .query(`
+const getCurrentSettings = async () =>
+  withSchema(async () => {
+    const pool = await getPool();
+    const result = await pool
+      .request()
+      .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
+      .query(`
 SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, UpdatedAt, UpdatedBy
 FROM dbo.SiteSettings
 WHERE SettingKey = @settingKey
 `);
 
-  const row = result.recordset && result.recordset[0];
-  if (row) {
+    const row = result.recordset && result.recordset[0];
+    if (row) {
+      return {
+        themeId: row.ThemeId,
+        heroImagePath: row.HeroImagePath || null,
+        pastorImagePath: row.PastorImagePath || null,
+        updatedAt: row.UpdatedAt ? new Date(row.UpdatedAt).toISOString() : null,
+        updatedBy: row.UpdatedBy || null,
+      };
+    }
+
+    await pool
+      .request()
+      .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
+      .input('themeId', sql.NVarChar(50), DEFAULT_THEME)
+      .query('INSERT INTO dbo.SiteSettings (SettingKey, ThemeId) VALUES (@settingKey, @themeId)');
+
     return {
-      themeId: row.ThemeId,
-      heroImagePath: row.HeroImagePath || null,
-      pastorImagePath: row.PastorImagePath || null,
-      updatedAt: row.UpdatedAt ? new Date(row.UpdatedAt).toISOString() : null,
-      updatedBy: row.UpdatedBy || null,
+      themeId: DEFAULT_THEME,
+      heroImagePath: null,
+      pastorImagePath: null,
+      updatedAt: null,
+      updatedBy: null,
     };
-  }
-
-  await pool
-    .request()
-    .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
-    .input('themeId', sql.NVarChar(50), DEFAULT_THEME)
-    .query('INSERT INTO dbo.SiteSettings (SettingKey, ThemeId) VALUES (@settingKey, @themeId)');
-
-  return {
-    themeId: DEFAULT_THEME,
-    heroImagePath: null,
-    pastorImagePath: null,
-    updatedAt: null,
-    updatedBy: null,
-  };
-};
+  });
 
 const saveSettings = async (settings, updatedBy) => {
   await ensureSchema();

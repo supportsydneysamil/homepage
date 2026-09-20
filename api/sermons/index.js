@@ -1,4 +1,4 @@
-const { sql, getPool, ensureSchema } = require('../shared/db');
+const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, ROLES } = require('../shared/principal');
 const { isMediaUrl, ALLOWED_MEDIA_CONTENT_TYPES } = require('../shared/blob');
 
@@ -54,18 +54,18 @@ const mapRow = (row) => ({
   mediaContentType: row.MediaContentType || '',
 });
 
-const listSermons = async (id) => {
-  await ensureSchema();
-  const pool = await getPool();
-  const request = pool.request();
-  if (id) request.input('id', sql.UniqueIdentifier, id);
-  const result = await request.query(
-    `SELECT Id, SermonDate, Title, Speaker, YouTubeUrl, MediaUrl, MediaContentType FROM dbo.Sermons WHERE IsPublished = 1${
-      id ? ' AND Id = @id' : ''
-    } ORDER BY SermonDate DESC`
-  );
-  return (result.recordset || []).map(mapRow);
-};
+const listSermons = async (id) =>
+  withSchema(async () => {
+    const pool = await getPool();
+    const request = pool.request();
+    if (id) request.input('id', sql.UniqueIdentifier, id);
+    const result = await request.query(
+      `SELECT Id, SermonDate, Title, Speaker, YouTubeUrl, MediaUrl, MediaContentType FROM dbo.Sermons WHERE IsPublished = 1${
+        id ? ' AND Id = @id' : ''
+      } ORDER BY SermonDate DESC`
+    );
+    return (result.recordset || []).map(mapRow);
+  });
 
 module.exports = async function (context, req) {
   try {

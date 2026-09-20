@@ -1,4 +1,4 @@
-const { sql, getPool, ensureSchema } = require('../shared/db');
+const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
 const { deleteBlob } = require('../shared/blob');
 const { normalizeCategory, normalizeVisibility, visibleLevelsFor } = require('../shared/library');
@@ -108,33 +108,38 @@ const toResourceResponse = (row) => ({
   downloadUrl: `/api/files/download/${row.Id}`,
 });
 
-module.exports = async function (context, req) {
-  try {
-    await ensureSchema();
+const listResources = async (userRoles, id) =>
+  withSchema(async () => {
     const pool = await getPool();
+    // Anonymous visitors are allowed here; the caller's roles decide which
+    // visibility levels come back, so restricted titles never leak.
+    const levels = visibleLevelsFor(userRoles);
+    const request = pool.request();
+    const params = levels.map((level, index) => {
+      request.input(`level${index}`, sql.NVarChar(20), level);
+      return `@level${index}`;
+    });
+    if (id) request.input('id', sql.UniqueIdentifier, id);
 
-    if (req.method === 'GET') {
-      // Anonymous visitors are allowed here; the caller's roles decide which
-      // visibility levels come back, so restricted titles never leak.
-      const principal = getClientPrincipal(req);
-      const levels = visibleLevelsFor(principal ? principal.userRoles : []);
-      const request = pool.request();
-      const params = levels.map((level, index) => {
-        request.input(`level${index}`, sql.NVarChar(20), level);
-        return `@level${index}`;
-      });
-
-      const id = String((req.query && req.query.id) || '').trim();
-      if (id) request.input('id', sql.UniqueIdentifier, id);
-
-      const result = await request.query(`
+    const result = await request.query(`
 SELECT Id, Title, BlobPath, ContentType, SizeBytes, Category, Visibility, ResourceDate
 FROM dbo.Resources
 WHERE Visibility IN (${params.join(', ')})
 ${id ? 'AND Id = @id' : ''}
 ORDER BY COALESCE(ResourceDate, CAST(CreatedAt AS DATE)) DESC, CreatedAt DESC
 `);
-      context.res = { status: 200, body: { resources: (result.recordset || []).map(toResourceResponse) } };
+    return (result.recordset || []).map(toResourceResponse);
+  });
+
+module.exports = async function (context, req) {
+  try {
+    if (req.method === 'GET') {
+      const principal = getClientPrincipal(req);
+      const id = String((req.query && req.query.id) || '').trim();
+      context.res = {
+        status: 200,
+        body: { resources: await listResources(principal ? principal.userRoles : [], id) },
+      };
       return;
     }
 
@@ -144,6 +149,8 @@ ORDER BY COALESCE(ResourceDate, CAST(CreatedAt AS DATE)) DESC, CreatedAt DESC
       return;
     }
     const actor = actorOf(auth.principal);
+    await ensureSchema();
+    const pool = await getPool();
 
     if (req.method === 'POST') {
       const parsed = validateResourceInput(req.body);

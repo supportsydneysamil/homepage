@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { parseSqlConnectionString, SCHEMA_SQL } = require('./db');
+const { parseSqlConnectionString, SCHEMA_SQL, isMissingObjectError, withSchema, POOL_IDLE_TIMEOUT_MS } = require('./db');
 
 test('parses a standard ADO connection string', () => {
   const config = parseSqlConnectionString(
@@ -47,4 +47,69 @@ test('site settings gain nullable homepage image path columns', () => {
 test('content tables record who changed them', () => {
   assert.ok(SCHEMA_SQL.includes('CreatedBy'));
   assert.ok(SCHEMA_SQL.includes('UpdatedBy'));
+});
+
+test('a pooled connection outlives the gap between two visitors', () => {
+  assert.ok(POOL_IDLE_TIMEOUT_MS >= 300000, 'idle connections should survive at least five minutes');
+});
+
+test('every connection config keeps the same idle timeout', () => {
+  const fromString = parseSqlConnectionString('Server=samil.database.windows.net;Database=d;User=u;Password=p');
+  const fromUrl = parseSqlConnectionString('mssql://u:p@samil.database.windows.net/d');
+  assert.strictEqual(fromString.pool.idleTimeoutMillis, POOL_IDLE_TIMEOUT_MS);
+  assert.strictEqual(fromUrl.pool.idleTimeoutMillis, POOL_IDLE_TIMEOUT_MS);
+});
+
+test('a missing table or column is a schema error', () => {
+  assert.strictEqual(isMissingObjectError({ number: 208 }), true);
+  assert.strictEqual(isMissingObjectError({ number: 207 }), true);
+  assert.strictEqual(isMissingObjectError({ originalError: { info: { number: 208 } } }), true);
+});
+
+test('any other failure is not a schema error', () => {
+  assert.strictEqual(isMissingObjectError({ number: 4060 }), false);
+  assert.strictEqual(isMissingObjectError(new Error('connection timeout')), false);
+  assert.strictEqual(isMissingObjectError(null), false);
+});
+
+test('a read that succeeds never checks the schema', async () => {
+  let checked = 0;
+  const value = await withSchema(async () => 'rows', async () => {
+    checked += 1;
+  });
+  assert.strictEqual(value, 'rows');
+  assert.strictEqual(checked, 0);
+});
+
+test('a read against a missing table checks the schema and retries once', async () => {
+  let attempts = 0;
+  let checked = 0;
+  const value = await withSchema(
+    async () => {
+      attempts += 1;
+      if (attempts === 1) throw Object.assign(new Error('Invalid object name'), { number: 208 });
+      return 'rows';
+    },
+    async () => {
+      checked += 1;
+    }
+  );
+  assert.strictEqual(value, 'rows');
+  assert.strictEqual(attempts, 2);
+  assert.strictEqual(checked, 1);
+});
+
+test('a read that fails for any other reason is not retried', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    withSchema(
+      async () => {
+        attempts += 1;
+        throw Object.assign(new Error('login failed'), { number: 18456 });
+      },
+      async () => {}
+    ),
+    /login failed/
+  );
+  assert.strictEqual(attempts, 1);
 });
