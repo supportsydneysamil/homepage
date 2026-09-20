@@ -9,6 +9,7 @@ WEEKLY_COMPONENT_PATH = (
 )
 PROFILE_SOURCE = ROOT / "app" / "src" / "pages" / "profile.tsx"
 SETTINGS_SOURCE = ROOT / "app" / "src" / "pages" / "settings.tsx"
+EVENT_REDIRECT_SOURCE = ROOT / "app" / "src" / "pages" / "events" / "[slug].tsx"
 SCROLL_SOURCE = ROOT / "app" / "src" / "components" / "ScrollActivity.tsx"
 LANGUAGE_SOURCE = ROOT / "app" / "src" / "lib" / "LanguageContext.tsx"
 GLOBAL_CSS = ROOT / "app" / "src" / "styles" / "globals.css"
@@ -64,11 +65,22 @@ route_markers = {
 for route, marker in route_markers.items():
     require((OUT / route).read_text(), marker, route)
 
-for route in ("events/christmas-service-2025.html", "events/youth-retreat-2025.html"):
-    require((OUT / route).read_text(), "event-detail-page", route)
+event_redirect_source = EVENT_REDIRECT_SOURCE.read_text()
+require(event_redirect_source, "router.replace(eventDetailHref(slug))", "event redirect source")
+for route, slug in (
+    ("events/christmas-service-2025.html", "christmas-service-2025"),
+    ("events/youth-retreat-2025.html", "youth-retreat-2025"),
+):
+    exported_redirect = (OUT / route).read_text()
+    require(exported_redirect, "Loading...", route)
+    require(exported_redirect, f'"slug":"{slug}"', route)
 
 require(PROFILE_SOURCE.read_text(), "profile-page", "profile source")
-require(SETTINGS_SOURCE.read_text(), "settings-page", "settings source")
+settings_source = SETTINGS_SOURCE.read_text()
+require(settings_source, "settings-page", "settings source")
+require(settings_source, "settings-photos", "settings source")
+require(settings_source, "settings-photo__frame--hero", "settings source")
+require(settings_source, "settings-photo__frame--pastor", "settings source")
 require(SCROLL_SOURCE.read_text(), "is-scrolling", "scroll activity source")
 require(LANGUAGE_SOURCE.read_text(), "document.documentElement.lang = lang", "language context")
 global_css = GLOBAL_CSS.read_text()
