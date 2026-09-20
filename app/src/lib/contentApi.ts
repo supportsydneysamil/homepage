@@ -130,8 +130,9 @@ export const useContent = <T,>(loader: () => Promise<T[]>, enabled = true) => {
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
 
-  const reload = useCallback(async () => {
-    if (!enabledRef.current) return;
+  // Returns the fresh rows so a caller can act on them before React re-renders.
+  const reload = useCallback(async (): Promise<T[]> => {
+    if (!enabledRef.current) return [];
     setIsLoading(true);
     setError(null);
     try {
@@ -139,10 +140,12 @@ export const useContent = <T,>(loader: () => Promise<T[]>, enabled = true) => {
       if (isMountedRef.current) {
         setItems(result);
       }
+      return result;
     } catch (cause) {
       if (isMountedRef.current) {
         setError((cause as Error).message);
       }
+      return [];
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);

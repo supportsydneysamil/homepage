@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../../components/PageHero';
 import Pager from '../../components/Pager';
 import ContentForm, { type FormField } from '../../components/manage/ContentForm';
@@ -18,7 +18,9 @@ import {
   filterEvents,
   filterSermons,
   sermonYears,
+  viewShowing,
   type EventStatus,
+  type ManageView,
 } from '../../lib/manageList';
 import {
   RESOURCE_CATEGORIES,
@@ -107,6 +109,15 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     flashTimerRef.current = setTimeout(() => setFlashId(null), 2400);
   };
 
+  // Closing a tall editor shifts the page, so bring the saved row into view.
+  useEffect(() => {
+    if (!flashId) return;
+    const row = document.querySelector('.manage-list__row--flash');
+    if (!row) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    row.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [flashId]);
+
   const failWith = (scope: 'upload' | 'list' | 'gallery', text: string) => {
     setAnnouncement(text);
     setFailure({ scope, text });
@@ -115,14 +126,40 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const [isAdding, setIsAdding] = useState(false);
   // Each tab remembers where its editor was reading, so saving does not
   // throw them back to the newest page.
-  const [views, setViews] = useState<Record<ManageTab, { filter: string; search: string; page: number }>>({
+  const [views, setViews] = useState<Record<ManageTab, ManageView>>({
     resources: { filter: 'all', search: '', page: 1 },
     sermons: { filter: 'all', search: '', page: 1 },
     events: { filter: 'all', search: '', page: 1 },
   });
   const view = views[tab];
-  const setView = (changes: Partial<{ filter: string; search: string; page: number }>) =>
+  const setView = (changes: Partial<ManageView>) =>
     setViews((previous) => ({ ...previous, [tab]: { ...previous[tab], ...changes } }));
+
+  // After a write, move the view only as far as it takes to show the saved row.
+  const reveal = (which: ManageTab, next: ManageView | null) => {
+    if (next) setViews((previous) => ({ ...previous, [which]: next }));
+  };
+
+  const revealResource = (fresh: ApiResource[], savedId: string | null) => {
+    if (!savedId) return;
+    const current = views.resources;
+    const matched = filterResources(fresh, current.filter as ResourceCategory | 'all', current.search);
+    reveal('resources', viewShowing(savedId, fresh, matched, current, MANAGE_PAGE_SIZE));
+  };
+
+  const revealSermon = (fresh: ApiSermon[], savedId: string | null) => {
+    if (!savedId) return;
+    const current = views.sermons;
+    const matched = filterSermons(fresh, current.filter, current.search);
+    reveal('sermons', viewShowing(savedId, fresh, matched, current, MANAGE_PAGE_SIZE));
+  };
+
+  const revealEvent = (fresh: ApiEvent[], savedId: string | null) => {
+    if (!savedId) return;
+    const current = views.events;
+    const matched = filterEvents(fresh, current.filter, current.search, todayStamp());
+    reveal('events', viewShowing(savedId, fresh, matched, current, MANAGE_PAGE_SIZE));
+  };
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState<string>(RESOURCE_CATEGORIES[0].id);
   const [uploadVisibility, setUploadVisibility] = useState<string>('member');
@@ -331,9 +368,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       setUploadTitle('');
       setUploadDate('');
       setUploadFileHandle(null);
-      await resources.reload();
-      // A filter or a later page would hide the new row, so go where it is.
-      setView({ filter: 'all', search: '', page: 1 });
+      revealResource(await resources.reload(), savedId);
       setIsAdding(false);
       flashRow(savedId, labels.saved);
     } catch (error) {
@@ -342,7 +377,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     setIsUploading(false);
   };
 
-  const onDelete = async (endpoint: string, id: string, reload: () => Promise<void>) => {
+  const onDelete = async (endpoint: string, id: string, reload: () => Promise<unknown>) => {
     setPendingDeleteId(null);
     try {
       await deleteContent(endpoint, id);
@@ -454,7 +489,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                         }
                       : {}),
                   });
-                  await resources.reload();
+                  revealResource(await resources.reload(), savedId);
                   goTo('resources');
                   flashRow(savedId, labels.saved);
                 }}
@@ -666,8 +701,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   const savedId = editingSermon
                     ? await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload })
                     : await sendContent('/api/sermons', 'POST', payload);
-                  await sermons.reload();
-                  if (!editingSermon) setView({ filter: 'all', search: '', page: 1 });
+                  revealSermon(await sermons.reload(), savedId);
                   goTo('sermons');
                   flashRow(savedId, labels.saved);
                 }}
@@ -840,8 +874,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 const savedId = editingEvent
                   ? await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload })
                   : await sendContent('/api/events', 'POST', payload);
-                await events.reload();
-                if (!editingEvent) setView({ filter: 'all', search: '', page: 1 });
+                revealEvent(await events.reload(), savedId);
                 goTo('events');
                 flashRow(savedId, labels.saved);
               }}
