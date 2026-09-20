@@ -4,6 +4,7 @@ import {
   DEFAULT_HERO_IMAGE,
   DEFAULT_PASTOR_IMAGE,
   nextImagePath,
+  nextSrcOnError,
   parseSiteSettings,
   putSiteSettings,
 } from './siteSettings';
@@ -35,6 +36,14 @@ test('reset sends null and keep reuses the published path', () => {
   assert.strictEqual(nextImagePath('reset', 'site/a.jpg'), null);
   assert.strictEqual(nextImagePath('keep', 'site/a.jpg'), 'site/a.jpg');
   assert.strictEqual(nextImagePath({ uploadedPath: 'site/new.jpg' }, 'site/a.jpg'), 'site/new.jpg');
+});
+
+test('a broken remote image falls back once', () => {
+  assert.strictEqual(
+    nextSrcOnError('https://example.test/site/a.jpg', DEFAULT_HERO_IMAGE),
+    DEFAULT_HERO_IMAGE
+  );
+  assert.strictEqual(nextSrcOnError(DEFAULT_HERO_IMAGE, DEFAULT_HERO_IMAGE), DEFAULT_HERO_IMAGE);
 });
 
 test('putSiteSettings returns parsed settings when fetch succeeds', async () => {

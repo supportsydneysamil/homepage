@@ -1,15 +1,20 @@
 import Link from 'next/link';
 import type { Language } from './homeContent';
+import SitePhoto from '../SitePhoto';
+import { useSiteSettings } from '../../lib/ThemeContext';
+import { DEFAULT_PASTOR_IMAGE } from '../../lib/siteSettings';
 
 const PastorFeature = ({ lang }: { lang: Language }) => {
   const isKo = lang === 'ko';
+  const { pastorImageUrl } = useSiteSettings();
 
   return (
     <section className="home-section home-pastor">
       <div className="home-pastor__portrait">
         <span aria-hidden="true">SAMIL</span>
-        <img
-          src="/pastor.jpg"
+        <SitePhoto
+          src={pastorImageUrl}
+          fallback={DEFAULT_PASTOR_IMAGE}
           alt={isKo ? '기도하는 안상헌 담임목사' : 'Lead Pastor Sangheon Ahn praying'}
         />
       </div>
