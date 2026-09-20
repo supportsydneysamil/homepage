@@ -2,52 +2,58 @@
 
 ## Goal
 
-Allow administrators to change the church image in the homepage hero and the lead pastor portrait from Global Settings. Preserve the current homepage composition, theme behavior, bilingual UI, and static image fallbacks.
+Give administrators a small operational way to replace two rarely changed brand photos without a deploy: the church photo in the homepage hero frame, and the lead pastor portrait. This is not a homepage editor, media library, or design tool. The current layout, crops, theme behavior, bilingual UI, and built-in image fallbacks stay as they are.
+
+## Product Judgment
+
+These photos are homepage content, not theme. They change infrequently, so the feature exists for operational independence, not for design completeness. If an administrator never needs to replace the files without a developer, the built-in `/church-bg.png` and `/pastor.jpg` assets remain sufficient.
+
+Because the site already has one administrator-only Global Settings page, that is the least extra surface. A dedicated homepage CMS, cropper, or gallery would add more risk than value: a poorly framed upload can weaken the homepage more than the convenience helps.
 
 ## Scope
 
-Global Settings will manage three site-wide values:
+Global Settings continues to own the website theme. Directly below it, a separate Homepage photos section owns exactly two images:
 
-- Website theme
-- Homepage hero church image
-- Lead pastor portrait
+- Church photo in the arched `HomeHero` frame
+- Lead pastor portrait in `PastorFeature`
 
-The uploaded church image applies only to the framed image on the right side of `HomeHero`. It does not replace the `church` theme's fixed page background, the visit map fallback, theme preview artwork, or page-title hero components on other routes.
+The church photo does not replace the `church` theme's fixed page background, the visit map fallback, theme preview artwork, or page-title heroes on other routes.
 
-The uploaded pastor image applies only to the portrait in `PastorFeature`.
+Out of scope:
 
-Editing pastor name, biography, contact details, hero copy, service times, image focal points, or theme background artwork is outside this change.
+- Pastor name, biography, contact details, hero copy, or service times
+- Image focal-point or crop editing
+- Multiple photos, seasonal heroes, or a media library
+- Theme background artwork
+- A new homepage-editing page or event-admin placement
 
 ## User Experience
 
-The existing administrator-only Global Settings page keeps the theme selector and adds a Homepage Images section with two image controls.
+The settings page stays compact. Theme cards remain a distinct block. Homepage photos is a second block with a short note that the photos appear only on the homepage and that landscape church photos and portrait pastor photos work best.
 
-Each control shows:
+Each photo control is one slot:
 
-- A label and brief recommended shape: landscape for the church image and portrait for the pastor image
-- The currently published image, or a preview of a newly selected file
-- A file picker accepting JPEG, PNG, and WebP
-- A reset action that restores the built-in image
+- Current published image, previewed in a shape close to the live frame (arch-like for the church photo, portrait for the pastor photo)
+- One file picker for JPEG, PNG, or WebP
+- One reset action that restores the built-in image
+- One line of recommended shape: church photo about 4:3 or wider; pastor photo about 4:5. Dimensions are not enforced.
 
-Selecting a file changes only the local preview. The existing Save and Apply Globally action uploads selected files and saves the theme and both image choices together. While saving, the action is disabled. A successful save replaces the previews with the published URLs and revokes any temporary object URLs.
+Selecting a file updates only the local preview. The existing Save and Apply Globally action remains the only publish step: it uploads newly selected files and saves the theme plus both photo choices together. While saving, the action is disabled. After a successful save, previews show the published URLs and any temporary object URLs are revoked.
 
-The settings page reports validation, upload, and save errors in Korean or English. If saving fails, the currently published homepage remains unchanged and the administrator can retry without selecting the files again.
+Reset is local until save. Saving with a reset sends a null path for that photo and restores the built-in asset on the homepage.
+
+Errors appear in Korean or English. If saving fails, the published homepage stays unchanged and the administrator can retry without picking the files again.
+
+Do not add extra controls, galleries, drag-and-drop canvases, or live homepage mockups beyond the two framed previews.
 
 ## Image Presentation
 
-The current design intentionally gives the two images different roles:
+The two photos keep their current roles:
 
-- The church image remains inside the large arched hero frame with `object-fit: cover`.
-- The pastor image remains inside the editorial portrait frame with the existing portrait crop.
+- The church image stays inside the large arched hero frame with `object-fit: cover`.
+- The pastor image stays inside the editorial portrait frame with the existing portrait crop.
 
-The implementation will not reuse an uploaded church image as a full-page theme background. A photo suitable for the landscape hero crop may not provide sufficient contrast or composition as a fixed background. Keeping these roles separate also prevents an administrator image change from unexpectedly altering the whole theme.
-
-The UI will recommend source images rather than enforce exact dimensions:
-
-- Church hero: landscape, approximately 4:3 or wider
-- Pastor portrait: portrait, approximately 4:5
-
-Existing responsive CSS continues to control the final crop on desktop, tablet, and mobile.
+Existing responsive CSS continues to crop on desktop, tablet, and mobile. The settings preview should hint at those frames so an administrator can judge composition before saving, without becoming a visual editor.
 
 ## Settings Data
 
@@ -56,33 +62,33 @@ Existing responsive CSS continues to control the final crop on desktop, tablet, 
 - `HeroImagePath NVARCHAR(400)`
 - `PastorImagePath NVARCHAR(400)`
 
-Blob paths, not complete storage URLs, are persisted. This keeps storage-account and container configuration out of database content. The public `GET /api/site-settings` response derives and returns:
+Persist blob paths, not complete storage URLs. The public `GET /api/site-settings` response derives and returns:
 
 - `themeId`
 - `heroImageUrl`
 - `pastorImageUrl`
 
-Null image paths represent the built-in defaults. The client falls back to `/church-bg.png` and `/pastor.jpg` respectively.
+Null image paths mean the built-in defaults. The client falls back to `/church-bg.png` and `/pastor.jpg`.
 
-The administrator-only `PUT /api/site-settings` accepts the theme ID and nullable image paths. It validates that non-null paths belong to the dedicated `site/` folder, updates all settings in one SQL operation, and records the actor and update time.
+The administrator-only `PUT /api/site-settings` accepts the theme ID and nullable image paths. Non-null paths must belong to the dedicated `site/` folder. One SQL operation updates all settings and records the actor and update time.
 
 ## Upload and Storage
 
-The existing direct-to-Azure-Blob SAS upload flow is reused. A new `site` upload folder is added with these rules:
+Reuse the existing direct-to-Azure-Blob SAS upload flow. Add a `site` folder with these rules:
 
 - Only administrators may request an upload URL for this folder.
 - Only JPEG, PNG, and WebP are accepted.
 - The existing 25 MB maximum remains the server-side safety limit.
-- `site` blobs use the existing public media container because homepage images must load for anonymous visitors.
+- `site` blobs use the existing public media container so anonymous visitors can load homepage images.
 - Generated paths use the existing randomized filename scheme under `site/`.
 
-The upload helper gains `site` as a supported folder. Other upload folders and permissions remain unchanged.
+The upload helper gains `site` as a supported folder. Other upload folders and permissions stay unchanged.
 
-After a successful settings update, a replaced prior `site/` blob is deleted on a best-effort basis. The database update is the source of truth: a cleanup failure is logged but does not roll back a successfully published setting.
+After a successful settings update, a replaced prior `site/` blob is deleted on a best-effort basis. The database update is the source of truth: a cleanup failure is logged and does not roll back a published setting.
 
 ## Client Architecture and Data Flow
 
-The current theme provider already loads `/api/site-settings` for every page. It will be generalized to expose the complete site settings without adding a second global request. Existing theme behavior remains available through the same provider API or a compatibility hook.
+The current theme provider already loads `/api/site-settings` for every page. Generalize it to expose the complete site settings without a second global request. Existing theme behavior remains available through the same provider API or a compatibility hook.
 
 On page load:
 
@@ -100,22 +106,20 @@ On administrator save:
 5. The provider adopts the returned values immediately.
 6. The API attempts to remove replaced uploaded blobs.
 
-Resetting an image sends `null` for that image path and restores the corresponding built-in asset.
-
 ## Failure Handling
 
-- A settings fetch failure keeps the current `church` theme and built-in image paths.
-- An invalid type or empty/oversized file is rejected before upload and is also rejected by the server.
-- If an upload fails, the settings update is not sent, so published values do not change.
-- If the settings update fails after an upload, published values do not change; the selected file remains available for retry during the current page session.
-- If a remote image later fails to load, the image component switches once to its built-in fallback to avoid a broken homepage image.
-- Blob deletion failures are logged and do not break the published settings.
+- A settings fetch failure keeps the `church` theme and built-in image paths.
+- An invalid type or empty/oversized file is rejected before upload and by the server.
+- If an upload fails, the settings update is not sent.
+- If the settings update fails after an upload, published values do not change; the selected file remains available for retry in the current page session.
+- If a remote image later fails to load, the image component switches once to its built-in fallback.
+- Blob deletion failures are logged and do not break published settings.
 
 ## Security
 
 - Reading site settings and images remains public.
 - Only the `admin` role can save settings, request `site/` upload URLs, or reset images.
-- The API accepts only generated `site/` blob paths from the configured public container; arbitrary external URLs and paths from other folders are rejected.
+- The API accepts only generated `site/` blob paths from the configured public container. External URLs and paths from other folders are rejected.
 - Existing editor access to event, resource, sermon, and media uploads is unchanged.
 
 ## Testing and Verification
@@ -128,7 +132,7 @@ Automated coverage will include:
 - `site` upload validation, image type restrictions, and administrator-only authorization
 - Client file validation and site-folder upload behavior
 - Provider normalization and fallback behavior
-- Global Settings previews and save/reset interactions
+- Global Settings: separate theme and photos blocks, framed previews, save, and reset
 - Hero and pastor components using configured URLs and recovering to built-in assets on image errors
 
-Verification will run API tests, frontend tests, TypeScript checking, and the production build. The homepage and settings page will be checked at desktop and mobile widths in Korean and English, including the default, uploaded, reset, failed-image, light-theme, and dark-theme states.
+Verification will run API tests, frontend tests, TypeScript checking, and the production build. Check the homepage and settings page at desktop and mobile widths in Korean and English, including default, uploaded, reset, failed-image, light-theme, and dark-theme states. Confirm the settings photos UI stays a small second block and does not read as a homepage builder.
