@@ -93,16 +93,18 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  // Failures stay on screen next to the control that failed; successes are
-  // shown by the list itself, with a live region for screen readers.
-  const [failure, setFailure] = useState<{ scope: 'upload' | 'list' | 'gallery'; text: string } | null>(null);
-  const [announcement, setAnnouncement] = useState('');
+  // One status line per outcome, placed beside whatever the editor just acted
+  // on. It stays until the next action rather than fading on a timer.
+  const [status, setStatus] = useState<{
+    scope: 'upload' | 'list' | 'gallery';
+    text: string;
+    isError: boolean;
+  } | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flashRow = (id: string | null, message: string) => {
-    setFailure(null);
-    setAnnouncement(message);
+    setStatus({ scope: 'list', text: message, isError: false });
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     if (!id) return;
     setFlashId(id);
@@ -119,8 +121,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   }, [flashId]);
 
   const failWith = (scope: 'upload' | 'list' | 'gallery', text: string) => {
-    setAnnouncement(text);
-    setFailure({ scope, text });
+    setStatus({ scope, text, isError: true });
   };
 
   const [isAdding, setIsAdding] = useState(false);
@@ -295,13 +296,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const goTo = (nextTab: ManageTab, nextEditId?: string) => {
     setPendingDeleteId(null);
     setIsAdding(false);
-    setFailure(null);
+    setStatus(null);
     void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true });
   };
 
   const openAdd = () => {
     setPendingDeleteId(null);
-    setFailure(null);
+    setStatus(null);
     setIsAdding(true);
     if (editId) {
       void router.push(buildManageHref(tab), undefined, { shallow: true });
@@ -355,7 +356,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     }
 
     setIsUploading(true);
-    setFailure(null);
+    setStatus(null);
     try {
       const uploaded = await uploadFile(uploadFileHandle, 'resources');
       const savedId = await sendContent('/api/resources', 'POST', {
@@ -428,9 +429,6 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         ))}
       </nav>
 
-      <p className="visually-hidden" role="status" aria-live="polite">
-        {announcement}
-      </p>
 
       {tab === 'resources' ? (
         <section className="manage-panel">
@@ -564,9 +562,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   />
                 </div>
 
-                {failure?.scope === 'upload' ? (
+                {status?.scope === 'upload' ? (
                   <p className="error-text" role="alert">
-                    {failure.text}
+                    {status.text}
                   </p>
                 ) : null}
 
@@ -601,9 +599,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             countLabel={labels.countRange(resourcePage.from, resourcePage.to, matchedResources.length)}
           />
 
-          {failure?.scope === 'list' ? (
-            <p className="error-text" role="alert">
-              {failure.text}
+          {status?.scope === 'list' ? (
+            <p
+              className={status.isError ? 'manage-status manage-status--error' : 'manage-status'}
+              role={status.isError ? 'alert' : 'status'}
+              aria-live={status.isError ? 'assertive' : 'polite'}
+            >
+              {status.text}
             </p>
           ) : null}
 
@@ -724,9 +726,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             countLabel={labels.countRange(sermonPage.from, sermonPage.to, matchedSermons.length)}
           />
 
-          {failure?.scope === 'list' ? (
-            <p className="error-text" role="alert">
-              {failure.text}
+          {status?.scope === 'list' ? (
+            <p
+              className={status.isError ? 'manage-status manage-status--error' : 'manage-status'}
+              role={status.isError ? 'alert' : 'status'}
+              aria-live={status.isError ? 'assertive' : 'polite'}
+            >
+              {status.text}
             </p>
           ) : null}
 
@@ -780,9 +786,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             <div className="manage-editor">
               <h2>{editingEvent ? labels.editEvent : labels.addEvent}</h2>
 
-            {failure?.scope === 'gallery' ? (
+            {status?.scope === 'gallery' ? (
               <p className="error-text" role="alert">
-                {failure.text}
+                {status.text}
               </p>
             ) : null}
 
@@ -897,9 +903,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             countLabel={labels.countRange(eventPage.from, eventPage.to, matchedEvents.length)}
           />
 
-          {failure?.scope === 'list' ? (
-            <p className="error-text" role="alert">
-              {failure.text}
+          {status?.scope === 'list' ? (
+            <p
+              className={status.isError ? 'manage-status manage-status--error' : 'manage-status'}
+              role={status.isError ? 'alert' : 'status'}
+              aria-live={status.isError ? 'assertive' : 'polite'}
+            >
+              {status.text}
             </p>
           ) : null}
 
