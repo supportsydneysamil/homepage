@@ -6,6 +6,7 @@ import {
   filterEvents,
   filterSermons,
   sermonYears,
+  viewShowing,
 } from './manageList';
 import type { ApiEvent, ApiSermon } from './contentApi';
 
@@ -118,6 +119,38 @@ test('filters events by status', () => {
     ['draft']
   );
   assert.strictEqual(filterEvents(events, 'all', '', '2026-09-19').length, 3);
+});
+
+const rows = (ids: string[]) => ids.map((id) => ({ id }));
+const view = { filter: 'bulletin', search: '', page: 1 };
+
+test('a saved row already on screen needs no move', () => {
+  const all = rows(['a', 'b', 'c']);
+  assert.strictEqual(viewShowing('b', all, all, view, 20), null);
+});
+
+test('a saved row further down the same filter only changes the page', () => {
+  const all = rows(Array.from({ length: 45 }, (_, i) => `r${i}`));
+  assert.deepStrictEqual(viewShowing('r25', all, all, view, 20), {
+    filter: 'bulletin',
+    search: '',
+    page: 2,
+  });
+});
+
+test('a saved row that left the filter clears the filter and finds its page', () => {
+  const all = rows(Array.from({ length: 45 }, (_, i) => `r${i}`));
+  const matched = rows(['r0', 'r1']);
+  assert.deepStrictEqual(viewShowing('r40', all, matched, { filter: 'bulletin', search: '주보', page: 1 }, 20), {
+    filter: 'all',
+    search: '',
+    page: 3,
+  });
+});
+
+test('a row that vanished from the data moves nothing', () => {
+  const all = rows(['a', 'b']);
+  assert.strictEqual(viewShowing('gone', all, all, view, 20), null);
 });
 
 test('searches an event by title', () => {

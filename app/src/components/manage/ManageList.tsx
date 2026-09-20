@@ -7,6 +7,8 @@ export type ManageListItem = {
 type ManageListProps = {
   items: ManageListItem[];
   activeId: string | null;
+  // The row that was just saved, highlighted so the change is visible where it happened.
+  flashId: string | null;
   emptyLabel: string;
   editLabel: string;
   deleteLabel: string;
@@ -19,9 +21,17 @@ type ManageListProps = {
   onCancelDelete: () => void;
 };
 
+const rowClass = (id: string, activeId: string | null, flashId: string | null) => {
+  const names = ['manage-list__row'];
+  if (id === activeId) names.push('manage-list__row--active');
+  if (id === flashId) names.push('manage-list__row--flash');
+  return names.join(' ');
+};
+
 const ManageList = ({
   items,
   activeId,
+  flashId,
   emptyLabel,
   editLabel,
   deleteLabel,
@@ -40,10 +50,7 @@ const ManageList = ({
   return (
     <ul className="manage-list">
       {items.map((item) => (
-        <li
-          key={item.id}
-          className={item.id === activeId ? 'manage-list__row manage-list__row--active' : 'manage-list__row'}
-        >
+        <li key={item.id} className={rowClass(item.id, activeId, flashId)}>
           <div className="manage-list__text">
             <strong>{item.primary}</strong>
             {item.secondary ? <span className="muted">{item.secondary}</span> : null}

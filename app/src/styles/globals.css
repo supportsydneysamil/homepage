@@ -1263,7 +1263,7 @@ p {
 }
 
 .error-text {
-  color: #fca5a5;
+  color: var(--site-danger);
   font-weight: 700;
 }
 
@@ -2445,6 +2445,8 @@ body.theme-modern-sand .home-page {
   --site-gold: #dda95a;
   --site-line: rgba(30, 84, 73, 0.14);
   --site-shadow: 0 22px 55px rgba(23, 63, 58, 0.1);
+  /* Readable against each theme's surface; the light salmon only worked on dark. */
+  --site-danger: #a8332b;
 }
 
 body.theme-dark {
@@ -2458,6 +2460,7 @@ body.theme-dark {
   --site-gold: #d6a352;
   --site-line: rgba(207, 235, 226, 0.15);
   --site-shadow: 0 22px 55px rgba(0, 0, 0, 0.28);
+  --site-danger: #fca5a5;
 }
 
 body.theme-modern-sky {
@@ -3553,6 +3556,23 @@ body {
   gap: 1.8rem;
 }
 
+.manage-status {
+  margin: 0;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid var(--site-line);
+  border-radius: 0.9rem;
+  background: var(--site-surface-soft);
+  color: var(--site-ink);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.manage-status--error {
+  border-color: color-mix(in srgb, var(--site-danger) 40%, var(--site-line));
+  background: color-mix(in srgb, var(--site-danger) 8%, var(--site-surface));
+  color: var(--site-danger);
+}
+
 .manage-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3610,6 +3630,28 @@ body {
 .manage-list__row--active {
   border-color: var(--site-accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--site-accent) 18%, transparent);
+}
+
+/* A saved row settles back to normal, so the change is seen where it happened. */
+.manage-list__row--flash {
+  border-color: var(--site-accent);
+  animation: manage-row-settle 2.4s ease-out both;
+}
+
+@keyframes manage-row-settle {
+  0% {
+    background: color-mix(in srgb, var(--site-accent-soft) 70%, var(--site-surface));
+  }
+  100% {
+    background: var(--site-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manage-list__row--flash {
+    animation: none;
+    background: color-mix(in srgb, var(--site-accent-soft) 45%, var(--site-surface));
+  }
 }
 
 .manage-list__text {
