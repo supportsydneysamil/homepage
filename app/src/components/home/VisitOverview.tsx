@@ -20,7 +20,11 @@ const VisitOverview = ({ lang }: { lang: Language }) => {
         <dl className="home-visit__details">
           <div>
             <dt>{isKo ? '예배 시간' : 'Service times'}</dt>
-            <dd>{isKo ? '주일 오전 9:30 · 11:00' : 'Sunday at 9:30 · 11:00 AM'}</dd>
+            <dd>
+              {isKo
+                ? '주일 오전 9:30 (1부 · 어린이) · 11:00 (2부 · 메인)'
+                : 'Sunday 9:30 AM (first · kids) · 11:00 AM (second · main)'}
+            </dd>
           </div>
           <div>
             <dt>{isKo ? '예배 분위기' : 'What to expect'}</dt>
@@ -34,8 +38,8 @@ const VisitOverview = ({ lang }: { lang: Language }) => {
             <dt>{isKo ? '어린이와 언어' : 'Children and language'}</dt>
             <dd>
               {isKo
-                ? '11시 어린이예배 · 한국어 중심, 영어 안내 가능'
-                : 'Kids worship at 11:00 · Korean service with English welcome support'}
+                ? '9시 30분 어린이 예배 · 한국어 중심, 영어 안내 가능'
+                : 'Kids worship at 9:30 · Korean service with English welcome support'}
             </dd>
           </div>
           <div>
