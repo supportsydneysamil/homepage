@@ -79,9 +79,24 @@ test('a sermon may carry both a YouTube link and a recording', () => {
   assert.ok(result.value.mediaUrl);
 });
 
-test('allows an omitted speaker and video', () => {
+test('allows an omitted speaker, subtitle, and video', () => {
   const result = validateSermonInput({ date: '2026-01-04', title: 'T' });
   assert.strictEqual(result.error, undefined);
+  assert.strictEqual(result.value.subtitle, null);
   assert.strictEqual(result.value.speaker, null);
   assert.strictEqual(result.value.youtubeUrl, null);
+});
+
+test('accepts an optional subtitle', () => {
+  const result = validateSermonInput({
+    date: '2026-09-20',
+    title: '재정사용에 원칙을 세워봅시다',
+    subtitle: '고린도후서 9:1-12',
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.strictEqual(result.value.subtitle, '고린도후서 9:1-12');
+});
+
+test('rejects a subtitle that is too long', () => {
+  assert.ok(validateSermonInput({ date: '2026-01-04', title: 'T', subtitle: 'x'.repeat(201) }).error);
 });

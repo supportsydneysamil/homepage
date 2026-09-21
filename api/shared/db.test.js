@@ -37,6 +37,11 @@ test('events gain location and start time columns on existing databases', () => 
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'StartTime')"));
 });
 
+test('sermons gain a subtitle column on existing databases', () => {
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Sermons', 'Subtitle')"));
+  assert.ok(SCHEMA_SQL.includes('Subtitle NVARCHAR(200) NULL'));
+});
+
 test('site settings gain nullable homepage image path columns', () => {
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'HeroImagePath')"));
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'PastorImagePath')"));

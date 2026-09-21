@@ -17,6 +17,7 @@ const validateSermonInput = (body) => {
   const input = body || {};
   const date = String(input.date || '').trim();
   const title = String(input.title || '').trim();
+  const subtitle = String(input.subtitle || '').trim();
   const speaker = String(input.speaker || '').trim();
   const youtubeUrl = String(input.youtubeUrl || '').trim();
   const mediaUrl = String(input.mediaUrl || '').trim();
@@ -24,6 +25,7 @@ const validateSermonInput = (body) => {
 
   if (!DATE_PATTERN.test(date) || Number.isNaN(Date.parse(date))) return { error: 'Date must be YYYY-MM-DD.' };
   if (!title || title.length > 200) return { error: 'Title is required and must be 200 characters or fewer.' };
+  if (subtitle.length > 200) return { error: 'Subtitle must be 200 characters or fewer.' };
   if (youtubeUrl && !isYouTubeUrl(youtubeUrl)) return { error: 'Video URL must be a YouTube link.' };
   if (mediaUrl && !isMediaUrl(mediaUrl)) {
     return { error: 'Recording URL must point at an uploaded file in the church media container.' };
@@ -36,6 +38,7 @@ const validateSermonInput = (body) => {
     value: {
       date,
       title,
+      subtitle: subtitle || null,
       speaker: speaker || null,
       youtubeUrl: youtubeUrl || null,
       mediaUrl: mediaUrl || null,
@@ -48,6 +51,7 @@ const mapRow = (row) => ({
   id: row.Id,
   date: row.SermonDate instanceof Date ? row.SermonDate.toISOString().slice(0, 10) : row.SermonDate,
   title: row.Title,
+  subtitle: row.Subtitle || '',
   speaker: row.Speaker || '',
   youtubeUrl: row.YouTubeUrl || '',
   mediaUrl: row.MediaUrl || '',
@@ -60,7 +64,7 @@ const listSermons = async (id) =>
     const request = pool.request();
     if (id) request.input('id', sql.UniqueIdentifier, id);
     const result = await request.query(
-      `SELECT Id, SermonDate, Title, Speaker, YouTubeUrl, MediaUrl, MediaContentType FROM dbo.Sermons WHERE IsPublished = 1${
+      `SELECT Id, SermonDate, Title, Subtitle, Speaker, YouTubeUrl, MediaUrl, MediaContentType FROM dbo.Sermons WHERE IsPublished = 1${
         id ? ' AND Id = @id' : ''
       } ORDER BY SermonDate DESC`
     );
@@ -94,16 +98,17 @@ module.exports = async function (context, req) {
         .request()
         .input('sermonDate', sql.Date, parsed.value.date)
         .input('title', sql.NVarChar(200), parsed.value.title)
+        .input('subtitle', sql.NVarChar(200), parsed.value.subtitle)
         .input('speaker', sql.NVarChar(120), parsed.value.speaker)
         .input('youTubeUrl', sql.NVarChar(500), parsed.value.youtubeUrl)
         .input('mediaUrl', sql.NVarChar(600), parsed.value.mediaUrl)
         .input('mediaContentType', sql.NVarChar(150), parsed.value.mediaContentType)
         .input('actor', sql.NVarChar(256), actor)
         .query(`
-INSERT INTO dbo.Sermons (SermonDate, Title, Speaker, YouTubeUrl, MediaUrl, MediaContentType, CreatedBy, UpdatedBy)
-OUTPUT inserted.Id, inserted.SermonDate, inserted.Title, inserted.Speaker, inserted.YouTubeUrl,
+INSERT INTO dbo.Sermons (SermonDate, Title, Subtitle, Speaker, YouTubeUrl, MediaUrl, MediaContentType, CreatedBy, UpdatedBy)
+OUTPUT inserted.Id, inserted.SermonDate, inserted.Title, inserted.Subtitle, inserted.Speaker, inserted.YouTubeUrl,
        inserted.MediaUrl, inserted.MediaContentType
-VALUES (@sermonDate, @title, @speaker, @youTubeUrl, @mediaUrl, @mediaContentType, @actor, @actor);
+VALUES (@sermonDate, @title, @subtitle, @speaker, @youTubeUrl, @mediaUrl, @mediaContentType, @actor, @actor);
 `);
       context.res = { status: 201, body: { sermon: mapRow(inserted.recordset[0]) } };
       return;
@@ -125,6 +130,7 @@ VALUES (@sermonDate, @title, @speaker, @youTubeUrl, @mediaUrl, @mediaContentType
         .input('id', sql.UniqueIdentifier, id)
         .input('sermonDate', sql.Date, parsed.value.date)
         .input('title', sql.NVarChar(200), parsed.value.title)
+        .input('subtitle', sql.NVarChar(200), parsed.value.subtitle)
         .input('speaker', sql.NVarChar(120), parsed.value.speaker)
         .input('youTubeUrl', sql.NVarChar(500), parsed.value.youtubeUrl)
         .input('mediaUrl', sql.NVarChar(600), parsed.value.mediaUrl)
@@ -132,10 +138,10 @@ VALUES (@sermonDate, @title, @speaker, @youTubeUrl, @mediaUrl, @mediaContentType
         .input('actor', sql.NVarChar(256), actor)
         .query(`
 UPDATE dbo.Sermons
-SET SermonDate = @sermonDate, Title = @title, Speaker = @speaker, YouTubeUrl = @youTubeUrl,
+SET SermonDate = @sermonDate, Title = @title, Subtitle = @subtitle, Speaker = @speaker, YouTubeUrl = @youTubeUrl,
     MediaUrl = @mediaUrl, MediaContentType = @mediaContentType,
     UpdatedBy = @actor, UpdatedAt = SYSUTCDATETIME()
-OUTPUT inserted.Id, inserted.SermonDate, inserted.Title, inserted.Speaker, inserted.YouTubeUrl,
+OUTPUT inserted.Id, inserted.SermonDate, inserted.Title, inserted.Subtitle, inserted.Speaker, inserted.YouTubeUrl,
        inserted.MediaUrl, inserted.MediaContentType
 WHERE Id = @id;
 `);

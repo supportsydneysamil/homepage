@@ -41,6 +41,9 @@ const Sermons: NextPage & {
                   <span>{formatListIndex(index)}</span>
                   <time dateTime={sermon.date}>{formatDisplayDate(sermon.date, lang)}</time>
                   <h2>{sermon.title}</h2>
+                  <p className="sermon-editorial-card__subtitle" aria-hidden={sermon.subtitle ? undefined : true}>
+                    {sermon.subtitle}
+                  </p>
                   {sermon.speaker ? (
                     <p>{isKo ? `설교자 · ${sermon.speaker}` : `Speaker · ${sermon.speaker}`}</p>
                   ) : null}

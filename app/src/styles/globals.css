@@ -3320,7 +3320,21 @@ body {
   letter-spacing: -0.045em;
 }
 
-.sermon-editorial-card__copy p {
+.sermon-editorial-card__subtitle {
+  display: -webkit-box;
+  margin: 0.4rem 0 0;
+  min-height: 1.55rem;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--site-ink) 72%, var(--site-muted));
+  font-size: 1.1rem;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.sermon-editorial-card__copy p:not(.sermon-editorial-card__subtitle) {
+  margin: 1rem 0 0;
   color: var(--site-muted);
 }
 
@@ -3556,14 +3570,17 @@ body {
   gap: 1.8rem;
 }
 
+/* The site's card vocabulary, sized to the list it sits above. Tinted to match
+   the highlight on the saved row, so the two read as one outcome. */
 .manage-status {
   margin: 0;
-  padding: 0.75rem 1.1rem;
-  border: 1px solid var(--site-line);
-  border-radius: 0.9rem;
-  background: var(--site-surface-soft);
+  padding: 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--site-accent) 22%, var(--site-line));
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--site-accent-soft) 40%, var(--site-surface));
   color: var(--site-ink);
-  font-size: 0.9rem;
+  text-align: center;
+  font-size: 0.95rem;
   font-weight: 650;
 }
 
@@ -3571,6 +3588,21 @@ body {
   border-color: color-mix(in srgb, var(--site-danger) 40%, var(--site-line));
   background: color-mix(in srgb, var(--site-danger) 8%, var(--site-surface));
   color: var(--site-danger);
+}
+
+/* Travels with the saved row, so it stays readable wherever the list lands. */
+.manage-list__saved {
+  margin-left: 0.55rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--site-accent-soft) 60%, var(--site-surface));
+  color: var(--site-accent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  vertical-align: 0.1em;
+  white-space: nowrap;
 }
 
 .manage-actions {

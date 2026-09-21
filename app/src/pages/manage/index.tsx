@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../../components/PageHero';
 import Pager from '../../components/Pager';
 import ContentForm, { type FormField } from '../../components/manage/ContentForm';
@@ -45,6 +45,9 @@ import {
   type ApiSermon,
 } from '../../lib/contentApi';
 import { uploadFile } from '../../lib/uploadFile';
+
+// Layout effects must not run while the page is prerendered for the export.
+const useSettleEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 // Every write returns the saved row, so the caller can highlight it in the list.
 const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: unknown) => {
@@ -103,21 +106,27 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const [flashId, setFlashId] = useState<string | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // The card says what happened; the mark on the row says which one, and keeps
+  // the confirmation readable when the list scrolls past the card.
   const flashRow = (id: string | null, message: string) => {
-    setStatus({ scope: 'list', text: message, isError: false });
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    setStatus({ scope: 'list', text: message, isError: false });
     if (!id) return;
     setFlashId(id);
-    flashTimerRef.current = setTimeout(() => setFlashId(null), 2400);
+    flashTimerRef.current = setTimeout(() => setFlashId(null), 4000);
   };
 
-  // Closing a tall editor shifts the page, so bring the saved row into view.
-  useEffect(() => {
+  // Closing a tall editor drops the page near the top. Land on the saved row
+  // before the browser paints, so the editor sees one move instead of a jump
+  // followed by a long scroll back down.
+  useSettleEffect(() => {
     if (!flashId) return;
     const row = document.querySelector('.manage-list__row--flash');
     if (!row) return;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    row.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    const { top, bottom } = row.getBoundingClientRect();
+    const margin = 24;
+    if (top >= margin && bottom <= window.innerHeight - margin) return;
+    row.scrollIntoView({ block: 'center', behavior: 'auto' });
   }, [flashId]);
 
   const failWith = (scope: 'upload' | 'list' | 'gallery', text: string) => {
@@ -222,6 +231,10 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         : 'Use for dated items such as bulletins. Leave empty to sort by upload order.',
       date: isKo ? '날짜' : 'Date',
       speaker: isKo ? '설교자' : 'Speaker',
+      subtitle: isKo ? '소제목' : 'Subtitle',
+      subtitleHint: isKo
+        ? '성경 본문처럼 짧은 보조 제목입니다. 비워두면 제목만 보입니다.'
+        : 'A short line such as a Scripture reference. Leave empty to show the title only.',
       youtube: isKo ? '유튜브 주소' : 'YouTube URL',
       recording: isKo ? '설교 음원 · 영상 파일' : 'Sermon recording',
       recordingHint: isKo
@@ -261,12 +274,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       past: isKo ? '지난' : 'Past',
       draft: isKo ? '초안' : 'Draft',
       searchByTitle: isKo ? '제목으로 검색' : 'Search by title',
-      searchSermons: isKo ? '제목 · 설교자로 검색' : 'Search title or speaker',
+      searchSermons: isKo ? '제목 · 소제목 · 설교자로 검색' : 'Search title, subtitle, or speaker',
       searchEvents: isKo ? '제목 · 장소로 검색' : 'Search title or place',
       clearSearch: isKo ? '검색어 지우기' : 'Clear search',
       countRange: (from: number, to: number, total: number) =>
         total ? (isKo ? `${total}건 중 ${from}–${to}` : `${from}–${to} of ${total}`) : isKo ? '0건' : 'No items',
       noMatch: isKo ? '조건에 맞는 자료가 없습니다.' : 'Nothing matches that filter.',
+      savedMark: isKo ? '저장됨' : 'Saved',
       pages: isKo ? '목록 페이지' : 'List pages',
       previous: isKo ? '이전' : 'Previous',
       next: isKo ? '다음' : 'Next',
@@ -297,7 +311,8 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     setPendingDeleteId(null);
     setIsAdding(false);
     setStatus(null);
-    void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true });
+    // Next.js jumps to the top on push; the editor stays where it was reading.
+    void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true, scroll: false });
   };
 
   const openAdd = () => {
@@ -305,7 +320,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     setStatus(null);
     setIsAdding(true);
     if (editId) {
-      void router.push(buildManageHref(tab), undefined, { shallow: true });
+      void router.push(buildManageHref(tab), undefined, { shallow: true, scroll: false });
     }
   };
 
@@ -624,6 +639,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             }))}
             activeId={editId}
             flashId={flashId}
+            flashLabel={labels.savedMark}
             emptyLabel={resources.items.length ? labels.noMatch : labels.emptyResources}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
@@ -663,6 +679,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   [
                     { name: 'date', label: labels.date, type: 'date', required: true },
                     { name: 'title', label: labels.title, type: 'text', required: true },
+                    { name: 'subtitle', label: labels.subtitle, type: 'text', hint: labels.subtitleHint },
                     { name: 'speaker', label: labels.speaker, type: 'text' },
                     { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
                   ] as FormField[]
@@ -672,6 +689,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                     ? {
                         date: editingSermon.date,
                         title: editingSermon.title,
+                        subtitle: editingSermon.subtitle,
                         speaker: editingSermon.speaker,
                         youtubeUrl: editingSermon.youtubeUrl,
                       }
@@ -742,6 +760,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
               primary: item.title,
               secondary: [
                 formatDisplayDate(item.date, lang),
+                item.subtitle,
                 item.speaker,
                 item.mediaUrl ? fileNameFromUrl(item.mediaUrl) : '',
                 item.youtubeUrl ? 'YouTube' : '',
@@ -751,6 +770,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             }))}
             activeId={editId}
             flashId={flashId}
+            flashLabel={labels.savedMark}
             emptyLabel={sermons.items.length ? labels.noMatch : labels.emptySermons}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
@@ -927,6 +947,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             }))}
             activeId={editId}
             flashId={flashId}
+            flashLabel={labels.savedMark}
             emptyLabel={events.items.length ? labels.noMatch : labels.emptyEvents}
             editLabel={labels.edit}
             deleteLabel={labels.remove}

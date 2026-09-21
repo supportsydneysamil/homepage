@@ -20,7 +20,7 @@ export const sermonYears = (sermons: ApiSermon[]) =>
 export const filterSermons = (sermons: ApiSermon[], year: string, search: string) =>
   sermons.filter((sermon) => {
     if (year !== 'all' && yearOf(sermon.date) !== year) return false;
-    return matches([sermon.title, sermon.speaker], search);
+    return matches([sermon.title, sermon.subtitle, sermon.speaker], search);
   });
 
 export type ManageView = { filter: string; search: string; page: number };

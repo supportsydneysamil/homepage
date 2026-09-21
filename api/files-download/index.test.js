@@ -69,3 +69,34 @@ test('a refusal never reveals the storage location', async () => {
   assert.ok(!JSON.stringify(context.res).includes('resources/a.pdf'));
   assert.strictEqual(context.res.headers, undefined);
 });
+
+test('a resource download keeps the original file name on the signed url', async () => {
+  const context = contextOf();
+  const calls = [];
+  await handler(context, requestFor(null), {
+    lookupFile: async () => ({
+      blobPath: 'resources/a.pdf',
+      visibility: 'public',
+      contentDisposition: 'inline; filename="a.pdf"',
+    }),
+    createReadSas: async (blobPath, options) => {
+      calls.push([blobPath, options]);
+      return 'https://example.invalid/sas';
+    },
+  });
+  assert.strictEqual(context.res.status, 302);
+  assert.deepStrictEqual(calls, [['resources/a.pdf', { contentDisposition: 'inline; filename="a.pdf"' }]]);
+});
+
+test('an event photo is signed without a download name', async () => {
+  const context = contextOf();
+  const calls = [];
+  await handler(context, requestFor(null), {
+    lookupFile: async () => ({ blobPath: 'events/a.jpg', visibility: 'public' }),
+    createReadSas: async (blobPath, options) => {
+      calls.push([blobPath, options]);
+      return 'https://example.invalid/sas';
+    },
+  });
+  assert.deepStrictEqual(calls, [['events/a.jpg', undefined]]);
+});
