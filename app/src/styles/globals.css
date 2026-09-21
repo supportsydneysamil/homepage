@@ -3570,14 +3570,15 @@ body {
   gap: 1.8rem;
 }
 
-/* The site's card vocabulary, sized to the list it sits above. */
+/* The site's card vocabulary, sized to the list it sits above. Tinted to match
+   the highlight on the saved row, so the two read as one outcome. */
 .manage-status {
   margin: 0;
   padding: 1.4rem;
-  border: 1px solid var(--site-line);
+  border: 1px solid color-mix(in srgb, var(--site-accent) 22%, var(--site-line));
   border-radius: 1rem;
-  background: var(--site-surface);
-  color: var(--site-muted);
+  background: color-mix(in srgb, var(--site-accent-soft) 40%, var(--site-surface));
+  color: var(--site-ink);
   text-align: center;
   font-size: 0.95rem;
   font-weight: 650;
