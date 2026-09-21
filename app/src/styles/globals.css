@@ -3556,22 +3556,23 @@ body {
   gap: 1.8rem;
 }
 
-/* Reads like the eyebrow labels used across the site, not a filled alert bar. */
+/* The site's card vocabulary, sized to the list it sits above. */
 .manage-status {
   margin: 0;
-  color: var(--site-accent);
-  font-size: 0.73rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  padding: 1.4rem;
+  border: 1px solid var(--site-line);
+  border-radius: 1rem;
+  background: var(--site-surface);
+  color: var(--site-muted);
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 650;
 }
 
 .manage-status--error {
+  border-color: color-mix(in srgb, var(--site-danger) 40%, var(--site-line));
+  background: color-mix(in srgb, var(--site-danger) 8%, var(--site-surface));
   color: var(--site-danger);
-  letter-spacing: 0.04em;
-  text-transform: none;
-  font-size: 0.9rem;
-  font-weight: 700;
 }
 
 /* Travels with the saved row, so it stays readable wherever the list lands. */

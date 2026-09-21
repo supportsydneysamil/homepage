@@ -106,16 +106,12 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const [flashId, setFlashId] = useState<string | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // A saved row carries its own confirmation, so it stays readable wherever the
-  // list scrolls to. Only an action with no row left, such as a delete, needs
-  // the line above the list.
+  // The card says what happened; the mark on the row says which one, and keeps
+  // the confirmation readable when the list scrolls past the card.
   const flashRow = (id: string | null, message: string) => {
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    if (!id) {
-      setStatus({ scope: 'list', text: message, isError: false });
-      return;
-    }
-    setStatus(null);
+    setStatus({ scope: 'list', text: message, isError: false });
+    if (!id) return;
     setFlashId(id);
     flashTimerRef.current = setTimeout(() => setFlashId(null), 4000);
   };
