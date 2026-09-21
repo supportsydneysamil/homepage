@@ -1,6 +1,6 @@
 const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
-const { deleteBlob } = require('../shared/blob');
+const { deleteBlob, displayFileName } = require('../shared/blob');
 const { normalizeCategory, normalizeVisibility, visibleLevelsFor } = require('../shared/library');
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -85,15 +85,6 @@ const validateResourceUpdate = (body) => {
 const toIsoDate = (value) => {
   if (!value) return null;
   return value instanceof Date ? value.toISOString().slice(0, 10) : String(value);
-};
-
-// Uploads are stored as `<uuid>-<original name>`. Editors need the name they
-// chose, but the storage path itself must never leave the API.
-const GENERATED_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i;
-
-const displayFileName = (blobPath) => {
-  const last = String(blobPath || '').split('/').pop() || '';
-  return last.replace(GENERATED_PREFIX, '');
 };
 
 const toResourceResponse = (row) => ({

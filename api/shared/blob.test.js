@@ -195,6 +195,31 @@ test('recognises a url that belongs to the media container', () => {
   );
 });
 
+test('strips the generated upload prefix from a blob path', () => {
+  const { displayFileName } = require('./blob');
+  assert.strictEqual(
+    displayFileName('resources/11111111-1111-1111-1111-111111111111-bulletin.pdf'),
+    'bulletin.pdf'
+  );
+  assert.strictEqual(displayFileName('resources/bulletin20260906.pdf'), 'bulletin20260906.pdf');
+  assert.strictEqual(displayFileName(''), '');
+});
+
+test('opens pdfs and images inline under the original name', () => {
+  const { readDisposition } = require('./blob');
+  const header = readDisposition('주보.pdf', 'application/pdf');
+  assert.ok(header.startsWith('inline;'));
+  assert.ok(header.includes("filename*=UTF-8''"));
+  assert.ok(header.includes(encodeURIComponent('주보.pdf')));
+  assert.ok(readDisposition('photo.jpg', 'image/jpeg').startsWith('inline;'));
+});
+
+test('saves office files as attachments', () => {
+  const { readDisposition } = require('./blob');
+  assert.ok(readDisposition('form.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document').startsWith('attachment;'));
+  assert.ok(readDisposition('notes.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation').startsWith('attachment;'));
+});
+
 test('rejects a url from another host or container', () => {
   process.env.AZURE_STORAGE_ACCOUNT = 'samilchurchstorage0';
   process.env.AZURE_STORAGE_MEDIA_CONTAINER = 'samilmedia';

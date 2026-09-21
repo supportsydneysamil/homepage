@@ -149,7 +149,8 @@ const Resources: NextPage & {
                     <a
                       className="resource-download"
                       href={resource.downloadUrl}
-                      rel="noreferrer"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       aria-label={
                         isKo ? `${resource.title} 다운로드` : `Download ${resource.title}`
                       }

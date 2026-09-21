@@ -125,7 +125,32 @@ const isMediaUrl = (value) => {
   }
 };
 
-const createSas = (blobPath, permissionString, seconds, contentType, containerName = getContainerName()) => {
+const GENERATED_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i;
+const INLINE_READ_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
+
+// Uploads are stored as `<uuid>-<original name>`. Readers and editors see
+// the original name; the storage path itself stays inside the API.
+const displayFileName = (blobPath) => {
+  const last = String(blobPath || '').split('/').pop() || '';
+  return last.replace(GENERATED_PREFIX, '');
+};
+
+const asciiFileName = (name) => {
+  const stripped = String(name || '')
+    .replace(/["\\\r\n;]/g, '')
+    .replace(/[^\x20-\x7E]/g, '_');
+  return stripped.replace(/^_+|_+$/g, '') || 'file';
+};
+
+const readDisposition = (fileName, contentType) => {
+  const raw = String(fileName || '').trim() || 'file';
+  const kind = INLINE_READ_TYPES.has(String(contentType || '').trim().toLowerCase())
+    ? 'inline'
+    : 'attachment';
+  return `${kind}; filename="${asciiFileName(raw)}"; filename*=UTF-8''${encodeURIComponent(raw)}`;
+};
+
+const createSas = (blobPath, permissionString, seconds, contentType, containerName = getContainerName(), contentDisposition) => {
   const { account, credential } = getCredential();
   const startsOn = new Date(Date.now() - 60 * 1000);
   const expiresOn = new Date(Date.now() + seconds * 1000);
@@ -138,6 +163,7 @@ const createSas = (blobPath, permissionString, seconds, contentType, containerNa
       startsOn,
       expiresOn,
       contentType,
+      contentDisposition,
     },
     credential
   ).toString();
@@ -148,7 +174,8 @@ const createSas = (blobPath, permissionString, seconds, contentType, containerNa
 const createUploadSas = async (blobPath, contentType, folder) =>
   createSas(blobPath, 'cw', UPLOAD_SAS_SECONDS, contentType, containerFor(folder));
 
-const createReadSas = async (blobPath) => createSas(blobPath, 'r', READ_SAS_SECONDS);
+const createReadSas = async (blobPath, options = {}) =>
+  createSas(blobPath, 'r', READ_SAS_SECONDS, undefined, getContainerName(), options.contentDisposition);
 
 const deleteBlob = async (blobPath, folder) => {
   const { account, credential } = getCredential();
@@ -173,6 +200,8 @@ module.exports = {
   containerFor,
   publicUrlFor,
   isMediaUrl,
+  displayFileName,
+  readDisposition,
   createUploadSas,
   createReadSas,
   deleteBlob,

@@ -1,7 +1,7 @@
 const { sql, getPool, withSchema } = require('../shared/db');
 const { getClientPrincipal } = require('../shared/principal');
 const { canSee, DEFAULT_VISIBILITY } = require('../shared/library');
-const { createReadSas } = require('../shared/blob');
+const { createReadSas, displayFileName, readDisposition } = require('../shared/blob');
 
 // Event photos are shown on the public events pages, so they are public.
 // Sermon attachments have no visibility column and stay at the member level.
@@ -12,14 +12,20 @@ const lookupFile = async (id) =>
       .request()
       .input('id', sql.UniqueIdentifier, id)
       .query(`
-SELECT BlobPath, Visibility FROM dbo.Resources WHERE Id = @id
+SELECT BlobPath, Visibility, ContentType FROM dbo.Resources WHERE Id = @id
 UNION ALL
-SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility FROM dbo.SermonFiles WHERE Id = @id
+SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.SermonFiles WHERE Id = @id
 UNION ALL
-SELECT BlobPath, 'public' AS Visibility FROM dbo.EventImages WHERE Id = @id;
+SELECT BlobPath, 'public' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.EventImages WHERE Id = @id;
 `);
     const row = result.recordset && result.recordset[0];
-    return row ? { blobPath: row.BlobPath, visibility: row.Visibility } : null;
+    if (!row) return null;
+    const fileName = displayFileName(row.BlobPath);
+    return {
+      blobPath: row.BlobPath,
+      visibility: row.Visibility,
+      contentDisposition: row.ContentType && fileName ? readDisposition(fileName, row.ContentType) : undefined,
+    };
   });
 
 const defaultDeps = { lookupFile, createReadSas };
@@ -53,7 +59,13 @@ module.exports = async function (context, req, deps = defaultDeps) {
 
     context.res = {
       status: 302,
-      headers: { Location: await deps.createReadSas(file.blobPath), 'Cache-Control': 'no-store' },
+      headers: {
+        Location: await deps.createReadSas(
+          file.blobPath,
+          file.contentDisposition ? { contentDisposition: file.contentDisposition } : undefined
+        ),
+        'Cache-Control': 'no-store',
+      },
     };
   } catch (error) {
     context.log.error('files-download error:', (error && error.message) || error);
