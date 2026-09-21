@@ -13,7 +13,7 @@ const getCurrentSettings = async () =>
       .request()
       .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
       .query(`
-SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, UpdatedAt, UpdatedBy
+SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, UpdatedAt, UpdatedBy
 FROM dbo.SiteSettings
 WHERE SettingKey = @settingKey
 `);
@@ -24,6 +24,7 @@ WHERE SettingKey = @settingKey
         themeId: row.ThemeId,
         heroImagePath: row.HeroImagePath || null,
         pastorImagePath: row.PastorImagePath || null,
+        logoImagePath: row.LogoImagePath || null,
         updatedAt: row.UpdatedAt ? new Date(row.UpdatedAt).toISOString() : null,
         updatedBy: row.UpdatedBy || null,
       };
@@ -39,6 +40,7 @@ WHERE SettingKey = @settingKey
       themeId: DEFAULT_THEME,
       heroImagePath: null,
       pastorImagePath: null,
+      logoImagePath: null,
       updatedAt: null,
       updatedBy: null,
     };
@@ -53,6 +55,7 @@ const saveSettings = async (settings, updatedBy) => {
     .input('themeId', sql.NVarChar(50), settings.themeId)
     .input('heroImagePath', sql.NVarChar(400), settings.heroImagePath)
     .input('pastorImagePath', sql.NVarChar(400), settings.pastorImagePath)
+    .input('logoImagePath', sql.NVarChar(400), settings.logoImagePath)
     .input('updatedBy', sql.NVarChar(256), updatedBy)
     .query(`
 MERGE dbo.SiteSettings AS target
@@ -62,6 +65,7 @@ USING (
     @themeId AS ThemeId,
     @heroImagePath AS HeroImagePath,
     @pastorImagePath AS PastorImagePath,
+    @logoImagePath AS LogoImagePath,
     @updatedBy AS UpdatedBy
 ) AS src
 ON target.SettingKey = src.SettingKey
@@ -70,15 +74,17 @@ WHEN MATCHED THEN
     ThemeId = src.ThemeId,
     HeroImagePath = src.HeroImagePath,
     PastorImagePath = src.PastorImagePath,
+    LogoImagePath = src.LogoImagePath,
     UpdatedBy = src.UpdatedBy,
     UpdatedAt = SYSUTCDATETIME()
 WHEN NOT MATCHED THEN
-  INSERT (SettingKey, ThemeId, HeroImagePath, PastorImagePath, UpdatedBy, UpdatedAt)
+  INSERT (SettingKey, ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, UpdatedBy, UpdatedAt)
   VALUES (
     src.SettingKey,
     src.ThemeId,
     src.HeroImagePath,
     src.PastorImagePath,
+    src.LogoImagePath,
     src.UpdatedBy,
     SYSUTCDATETIME()
   );
@@ -104,8 +110,10 @@ const withUrls = (settings, urlFor) => ({
   themeId: settings.themeId,
   heroImagePath: settings.heroImagePath || null,
   pastorImagePath: settings.pastorImagePath || null,
+  logoImagePath: settings.logoImagePath || null,
   heroImageUrl: settings.heroImagePath ? urlFor(settings.heroImagePath) : null,
   pastorImageUrl: settings.pastorImagePath ? urlFor(settings.pastorImagePath) : null,
+  logoImageUrl: settings.logoImagePath ? urlFor(settings.logoImagePath) : null,
   updatedAt: settings.updatedAt || null,
   updatedBy: settings.updatedBy || null,
 });
@@ -140,15 +148,17 @@ module.exports = async function (context, req, overrides = {}) {
     }
 
     if (!Object.prototype.hasOwnProperty.call(body, 'heroImagePath') ||
-        !Object.prototype.hasOwnProperty.call(body, 'pastorImagePath')) {
-      context.res = { status: 400, body: { error: 'Both image path fields are required.' } };
+        !Object.prototype.hasOwnProperty.call(body, 'pastorImagePath') ||
+        !Object.prototype.hasOwnProperty.call(body, 'logoImagePath')) {
+      context.res = { status: 400, body: { error: 'All image path fields are required.' } };
       return;
     }
 
     const hero = parseImagePath(body.heroImagePath);
     const pastor = parseImagePath(body.pastorImagePath);
-    if (hero.error || pastor.error) {
-      context.res = { status: 400, body: { error: hero.error || pastor.error } };
+    const logo = parseImagePath(body.logoImagePath);
+    if (hero.error || pastor.error || logo.error) {
+      context.res = { status: 400, body: { error: hero.error || pastor.error || logo.error } };
       return;
     }
 
@@ -158,6 +168,7 @@ module.exports = async function (context, req, overrides = {}) {
         themeId: nextThemeId,
         heroImagePath: hero.value,
         pastorImagePath: pastor.value,
+        logoImagePath: logo.value,
       },
       actorOf(auth.principal)
     );
@@ -165,6 +176,7 @@ module.exports = async function (context, req, overrides = {}) {
     for (const [oldPath, nextPath] of [
       [previous.heroImagePath, hero.value],
       [previous.pastorImagePath, pastor.value],
+      [previous.logoImagePath, logo.value],
     ]) {
       if (oldPath && oldPath !== nextPath && isSiteImagePath(oldPath)) {
         try {

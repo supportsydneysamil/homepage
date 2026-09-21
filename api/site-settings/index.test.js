@@ -58,6 +58,8 @@ test('public get returns null image settings by default', async () => {
   assert.strictEqual(context.res.body.heroImagePath, null);
   assert.strictEqual(context.res.body.heroImageUrl, null);
   assert.strictEqual(context.res.body.pastorImageUrl, null);
+  assert.strictEqual(context.res.body.logoImagePath, null);
+  assert.strictEqual(context.res.body.logoImageUrl, null);
 });
 
 test('an admin can save site image paths and receive public urls', async () => {
@@ -69,6 +71,7 @@ test('an admin can save site image paths and receive public urls', async () => {
       themeId: 'light',
       heroImagePath: 'site/abc-church.jpg',
       pastorImagePath: null,
+      logoImagePath: 'site/logo.png',
     }),
     {
       getCurrentSettings: async () => ({
@@ -89,7 +92,9 @@ test('an admin can save site image paths and receive public urls', async () => {
   assert.strictEqual(context.res.status, 200);
   assert.strictEqual(saved[0].heroImagePath, 'site/abc-church.jpg');
   assert.strictEqual(saved[0].pastorImagePath, null);
+  assert.strictEqual(saved[0].logoImagePath, 'site/logo.png');
   assert.strictEqual(context.res.body.heroImageUrl, 'https://example.test/site/abc-church.jpg');
+  assert.strictEqual(context.res.body.logoImageUrl, 'https://example.test/site/logo.png');
 });
 
 test('rejects an image path outside the site folder', async () => {
@@ -100,6 +105,7 @@ test('rejects an image path outside the site folder', async () => {
       themeId: 'church',
       heroImagePath: 'events/photo.jpg',
       pastorImagePath: null,
+      logoImagePath: null,
     }),
     {
       getCurrentSettings: async () => ({}),
@@ -112,7 +118,12 @@ test('rejects an image path outside the site folder', async () => {
 
 test('an editor cannot save site settings', async () => {
   const context = contextOf();
-  const req = adminReq('PUT', { themeId: 'church', heroImagePath: null, pastorImagePath: null });
+  const req = adminReq('PUT', {
+    themeId: 'church',
+    heroImagePath: null,
+    pastorImagePath: null,
+    logoImagePath: null,
+  });
   req.headers['x-ms-client-principal'] = encode({
     userId: 'u2',
     userDetails: 'e@church.org',
@@ -127,12 +138,13 @@ test('replacing a site image deletes the old blob after saving', async () => {
   const deleted = [];
   await handler(
     context,
-    adminReq('PUT', { themeId: 'church', heroImagePath: null, pastorImagePath: null }),
+    adminReq('PUT', { themeId: 'church', heroImagePath: null, pastorImagePath: null, logoImagePath: null }),
     {
       getCurrentSettings: async () => ({
         themeId: 'church',
         heroImagePath: 'site/old-hero.jpg',
         pastorImagePath: null,
+        logoImagePath: 'site/old-logo.png',
       }),
       saveSettings: async (next) => next,
       deleteBlob: async (...args) => deleted.push(args),
@@ -140,19 +152,23 @@ test('replacing a site image deletes the old blob after saving', async () => {
     }
   );
   assert.strictEqual(context.res.status, 200);
-  assert.deepStrictEqual(deleted, [['site/old-hero.jpg', 'site']]);
+  assert.deepStrictEqual(deleted, [
+    ['site/old-hero.jpg', 'site'],
+    ['site/old-logo.png', 'site'],
+  ]);
 });
 
 test('blob cleanup failure does not undo saved settings', async () => {
   const context = contextOf();
   await handler(
     context,
-    adminReq('PUT', { themeId: 'church', heroImagePath: null, pastorImagePath: null }),
+    adminReq('PUT', { themeId: 'church', heroImagePath: null, pastorImagePath: null, logoImagePath: null }),
     {
       getCurrentSettings: async () => ({
         themeId: 'church',
         heroImagePath: 'site/old-hero.jpg',
         pastorImagePath: null,
+        logoImagePath: null,
       }),
       saveSettings: async (next) => next,
       deleteBlob: async () => {
@@ -162,4 +178,18 @@ test('blob cleanup failure does not undo saved settings', async () => {
     }
   );
   assert.strictEqual(context.res.status, 200);
+});
+
+test('rejects a put that omits the logo path', async () => {
+  const context = contextOf();
+  await handler(
+    context,
+    adminReq('PUT', { themeId: 'church', heroImagePath: null, pastorImagePath: null }),
+    {
+      getCurrentSettings: async () => ({}),
+      saveSettings: async () => ({}),
+      deleteBlob: async () => {},
+    }
+  );
+  assert.strictEqual(context.res.status, 400);
 });

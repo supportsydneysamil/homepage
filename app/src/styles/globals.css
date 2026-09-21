@@ -293,6 +293,20 @@ a:hover {
   box-shadow: var(--shadow);
 }
 
+.brand-mark--image {
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.brand-mark img,
+.footer__mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .brand-text {
   display: flex;
   flex-direction: column;
@@ -1382,6 +1396,23 @@ p {
   aspect-ratio: 0.9 / 1;
   margin-inline: auto;
   border-radius: 1.2rem;
+}
+
+.settings-photo__frame--logo {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.2rem;
+}
+
+.settings-photo__frame--logo img {
+  object-fit: contain;
+}
+
+.settings-logo {
+  max-width: 320px;
 }
 
 .settings-photo__frame img {
@@ -2738,6 +2769,12 @@ body {
   background: var(--site-canvas);
   color: var(--site-accent);
   font-weight: 800;
+}
+
+.brand-mark.brand-mark--image,
+.footer__mark.brand-mark--image {
+  background: transparent;
+  box-shadow: none;
 }
 
 .footer__brand strong {

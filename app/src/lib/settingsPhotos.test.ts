@@ -37,3 +37,15 @@ test('an unchanged slot keeps the published image', () => {
     'https://example.test/site/a.jpg'
   );
 });
+
+test('a reset logo preview is empty so the letter mark shows', () => {
+  assert.strictEqual(
+    previewSrc({
+      pendingFileUrl: null,
+      pendingReset: true,
+      publishedUrl: 'https://example.test/site/logo.png',
+      fallback: '',
+    }),
+    ''
+  );
+});
