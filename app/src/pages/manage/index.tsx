@@ -231,6 +231,10 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         : 'Use for dated items such as bulletins. Leave empty to sort by upload order.',
       date: isKo ? '날짜' : 'Date',
       speaker: isKo ? '설교자' : 'Speaker',
+      subtitle: isKo ? '소제목' : 'Subtitle',
+      subtitleHint: isKo
+        ? '성경 본문처럼 짧은 보조 제목입니다. 비워두면 제목만 보입니다.'
+        : 'A short line such as a Scripture reference. Leave empty to show the title only.',
       youtube: isKo ? '유튜브 주소' : 'YouTube URL',
       recording: isKo ? '설교 음원 · 영상 파일' : 'Sermon recording',
       recordingHint: isKo
@@ -270,7 +274,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       past: isKo ? '지난' : 'Past',
       draft: isKo ? '초안' : 'Draft',
       searchByTitle: isKo ? '제목으로 검색' : 'Search by title',
-      searchSermons: isKo ? '제목 · 설교자로 검색' : 'Search title or speaker',
+      searchSermons: isKo ? '제목 · 소제목 · 설교자로 검색' : 'Search title, subtitle, or speaker',
       searchEvents: isKo ? '제목 · 장소로 검색' : 'Search title or place',
       clearSearch: isKo ? '검색어 지우기' : 'Clear search',
       countRange: (from: number, to: number, total: number) =>
@@ -675,6 +679,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   [
                     { name: 'date', label: labels.date, type: 'date', required: true },
                     { name: 'title', label: labels.title, type: 'text', required: true },
+                    { name: 'subtitle', label: labels.subtitle, type: 'text', hint: labels.subtitleHint },
                     { name: 'speaker', label: labels.speaker, type: 'text' },
                     { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
                   ] as FormField[]
@@ -684,6 +689,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                     ? {
                         date: editingSermon.date,
                         title: editingSermon.title,
+                        subtitle: editingSermon.subtitle,
                         speaker: editingSermon.speaker,
                         youtubeUrl: editingSermon.youtubeUrl,
                       }
@@ -754,6 +760,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
               primary: item.title,
               secondary: [
                 formatDisplayDate(item.date, lang),
+                item.subtitle,
                 item.speaker,
                 item.mediaUrl ? fileNameFromUrl(item.mediaUrl) : '',
                 item.youtubeUrl ? 'YouTube' : '',

@@ -64,7 +64,15 @@ test('parses a sermons payload', () => {
     sermons: [{ id: '1', date: '2026-01-04', title: 'T', speaker: 'P', youtubeUrl: '' }],
   });
   assert.strictEqual(sermons[0].speaker, 'P');
+  assert.strictEqual(sermons[0].subtitle, '');
   assert.strictEqual(sermons[0].mediaUrl, '');
+});
+
+test('parses an optional sermon subtitle', () => {
+  const sermons = parseSermons({
+    sermons: [{ id: '1', date: '2026-09-20', title: 'T', subtitle: '고린도후서 9:1-12', speaker: 'P' }],
+  });
+  assert.strictEqual(sermons[0].subtitle, '고린도후서 9:1-12');
 });
 
 test('parses an uploaded sermon recording', () => {

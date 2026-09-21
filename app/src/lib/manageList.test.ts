@@ -14,6 +14,7 @@ const sermon = (values: Partial<ApiSermon>): ApiSermon => ({
   id: '1',
   date: '2026-01-04',
   title: 'Title',
+  subtitle: '',
   speaker: '',
   youtubeUrl: '',
   mediaUrl: '',
@@ -65,10 +66,11 @@ test('every year is kept when none is chosen', () => {
   assert.strictEqual(filterSermons(sermons, 'all', '').length, 2);
 });
 
-test('searches a sermon by title or speaker without case sensitivity', () => {
+test('searches a sermon by title, subtitle, or speaker without case sensitivity', () => {
   const sermons = [
     sermon({ id: '1', title: 'Living Hope', speaker: 'Pastor Kim' }),
     sermon({ id: '2', title: '소망', speaker: '이 목사' }),
+    sermon({ id: '3', title: '재정사용에 원칙을 세워봅시다', subtitle: '고린도후서 9:1-12' }),
   ];
   assert.deepStrictEqual(
     filterSermons(sermons, 'all', 'living').map((item) => item.id),
@@ -77,6 +79,10 @@ test('searches a sermon by title or speaker without case sensitivity', () => {
   assert.deepStrictEqual(
     filterSermons(sermons, 'all', '이 목사').map((item) => item.id),
     ['2']
+  );
+  assert.deepStrictEqual(
+    filterSermons(sermons, 'all', '고린도후서').map((item) => item.id),
+    ['3']
   );
 });
 

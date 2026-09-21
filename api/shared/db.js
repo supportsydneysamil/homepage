@@ -154,6 +154,7 @@ BEGIN
     Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY CONSTRAINT DF_Sermons_Id DEFAULT NEWID(),
     SermonDate DATE NOT NULL,
     Title NVARCHAR(200) NOT NULL,
+    Subtitle NVARCHAR(200) NULL,
     Speaker NVARCHAR(120) NULL,
     YouTubeUrl NVARCHAR(500) NULL,
     IsPublished BIT NOT NULL CONSTRAINT DF_Sermons_IsPublished DEFAULT 1,
@@ -175,6 +176,9 @@ IF COL_LENGTH('dbo.Sermons', 'MediaUrl') IS NULL
 
 IF COL_LENGTH('dbo.Sermons', 'MediaContentType') IS NULL
   ALTER TABLE dbo.Sermons ADD MediaContentType NVARCHAR(150) NULL;
+
+IF COL_LENGTH('dbo.Sermons', 'Subtitle') IS NULL
+  ALTER TABLE dbo.Sermons ADD Subtitle NVARCHAR(200) NULL;
 
 IF OBJECT_ID('dbo.Resources', 'U') IS NULL
 BEGIN
