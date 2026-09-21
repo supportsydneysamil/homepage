@@ -7,8 +7,9 @@ export type ManageListItem = {
 type ManageListProps = {
   items: ManageListItem[];
   activeId: string | null;
-  // The row that was just saved, highlighted so the change is visible where it happened.
+  // The row that was just saved, marked so the confirmation travels with it.
   flashId: string | null;
+  flashLabel: string;
   emptyLabel: string;
   editLabel: string;
   deleteLabel: string;
@@ -32,6 +33,7 @@ const ManageList = ({
   items,
   activeId,
   flashId,
+  flashLabel,
   emptyLabel,
   editLabel,
   deleteLabel,
@@ -52,7 +54,14 @@ const ManageList = ({
       {items.map((item) => (
         <li key={item.id} className={rowClass(item.id, activeId, flashId)}>
           <div className="manage-list__text">
-            <strong>{item.primary}</strong>
+            <strong>
+              {item.primary}
+              {item.id === flashId ? (
+                <span className="manage-list__saved" role="status">
+                  {flashLabel}
+                </span>
+              ) : null}
+            </strong>
             {item.secondary ? <span className="muted">{item.secondary}</span> : null}
           </div>
 

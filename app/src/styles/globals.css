@@ -3556,21 +3556,37 @@ body {
   gap: 1.8rem;
 }
 
+/* Reads like the eyebrow labels used across the site, not a filled alert bar. */
 .manage-status {
   margin: 0;
-  padding: 0.75rem 1.1rem;
-  border: 1px solid var(--site-line);
-  border-radius: 0.9rem;
-  background: var(--site-surface-soft);
-  color: var(--site-ink);
-  font-size: 0.9rem;
-  font-weight: 650;
+  color: var(--site-accent);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .manage-status--error {
-  border-color: color-mix(in srgb, var(--site-danger) 40%, var(--site-line));
-  background: color-mix(in srgb, var(--site-danger) 8%, var(--site-surface));
   color: var(--site-danger);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Travels with the saved row, so it stays readable wherever the list lands. */
+.manage-list__saved {
+  margin-left: 0.55rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--site-accent-soft) 60%, var(--site-surface));
+  color: var(--site-accent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  vertical-align: 0.1em;
+  white-space: nowrap;
 }
 
 .manage-actions {

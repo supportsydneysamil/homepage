@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../../components/PageHero';
 import Pager from '../../components/Pager';
 import ContentForm, { type FormField } from '../../components/manage/ContentForm';
@@ -45,6 +45,9 @@ import {
   type ApiSermon,
 } from '../../lib/contentApi';
 import { uploadFile } from '../../lib/uploadFile';
+
+// Layout effects must not run while the page is prerendered for the export.
+const useSettleEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 // Every write returns the saved row, so the caller can highlight it in the list.
 const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: unknown) => {
@@ -103,21 +106,31 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const [flashId, setFlashId] = useState<string | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // A saved row carries its own confirmation, so it stays readable wherever the
+  // list scrolls to. Only an action with no row left, such as a delete, needs
+  // the line above the list.
   const flashRow = (id: string | null, message: string) => {
-    setStatus({ scope: 'list', text: message, isError: false });
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    if (!id) return;
+    if (!id) {
+      setStatus({ scope: 'list', text: message, isError: false });
+      return;
+    }
+    setStatus(null);
     setFlashId(id);
-    flashTimerRef.current = setTimeout(() => setFlashId(null), 2400);
+    flashTimerRef.current = setTimeout(() => setFlashId(null), 4000);
   };
 
-  // Closing a tall editor shifts the page, so bring the saved row into view.
-  useEffect(() => {
+  // Closing a tall editor drops the page near the top. Land on the saved row
+  // before the browser paints, so the editor sees one move instead of a jump
+  // followed by a long scroll back down.
+  useSettleEffect(() => {
     if (!flashId) return;
     const row = document.querySelector('.manage-list__row--flash');
     if (!row) return;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    row.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    const { top, bottom } = row.getBoundingClientRect();
+    const margin = 24;
+    if (top >= margin && bottom <= window.innerHeight - margin) return;
+    row.scrollIntoView({ block: 'center', behavior: 'auto' });
   }, [flashId]);
 
   const failWith = (scope: 'upload' | 'list' | 'gallery', text: string) => {
@@ -267,6 +280,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       countRange: (from: number, to: number, total: number) =>
         total ? (isKo ? `${total}건 중 ${from}–${to}` : `${from}–${to} of ${total}`) : isKo ? '0건' : 'No items',
       noMatch: isKo ? '조건에 맞는 자료가 없습니다.' : 'Nothing matches that filter.',
+      savedMark: isKo ? '저장됨' : 'Saved',
       pages: isKo ? '목록 페이지' : 'List pages',
       previous: isKo ? '이전' : 'Previous',
       next: isKo ? '다음' : 'Next',
@@ -297,7 +311,8 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     setPendingDeleteId(null);
     setIsAdding(false);
     setStatus(null);
-    void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true });
+    // Next.js jumps to the top on push; the editor stays where it was reading.
+    void router.push(buildManageHref(nextTab, nextEditId), undefined, { shallow: true, scroll: false });
   };
 
   const openAdd = () => {
@@ -305,7 +320,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     setStatus(null);
     setIsAdding(true);
     if (editId) {
-      void router.push(buildManageHref(tab), undefined, { shallow: true });
+      void router.push(buildManageHref(tab), undefined, { shallow: true, scroll: false });
     }
   };
 
@@ -624,6 +639,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             }))}
             activeId={editId}
             flashId={flashId}
+            flashLabel={labels.savedMark}
             emptyLabel={resources.items.length ? labels.noMatch : labels.emptyResources}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
@@ -751,6 +767,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             }))}
             activeId={editId}
             flashId={flashId}
+            flashLabel={labels.savedMark}
             emptyLabel={sermons.items.length ? labels.noMatch : labels.emptySermons}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
@@ -927,6 +944,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
             }))}
             activeId={editId}
             flashId={flashId}
+            flashLabel={labels.savedMark}
             emptyLabel={events.items.length ? labels.noMatch : labels.emptyEvents}
             editLabel={labels.edit}
             deleteLabel={labels.remove}
