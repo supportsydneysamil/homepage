@@ -65,3 +65,17 @@ export const visibleEventImages = (images: string[] | undefined) =>
     if (image.startsWith('/api/files/download/')) return true;
     return !isPlaceholderUrl(image);
   });
+
+export const stepEventGalleryIndex = (index: number, delta: number, length: number) => {
+  if (length <= 0) return 0;
+  const next = index + delta;
+  if (next < 0) return 0;
+  if (next >= length) return length - 1;
+  return next;
+};
+
+export const eventGallerySwipeDelta = (dx: number, dy: number, threshold = 40) => {
+  if (Math.abs(dx) < threshold) return 0;
+  if (Math.abs(dx) <= Math.abs(dy)) return 0;
+  return dx < 0 ? 1 : -1;
+};
