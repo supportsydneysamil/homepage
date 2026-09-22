@@ -12,6 +12,7 @@ import { useRoles } from '../../lib/useRoles';
 import { fileNameFromUrl, formatDisplayDate } from '../../lib/presentation';
 import { eventImageIdsFromUrls, todayStamp, withoutPendingImages } from '../../lib/events';
 import { MANAGE_TABS, buildManageHref, parseManageQuery, type ManageTab } from '../../lib/manageNav';
+import { revealOffset } from '../../lib/manageScroll';
 import {
   MANAGE_PAGE_SIZE,
   eventStatusOf,
@@ -94,6 +95,15 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const editingResourceLookup = useLookup(tab === 'resources' ? editId : null, fetchResource);
   const editingSermonLookup = useLookup(tab === 'sermons' ? editId : null, fetchSermon);
   const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
+  // The row the open editor is actually showing. It lags the link while the
+  // lookup runs, so the form is on the page only once this settles.
+  const editingItem =
+    tab === 'resources'
+      ? editingResourceLookup.item
+      : tab === 'sermons'
+        ? editingSermonLookup.item
+        : editingEventLookup.item;
+  const openEditorId = editId ? editingItem?.id ?? null : null;
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   // One status line per outcome, placed beside whatever the editor just acted
@@ -128,6 +138,23 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     if (top >= margin && bottom <= window.innerHeight - margin) return;
     row.scrollIntoView({ block: 'center', behavior: 'auto' });
   }, [flashId]);
+
+  // Editing a row further down the list opens a form the reader never sees, so
+  // the button looks dead. Take the keyboard there, and move the page only when
+  // the form opened out of sight.
+  useSettleEffect(() => {
+    if (!openEditorId) return;
+    const editor = document.querySelector<HTMLElement>('.manage-editor');
+    if (!editor) return;
+    editor.focus({ preventScroll: true });
+    const header = document.querySelector('.header');
+    const offset = revealOffset(
+      editor.getBoundingClientRect().top,
+      window.innerHeight,
+      header ? header.getBoundingClientRect().bottom : 0
+    );
+    if (offset !== null) window.scrollBy(0, offset);
+  }, [openEditorId]);
 
   const failWith = (scope: 'upload' | 'list' | 'gallery', text: string) => {
     setStatus({ scope, text, isError: true });
@@ -458,7 +485,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           </div>
 
           {editId && editingResourceLookup.isLoading ? null : editingResource ? (
-            <div className="manage-editor">
+            <div className="manage-editor" tabIndex={-1}>
               <h2>{labels.editResource}</h2>
               <ContentForm
                 fields={[
@@ -676,7 +703,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           </div>
 
           {(editId && editingSermonLookup.isLoading) || !(editId || isAdding) ? null : (
-            <div className="manage-editor">
+            <div className="manage-editor" tabIndex={-1}>
               <h2>{editingSermon ? labels.editSermon : labels.addSermon}</h2>
               <ContentForm
                 fields={
@@ -807,7 +834,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           </div>
 
           {(editId && editingEventLookup.isLoading) || !(editId || isAdding) ? null : (
-            <div className="manage-editor">
+            <div className="manage-editor" tabIndex={-1}>
               <h2>{editingEvent ? labels.editEvent : labels.addEvent}</h2>
 
             {status?.scope === 'gallery' ? (
