@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import type { NextPage } from 'next';
 import EmptyState from '../../components/EmptyState';
+import EventGallery from '../../components/EventGallery';
 import { useLanguage } from '../../lib/LanguageContext';
 import { toYouTubeEmbedUrl } from '../../lib/presentation';
 import { formatEventWhen, visibleEventImages } from '../../lib/events';
@@ -59,11 +60,13 @@ const EventDetailPage: NextPage & {
       </header>
 
       {images.length ? (
-        <section className="event-gallery">
-          {images.map((image) => (
-            <img src={image} alt={event.title} key={image} />
-          ))}
-        </section>
+        <EventGallery
+          images={images}
+          alt={event.title}
+          closeLabel={isKo ? '닫기' : 'Close'}
+          previousLabel={isKo ? '이전 사진' : 'Previous photo'}
+          nextLabel={isKo ? '다음 사진' : 'Next photo'}
+        />
       ) : null}
 
       {embedUrl ? (
