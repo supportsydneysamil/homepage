@@ -51,7 +51,7 @@ const EventGallery = ({
 
   const focusables = () =>
     [closeRef.current, previousRef.current, nextRef.current].filter(
-      (node): node is HTMLButtonElement => Boolean(node)
+      (node): node is HTMLButtonElement => node !== null && !node.disabled
     );
 
   return (
@@ -121,38 +121,52 @@ const EventGallery = ({
               if (delta) step(delta);
             }}
           >
-            <button
-              ref={closeRef}
-              type="button"
-              className="event-lightbox__close"
-              onClick={close}
-            >
-              {closeLabel}
-            </button>
-            {showStep ? (
-              <button
-                ref={previousRef}
-                type="button"
-                className="event-lightbox__nav event-lightbox__nav--prev"
-                onClick={() => step(-1)}
-              >
-                {previousLabel}
-              </button>
-            ) : null}
             <img
               className="event-lightbox__image"
               src={images[openIndex]}
               alt={alt}
             />
+            <button
+              ref={closeRef}
+              type="button"
+              className="event-lightbox__close"
+              onClick={close}
+              aria-label={closeLabel}
+              title={closeLabel}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
             {showStep ? (
-              <button
-                ref={nextRef}
-                type="button"
-                className="event-lightbox__nav event-lightbox__nav--next"
-                onClick={() => step(1)}
-              >
-                {nextLabel}
-              </button>
+              <>
+                <button
+                  ref={previousRef}
+                  type="button"
+                  className="event-lightbox__nav event-lightbox__nav--prev"
+                  onClick={() => step(-1)}
+                  disabled={openIndex === 0}
+                  aria-label={previousLabel}
+                  title={previousLabel}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 5l-7 7 7 7" />
+                  </svg>
+                </button>
+                <button
+                  ref={nextRef}
+                  type="button"
+                  className="event-lightbox__nav event-lightbox__nav--next"
+                  onClick={() => step(1)}
+                  disabled={openIndex === length - 1}
+                  aria-label={nextLabel}
+                  title={nextLabel}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
             ) : null}
             <p className="event-lightbox__counter">
               {openIndex + 1} / {length}
