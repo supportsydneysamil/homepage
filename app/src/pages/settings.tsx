@@ -2,6 +2,7 @@ import type { NextPage } from 'next';
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import PageHero from '../components/PageHero';
 import SitePhoto from '../components/SitePhoto';
+import BrandMark from '../components/BrandMark';
 import { THEME_OPTIONS, type ThemeId, useSiteSettings } from '../lib/ThemeContext';
 import { useRequireAuth } from '../lib/swaAuth';
 import { useLanguage } from '../lib/LanguageContext';
@@ -22,8 +23,10 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     themeId,
     heroImagePath,
     pastorImagePath,
+    logoImagePath,
     heroImageUrl,
     pastorImageUrl,
+    logoImageUrl,
     setThemeLocal,
     saveSettings,
   } = useSiteSettings();
@@ -31,10 +34,13 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(themeId);
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [pastorFile, setPastorFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null);
   const [pastorPreviewUrl, setPastorPreviewUrl] = useState<string | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [heroReset, setHeroReset] = useState(false);
   const [pastorReset, setPastorReset] = useState(false);
+  const [logoReset, setLogoReset] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -56,6 +62,13 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     [pastorPreviewUrl]
   );
 
+  useEffect(
+    () => () => {
+      if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+    },
+    [logoPreviewUrl]
+  );
+
   const labels = useMemo(
     () => ({
       title: isKo ? '글로벌 설정' : 'Global Settings',
@@ -69,12 +82,21 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
       photosDescription: isKo
         ? '홈 첫 화면의 교회 사진과 담임목사 사진에만 적용됩니다.'
         : 'These photos appear only in the homepage hero and pastor sections.',
+      logoTitle: isKo ? '교회 로고' : 'Church Logo',
+      logoDescription: isKo
+        ? '헤더와 푸터의 브랜드 마크에 적용됩니다. 교회 이름은 그대로 둡니다.'
+        : 'Replaces the brand mark in the header and footer. Church name text stays.',
+      logoHint: isKo
+        ? '정사각 PNG(투명 배경) 권장'
+        : 'Square PNG with a transparent background recommended',
       heroTitle: isKo ? '교회 히어로 사진' : 'Church Hero Photo',
       heroHint: isKo ? '가로형 4:3 이상 권장' : 'Landscape, 4:3 or wider recommended',
       pastorTitle: isKo ? '담임목사 사진' : 'Pastor Photo',
       pastorHint: isKo ? '세로형 4:5 권장' : 'Portrait, about 4:5 recommended',
       choose: isKo ? '사진 선택' : 'Choose Photo',
+      chooseLogo: isKo ? '로고 선택' : 'Choose Logo',
       reset: isKo ? '기본 사진으로 되돌리기' : 'Restore Default',
+      resetLogo: isKo ? '기본 마크로 되돌리기' : 'Restore Default Mark',
       save: isKo ? '전체 적용 저장' : 'Save and Apply Globally',
       saving: isKo ? '저장 중...' : 'Saving...',
       saveOk: isKo ? '글로벌 설정이 적용되었습니다.' : 'Global settings have been updated.',
@@ -137,10 +159,13 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   const clearPendingPhotos = () => {
     setHeroFile(null);
     setPastorFile(null);
+    setLogoFile(null);
     setHeroPreviewUrl(null);
     setPastorPreviewUrl(null);
+    setLogoPreviewUrl(null);
     setHeroReset(false);
     setPastorReset(false);
+    setLogoReset(false);
   };
 
   const onSave = async () => {
@@ -149,6 +174,7 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     try {
       const uploadedHero = heroFile ? await uploadFile(heroFile, 'site') : null;
       const uploadedPastor = pastorFile ? await uploadFile(pastorFile, 'site') : null;
+      const uploadedLogo = logoFile ? await uploadFile(logoFile, 'site') : null;
       const result = await saveSettings({
         themeId: selectedTheme,
         heroImagePath: nextImagePath(
@@ -158,6 +184,10 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
         pastorImagePath: nextImagePath(
           uploadedPastor ? { uploadedPath: uploadedPastor.blobPath } : pastorReset ? 'reset' : 'keep',
           pastorImagePath
+        ),
+        logoImagePath: nextImagePath(
+          uploadedLogo ? { uploadedPath: uploadedLogo.blobPath } : logoReset ? 'reset' : 'keep',
+          logoImagePath
         ),
       });
 
@@ -208,6 +238,49 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
             );
           })}
         </div>
+      </section>
+
+      <section className="settings-section settings-photo-section">
+        <div className="settings-section__heading">
+          <h2>{labels.logoTitle}</h2>
+          <p className="muted">{labels.logoDescription}</p>
+        </div>
+        <article className="card settings-photo settings-logo">
+          <div className="settings-photo__frame settings-photo__frame--logo">
+            <BrandMark
+              src={previewSrc({
+                pendingFileUrl: logoPreviewUrl,
+                pendingReset: logoReset,
+                publishedUrl: logoImageUrl,
+                fallback: '',
+              })}
+            />
+          </div>
+          <h3>{labels.logoTitle}</h3>
+          <p className="muted">{labels.logoHint}</p>
+          <div className="settings-photo__controls">
+            <label className="button settings-photo__upload">
+              {labels.chooseLogo}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) => selectPhoto(event, setLogoFile, setLogoPreviewUrl, setLogoReset)}
+              />
+            </label>
+            <button
+              type="button"
+              className="settings-photo__reset"
+              onClick={() => {
+                setLogoFile(null);
+                setLogoPreviewUrl(null);
+                setLogoReset(true);
+                setStatus(null);
+              }}
+            >
+              {labels.resetLogo}
+            </button>
+          </div>
+        </article>
       </section>
 
       <section className="settings-section settings-photo-section">

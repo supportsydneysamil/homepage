@@ -45,8 +45,10 @@ test('sermons gain a subtitle column on existing databases', () => {
 test('site settings gain nullable homepage image path columns', () => {
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'HeroImagePath')"));
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'PastorImagePath')"));
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'LogoImagePath')"));
   assert.ok(SCHEMA_SQL.includes('HeroImagePath NVARCHAR(400) NULL'));
   assert.ok(SCHEMA_SQL.includes('PastorImagePath NVARCHAR(400) NULL'));
+  assert.ok(SCHEMA_SQL.includes('LogoImagePath NVARCHAR(400) NULL'));
 });
 
 test('content tables record who changed them', () => {

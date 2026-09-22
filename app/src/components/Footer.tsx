@@ -1,14 +1,17 @@
 import Link from 'next/link';
 import { useLanguage } from '../lib/LanguageContext';
+import { useSiteSettings } from '../lib/ThemeContext';
+import BrandMark from './BrandMark';
 
 const Footer = () => {
   const { lang } = useLanguage();
+  const { logoImageUrl } = useSiteSettings();
   const isKo = lang === 'ko';
 
   return (
     <footer className="footer">
       <div className="footer__brand">
-        <span className="footer__mark" aria-hidden="true">S</span>
+        <BrandMark src={logoImageUrl} className="footer__mark" />
         <div>
           <strong>Sydney Samil Church</strong>
           <p>{isKo ? '믿음이 삶이 되는 공동체' : 'A community where faith becomes life'}</p>

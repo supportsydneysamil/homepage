@@ -293,6 +293,20 @@ a:hover {
   box-shadow: var(--shadow);
 }
 
+.brand-mark--image {
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.brand-mark img,
+.footer__mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .brand-text {
   display: flex;
   flex-direction: column;
@@ -1382,6 +1396,23 @@ p {
   aspect-ratio: 0.9 / 1;
   margin-inline: auto;
   border-radius: 1.2rem;
+}
+
+.settings-photo__frame--logo {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.2rem;
+}
+
+.settings-photo__frame--logo img {
+  object-fit: contain;
+}
+
+.settings-logo {
+  max-width: 320px;
 }
 
 .settings-photo__frame img {
@@ -2740,6 +2771,12 @@ body {
   font-weight: 800;
 }
 
+.brand-mark.brand-mark--image,
+.footer__mark.brand-mark--image {
+  background: transparent;
+  box-shadow: none;
+}
+
 .footer__brand strong {
   color: var(--site-canvas);
   font-size: 1.1rem;
@@ -3260,11 +3297,169 @@ body {
   margin-bottom: 1rem;
 }
 
+.event-gallery__thumb {
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 1.4rem;
+  transition: transform 260ms ease, box-shadow 260ms ease;
+}
+
+.event-gallery__thumb:hover,
+.event-gallery__thumb:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 40px rgba(12, 10, 8, 0.22);
+}
+
+.event-gallery__thumb:focus-visible {
+  outline: 2px solid var(--site-ink);
+  outline-offset: 3px;
+}
+
 .event-gallery img {
+  display: block;
   width: 100%;
   aspect-ratio: 4 / 3;
   border-radius: 1.4rem;
   object-fit: cover;
+  transition: transform 420ms ease;
+}
+
+.event-gallery__thumb:hover img,
+.event-gallery__thumb:focus-visible img {
+  transform: scale(1.06);
+}
+
+.event-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(12, 10, 8, 0.88);
+}
+
+.event-lightbox__frame {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  max-height: 92vh;
+}
+
+.event-lightbox__image {
+  display: block;
+  max-width: 100%;
+  max-height: 92vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0.8rem;
+}
+
+.event-lightbox__close,
+.event-lightbox__nav {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(12, 10, 8, 0.45);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  transition: background 200ms ease, transform 200ms ease, opacity 200ms ease;
+}
+
+.event-lightbox__close svg,
+.event-lightbox__nav svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.event-lightbox__close:hover,
+.event-lightbox__nav:hover:not(:disabled) {
+  background: rgba(12, 10, 8, 0.72);
+  transform: scale(1.08);
+}
+
+.event-lightbox__nav:hover:not(:disabled) {
+  transform: translateY(-50%) scale(1.08);
+}
+
+.event-lightbox__nav:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.event-lightbox__close {
+  top: 0.9rem;
+  right: 0.9rem;
+}
+
+.event-lightbox__nav {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.event-lightbox__nav--prev {
+  left: 0.9rem;
+}
+
+.event-lightbox__nav--next {
+  right: 0.9rem;
+}
+
+.event-lightbox__close:focus-visible,
+.event-lightbox__nav:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.event-lightbox__counter {
+  position: absolute;
+  bottom: 0.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(12, 10, 8, 0.45);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-gallery__thumb,
+  .event-gallery img,
+  .event-lightbox__close,
+  .event-lightbox__nav {
+    transition: none;
+  }
+
+  .event-gallery__thumb:hover,
+  .event-gallery__thumb:focus-visible,
+  .event-gallery__thumb:hover img,
+  .event-gallery__thumb:focus-visible img,
+  .event-lightbox__close:hover {
+    transform: none;
+  }
+
+  .event-lightbox__nav:hover:not(:disabled) {
+    transform: translateY(-50%);
+  }
 }
 
 .site-video {

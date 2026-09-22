@@ -67,6 +67,7 @@ type SiteSettingsContextValue = ResolvedSiteSettings & {
     themeId: ThemeId;
     heroImagePath: string | null;
     pastorImagePath: string | null;
+    logoImagePath: string | null;
   }) => Promise<
     { ok: true; settings: ResolvedSiteSettings } | { ok: false; message: string }
   >;
@@ -90,8 +91,10 @@ const DEFAULT_SETTINGS: ResolvedSiteSettings = {
   themeId: 'church',
   heroImagePath: null,
   pastorImagePath: null,
+  logoImagePath: null,
   heroImageUrl: DEFAULT_HERO_IMAGE,
   pastorImageUrl: DEFAULT_PASTOR_IMAGE,
+  logoImageUrl: '',
 };
 
 const applyThemeClass = (themeId: ThemeId) => {
@@ -139,6 +142,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       themeId: normalizeTheme(nextThemeId),
       heroImagePath: settings.heroImagePath,
       pastorImagePath: settings.pastorImagePath,
+      logoImagePath: settings.logoImagePath,
     });
     if (!result.ok) {
       return { ok: false, message: result.message };

@@ -131,6 +131,9 @@ IF COL_LENGTH('dbo.SiteSettings', 'HeroImagePath') IS NULL
 IF COL_LENGTH('dbo.SiteSettings', 'PastorImagePath') IS NULL
   ALTER TABLE dbo.SiteSettings ADD PastorImagePath NVARCHAR(400) NULL;
 
+IF COL_LENGTH('dbo.SiteSettings', 'LogoImagePath') IS NULL
+  ALTER TABLE dbo.SiteSettings ADD LogoImagePath NVARCHAR(400) NULL;
+
 IF OBJECT_ID('dbo.Events', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.Events (

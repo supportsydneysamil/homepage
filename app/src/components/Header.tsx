@@ -3,7 +3,9 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useLanguage } from '../lib/LanguageContext';
 import { useRoles } from '../lib/useRoles';
+import { useSiteSettings } from '../lib/ThemeContext';
 import AuthButton from './AuthButton';
+import BrandMark from './BrandMark';
 
 const navItems = [
   { href: '/', labelEn: 'Home', labelKo: '홈' },
@@ -18,6 +20,7 @@ const navItems = [
 const Header = () => {
   const { lang, toggleLang } = useLanguage();
   const { isEditor } = useRoles();
+  const { logoImageUrl } = useSiteSettings();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const isKo = lang === 'ko';
@@ -41,7 +44,7 @@ const Header = () => {
   return (
     <header className="header">
       <Link href="/" className="brand-link" aria-label={isKo ? '홈으로' : 'Home'}>
-        <span className="brand-mark" aria-hidden="true">S</span>
+        <BrandMark src={logoImageUrl} />
         <span className="brand-text">
           <span className="brand-title">Sydney Samil</span>
           <span className="brand-subtitle">시드니 삼일교회</span>

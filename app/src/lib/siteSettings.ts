@@ -5,14 +5,17 @@ export type SiteSettings = {
   themeId: string;
   heroImagePath: string | null;
   pastorImagePath: string | null;
+  logoImagePath: string | null;
   heroImageUrl: string;
   pastorImageUrl: string;
+  logoImageUrl: string;
 };
 
 export type SiteSettingsPayload = {
   themeId: string;
   heroImagePath: string | null;
   pastorImagePath: string | null;
+  logoImagePath: string | null;
 };
 
 type PendingImage = 'keep' | 'reset' | { uploadedPath: string };
@@ -26,8 +29,10 @@ export const parseSiteSettings = (input: unknown): SiteSettings => {
     themeId: typeof data.themeId === 'string' ? data.themeId : 'church',
     heroImagePath: stringOrNull(data.heroImagePath),
     pastorImagePath: stringOrNull(data.pastorImagePath),
+    logoImagePath: stringOrNull(data.logoImagePath),
     heroImageUrl: stringOrNull(data.heroImageUrl) || DEFAULT_HERO_IMAGE,
     pastorImageUrl: stringOrNull(data.pastorImageUrl) || DEFAULT_PASTOR_IMAGE,
+    logoImageUrl: stringOrNull(data.logoImageUrl) || '',
   };
 };
 

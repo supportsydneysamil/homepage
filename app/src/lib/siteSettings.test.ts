@@ -14,10 +14,13 @@ test('null api urls become built-in paths', () => {
     themeId: 'light',
     heroImagePath: null,
     pastorImagePath: null,
+    logoImagePath: null,
   });
   assert.strictEqual(settings.themeId, 'light');
   assert.strictEqual(settings.heroImageUrl, DEFAULT_HERO_IMAGE);
   assert.strictEqual(settings.pastorImageUrl, DEFAULT_PASTOR_IMAGE);
+  assert.strictEqual(settings.logoImagePath, null);
+  assert.strictEqual(settings.logoImageUrl, '');
 });
 
 test('uploaded urls win over defaults', () => {
@@ -25,11 +28,14 @@ test('uploaded urls win over defaults', () => {
     themeId: 'church',
     heroImagePath: 'site/a.jpg',
     pastorImagePath: 'site/b.jpg',
+    logoImagePath: 'site/logo.png',
     heroImageUrl: 'https://example.test/site/a.jpg',
     pastorImageUrl: 'https://example.test/site/b.jpg',
+    logoImageUrl: 'https://example.test/site/logo.png',
   });
   assert.strictEqual(settings.heroImageUrl, 'https://example.test/site/a.jpg');
   assert.strictEqual(settings.heroImagePath, 'site/a.jpg');
+  assert.strictEqual(settings.logoImageUrl, 'https://example.test/site/logo.png');
 });
 
 test('reset sends null and keep reuses the published path', () => {
@@ -55,8 +61,10 @@ test('putSiteSettings returns parsed settings when fetch succeeds', async () => 
         themeId: 'light',
         heroImagePath: 'site/a.jpg',
         pastorImagePath: null,
+        logoImagePath: 'site/logo.png',
         heroImageUrl: 'https://example.test/site/a.jpg',
         pastorImageUrl: null,
+        logoImageUrl: 'https://example.test/site/logo.png',
       }),
     }) as Response;
   try {
@@ -64,9 +72,13 @@ test('putSiteSettings returns parsed settings when fetch succeeds', async () => 
       themeId: 'light',
       heroImagePath: 'site/a.jpg',
       pastorImagePath: null,
+      logoImagePath: 'site/logo.png',
     });
     assert.strictEqual(result.ok, true);
-    if (result.ok) assert.strictEqual(result.settings.heroImagePath, 'site/a.jpg');
+    if (result.ok) {
+      assert.strictEqual(result.settings.heroImagePath, 'site/a.jpg');
+      assert.strictEqual(result.settings.logoImagePath, 'site/logo.png');
+    }
   } finally {
     globalThis.fetch = original;
   }

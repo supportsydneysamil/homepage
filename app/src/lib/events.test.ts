@@ -4,9 +4,11 @@ import {
   PAST_EVENT_PAGE_SIZE,
   eventDetailHref,
   eventDetailPath,
+  eventGallerySwipeDelta,
   eventImageIdFromUrl,
   slugFromTitle,
   splitUpcomingAndPast,
+  stepEventGalleryIndex,
   takePage,
   visibleEventImages,
 } from './events';
@@ -96,4 +98,21 @@ test('keeps only real image urls for galleries', () => {
     visibleEventImages(['/api/files/download/a', '', 'https://example.com/x.jpg']),
     ['/api/files/download/a']
   );
+});
+
+test('steps an event gallery index and stops at the ends', () => {
+  assert.equal(stepEventGalleryIndex(1, 1, 3), 2);
+  assert.equal(stepEventGalleryIndex(1, -1, 3), 0);
+  assert.equal(stepEventGalleryIndex(0, -1, 3), 0);
+  assert.equal(stepEventGalleryIndex(2, 1, 3), 2);
+  assert.equal(stepEventGalleryIndex(0, 1, 1), 0);
+  assert.equal(stepEventGalleryIndex(0, -1, 1), 0);
+  assert.equal(stepEventGalleryIndex(4, 1, 0), 0);
+});
+
+test('reads a horizontal swipe as a gallery step', () => {
+  assert.equal(eventGallerySwipeDelta(-50, 5), 1);
+  assert.equal(eventGallerySwipeDelta(50, 5), -1);
+  assert.equal(eventGallerySwipeDelta(-20, 0), 0);
+  assert.equal(eventGallerySwipeDelta(-80, 90), 0);
 });
