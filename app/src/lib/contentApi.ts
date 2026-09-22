@@ -177,19 +177,17 @@ export const useLookup = <T,>(id: string | null, loader: (id: string) => Promise
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
 
+  // A refresh swaps the row in place. Raising isLoading here would hide the
+  // open editor mid-edit and take the unsaved input down with it.
   const reload = useCallback(async () => {
     if (!id) {
       setItem(null);
-      setIsLoading(false);
       return;
     }
-    setIsLoading(true);
     try {
       setItem(await loaderRef.current(id));
     } catch {
-      setItem(null);
-    } finally {
-      setIsLoading(false);
+      // Keep the row already on screen; a failed refresh should not blank it.
     }
   }, [id]);
 

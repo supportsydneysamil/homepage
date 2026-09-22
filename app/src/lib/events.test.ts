@@ -6,11 +6,13 @@ import {
   eventDetailPath,
   eventGallerySwipeDelta,
   eventImageIdFromUrl,
+  eventImageIdsFromUrls,
   slugFromTitle,
   splitUpcomingAndPast,
   stepEventGalleryIndex,
   takePage,
   visibleEventImages,
+  withoutPendingImages,
 } from './events';
 
 test('builds a static-export safe detail path from a slug', () => {
@@ -91,6 +93,27 @@ test('takes the first page and reports how many are left', () => {
 
 test('a short list needs no second page', () => {
   assert.deepEqual(takePage(['a', 'b'], 8), { items: ['a', 'b'], remaining: 0 });
+});
+
+test('hides photos staged for removal until save', () => {
+  const images = ['/api/files/download/a', '/api/files/download/b', '/api/files/download/c'];
+  assert.deepEqual(withoutPendingImages(images, ['/api/files/download/b']), [
+    '/api/files/download/a',
+    '/api/files/download/c',
+  ]);
+});
+
+test('keeps the original gallery when nothing is staged for removal', () => {
+  const images = ['/api/files/download/a'];
+  assert.deepEqual(withoutPendingImages(images, []), images);
+  assert.deepEqual(withoutPendingImages(undefined, ['/api/files/download/a']), []);
+});
+
+test('reads ids for every staged photo url', () => {
+  assert.deepEqual(
+    eventImageIdsFromUrls(['/api/files/download/a', 'https://example.com/x.jpg', '/api/files/download/b']),
+    ['a', 'b']
+  );
 });
 
 test('keeps only real image urls for galleries', () => {
