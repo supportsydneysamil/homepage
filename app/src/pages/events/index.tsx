@@ -31,8 +31,9 @@ const EventRows = ({
         <time dateTime={event.date}>{formatEventWhen(event.date, event.startTime, lang)}</time>
         <div className="content-row__body">
           <h2>{event.title}</h2>
-          {event.location || event.description ? (
-            <p>{[event.location, event.description].filter(Boolean).join(' · ')}</p>
+          {event.location ? <p className="content-row__location">{event.location}</p> : null}
+          {event.description ? (
+            <p className="content-row__description">{event.description}</p>
           ) : null}
         </div>
         <Link href={eventDetailHref(event.slug)} className="site-text-link">

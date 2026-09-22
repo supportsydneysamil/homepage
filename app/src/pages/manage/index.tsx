@@ -10,8 +10,9 @@ import { useLanguage } from '../../lib/LanguageContext';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
 import { fileNameFromUrl, formatDisplayDate } from '../../lib/presentation';
-import { eventImageIdFromUrl, todayStamp } from '../../lib/events';
+import { eventImageIdsFromUrls, todayStamp, withoutPendingImages } from '../../lib/events';
 import { MANAGE_TABS, buildManageHref, parseManageQuery, type ManageTab } from '../../lib/manageNav';
+import { revealOffset } from '../../lib/manageScroll';
 import {
   MANAGE_PAGE_SIZE,
   eventStatusOf,
@@ -94,6 +95,15 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const editingResourceLookup = useLookup(tab === 'resources' ? editId : null, fetchResource);
   const editingSermonLookup = useLookup(tab === 'sermons' ? editId : null, fetchSermon);
   const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
+  // The row the open editor is actually showing. It lags the link while the
+  // lookup runs, so the form is on the page only once this settles.
+  const editingItem =
+    tab === 'resources'
+      ? editingResourceLookup.item
+      : tab === 'sermons'
+        ? editingSermonLookup.item
+        : editingEventLookup.item;
+  const openEditorId = editId ? editingItem?.id ?? null : null;
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   // One status line per outcome, placed beside whatever the editor just acted
@@ -129,11 +139,32 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     row.scrollIntoView({ block: 'center', behavior: 'auto' });
   }, [flashId]);
 
+  // Editing a row further down the list opens a form the reader never sees, so
+  // the button looks dead. Take the keyboard there, and move the page only when
+  // the form opened out of sight.
+  useSettleEffect(() => {
+    if (!openEditorId) return;
+    const editor = document.querySelector<HTMLElement>('.manage-editor');
+    if (!editor) return;
+    editor.focus({ preventScroll: true });
+    const header = document.querySelector('.header');
+    const offset = revealOffset(
+      editor.getBoundingClientRect().top,
+      window.innerHeight,
+      header ? header.getBoundingClientRect().bottom : 0
+    );
+    if (offset !== null) window.scrollBy(0, offset);
+  }, [openEditorId]);
+
   const failWith = (scope: 'upload' | 'list' | 'gallery', text: string) => {
     setStatus({ scope, text, isError: true });
   };
 
   const [isAdding, setIsAdding] = useState(false);
+  const [pendingRemovedPhotos, setPendingRemovedPhotos] = useState<string[]>([]);
+  useEffect(() => {
+    setPendingRemovedPhotos([]);
+  }, [editId, tab]);
   // Each tab remembers where its editor was reading, so saving does not
   // throw them back to the newest page.
   const [views, setViews] = useState<Record<ManageTab, ManageView>>({
@@ -256,10 +287,14 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       publishedDraft: isKo ? '초안' : 'Draft',
       photo: isKo ? '사진' : 'Photo',
       photoHint: isKo
-        ? 'JPG, PNG, WebP 파일을 한 번에 여러 장 고를 수 있습니다. 고른 사진은 기존 사진 뒤에 추가됩니다.'
-        : 'Pick one or more JPG, PNG, or WebP files. They are added after the existing photos.',
+        ? 'JPG, PNG, WebP 파일을 한 번에 여러 장 고를 수 있습니다. 고른 사진은 기존 사진 뒤에 추가됩니다. 목록에서 뺀 사진은 저장할 때 삭제되고, 취소하면 그대로 남습니다.'
+        : 'Pick one or more JPG, PNG, or WebP files. They are added after the existing photos. Photos removed here are deleted when you save. Cancel keeps them.',
       photoCurrent: (count: number) =>
         isKo ? `등록된 사진 ${count}장` : `${count} photo${count === 1 ? '' : 's'} attached`,
+      photoPending: (count: number) =>
+        isKo
+          ? `저장하면 사진 ${count}장이 삭제됩니다. 취소하면 그대로 남습니다.`
+          : `${count} photo${count === 1 ? '' : 's'} will be deleted when you save. Cancel keeps ${count === 1 ? 'it' : 'them'}.`,
       emptyResources: isKo ? '등록된 자료가 없습니다.' : 'No resources yet.',
       emptySermons: isKo ? '등록된 설교가 없습니다.' : 'No sermons yet.',
       emptyEvents: isKo ? '등록된 이벤트가 없습니다.' : 'No events yet.',
@@ -327,6 +362,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const editingResource = editingResourceLookup.item;
   const editingSermon = editingSermonLookup.item;
   const editingEvent = editingEventLookup.item;
+  const editingPhotos = withoutPendingImages(editingEvent?.images, pendingRemovedPhotos);
 
   const today = todayStamp();
 
@@ -408,14 +444,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     }
   };
 
-  const onRemovePhoto = async (imageUrl: string) => {
-    try {
-      await deleteContent('/api/events/images', eventImageIdFromUrl(imageUrl));
-      await Promise.all([events.reload(), editingEventLookup.reload()]);
-      flashRow(null, labels.deleted);
-    } catch (error) {
-      failWith('gallery', labels.deleteFailed);
-    }
+  const onRemovePhoto = (imageUrl: string) => {
+    setPendingRemovedPhotos((previous) => (previous.includes(imageUrl) ? previous : [...previous, imageUrl]));
+    if (status?.scope === 'gallery') setStatus(null);
   };
 
   return (
@@ -454,7 +485,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           </div>
 
           {editId && editingResourceLookup.isLoading ? null : editingResource ? (
-            <div className="manage-editor">
+            <div className="manage-editor" tabIndex={-1}>
               <h2>{labels.editResource}</h2>
               <ContentForm
                 fields={[
@@ -672,7 +703,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           </div>
 
           {(editId && editingSermonLookup.isLoading) || !(editId || isAdding) ? null : (
-            <div className="manage-editor">
+            <div className="manage-editor" tabIndex={-1}>
               <h2>{editingSermon ? labels.editSermon : labels.addSermon}</h2>
               <ContentForm
                 fields={
@@ -803,7 +834,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           </div>
 
           {(editId && editingEventLookup.isLoading) || !(editId || isAdding) ? null : (
-            <div className="manage-editor">
+            <div className="manage-editor" tabIndex={-1}>
               <h2>{editingEvent ? labels.editEvent : labels.addEvent}</h2>
 
             {status?.scope === 'gallery' ? (
@@ -812,11 +843,15 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
               </p>
             ) : null}
 
-            {editingEvent?.images.length ? (
+            {pendingRemovedPhotos.length ? (
+              <p className="muted">{labels.photoPending(pendingRemovedPhotos.length)}</p>
+            ) : null}
+
+            {editingPhotos.length ? (
               <div className="manage-gallery">
-                <span className="muted">{labels.photoCurrent(editingEvent.images.length)}</span>
+                <span className="muted">{labels.photoCurrent(editingPhotos.length)}</span>
                 <ul>
-                  {editingEvent.images.map((image) => (
+                  {editingPhotos.map((image) => (
                     <li key={image}>
                       <img src={image} alt="" />
                       <button
@@ -882,7 +917,10 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
               submitLabel={labels.save}
               busyLabel={labels.saving}
               cancelLabel={labels.cancel}
-              onCancel={() => goTo('events')}
+              onCancel={() => {
+                setPendingRemovedPhotos([]);
+                goTo('events');
+              }}
               onSubmit={async (values, files) => {
                 const uploaded = await Promise.all(files.map((file) => uploadFile(file, 'events')));
                 const imageBlobPaths = uploaded.map((item) => item.blobPath);
@@ -900,6 +938,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                 const savedId = editingEvent
                   ? await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload })
                   : await sendContent('/api/events', 'POST', payload);
+                const removedIds = eventImageIdsFromUrls(pendingRemovedPhotos);
+                await Promise.all(removedIds.map((id) => deleteContent('/api/events/images', id)));
+                setPendingRemovedPhotos([]);
                 revealEvent(await events.reload(), savedId);
                 goTo('events');
                 flashRow(savedId, labels.saved);

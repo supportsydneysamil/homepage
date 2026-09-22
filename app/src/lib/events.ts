@@ -59,6 +59,15 @@ const DOWNLOAD_PREFIX = '/api/files/download/';
 export const eventImageIdFromUrl = (url: string) =>
   url.startsWith(DOWNLOAD_PREFIX) ? url.slice(DOWNLOAD_PREFIX.length) : '';
 
+export const eventImageIdsFromUrls = (urls: readonly string[]) =>
+  urls.map(eventImageIdFromUrl).filter(Boolean);
+
+export const withoutPendingImages = (images: string[] | undefined, pendingRemoved: readonly string[]) => {
+  if (!pendingRemoved.length) return images ?? [];
+  const removed = new Set(pendingRemoved);
+  return (images ?? []).filter((image) => !removed.has(image));
+};
+
 export const visibleEventImages = (images: string[] | undefined) =>
   (images ?? []).filter((image) => {
     if (!image) return false;
