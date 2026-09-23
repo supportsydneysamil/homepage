@@ -20,7 +20,7 @@ const navItems = [
 const Header = () => {
   const { lang, toggleLang } = useLanguage();
   const { isEditor } = useRoles();
-  const { logoImageUrl } = useSiteSettings();
+  const { logoImageUrl, churchInfo } = useSiteSettings();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const isKo = lang === 'ko';
@@ -46,8 +46,8 @@ const Header = () => {
       <Link href="/" className="brand-link" aria-label={isKo ? '홈으로' : 'Home'}>
         <BrandMark src={logoImageUrl} />
         <span className="brand-text">
-          <span className="brand-title">Sydney Samil</span>
-          <span className="brand-subtitle">시드니 삼일교회</span>
+          <span className="brand-title">{churchInfo.brandTitle}</span>
+          <span className="brand-subtitle">{churchInfo.churchNameKo}</span>
         </span>
       </Link>
 

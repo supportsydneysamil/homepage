@@ -1,12 +1,22 @@
 import type { NextPage } from 'next';
+import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import PageHero from '../components/PageHero';
-import SitePhoto from '../components/SitePhoto';
-import BrandMark from '../components/BrandMark';
-import { THEME_OPTIONS, type ThemeId, useSiteSettings } from '../lib/ThemeContext';
+import { type ThemeId, useSiteSettings } from '../lib/ThemeContext';
 import { useRequireAuth } from '../lib/swaAuth';
 import { useLanguage } from '../lib/LanguageContext';
 import { useRoles } from '../lib/useRoles';
+import AppearanceFields from '../components/settings/AppearanceFields';
+import ChurchInfoFields from '../components/settings/ChurchInfoFields';
+import SiteCopyFields from '../components/settings/SiteCopyFields';
+import { parseChurchInfo, type ChurchInfo } from '../lib/churchInfo';
+import { parseSiteCopy, type SiteCopy } from '../lib/siteCopy';
+import {
+  SETTINGS_TABS,
+  buildSettingsHref,
+  parseSettingsQuery,
+  type SettingsTab,
+} from '../lib/settingsNav';
 import {
   DEFAULT_HERO_IMAGE,
   DEFAULT_PASTOR_IMAGE,
@@ -19,6 +29,10 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const router = useRouter();
+  // Static export serves this page without query params, so wait for the
+  // client-side router before choosing a tab.
+  const tab = parseSettingsQuery(router.isReady ? router.query : {});
   const {
     themeId,
     heroImagePath,
@@ -27,6 +41,8 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     heroImageUrl,
     pastorImageUrl,
     logoImageUrl,
+    churchInfo,
+    siteCopy,
     setThemeLocal,
     saveSettings,
   } = useSiteSettings();
@@ -41,12 +57,22 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   const [heroReset, setHeroReset] = useState(false);
   const [pastorReset, setPastorReset] = useState(false);
   const [logoReset, setLogoReset] = useState(false);
+  const [draftChurchInfo, setDraftChurchInfo] = useState<ChurchInfo>(churchInfo);
+  const [draftSiteCopy, setDraftSiteCopy] = useState<SiteCopy>(siteCopy);
   const [status, setStatus] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setSelectedTheme(themeId);
   }, [themeId]);
+
+  useEffect(() => {
+    setDraftChurchInfo(parseChurchInfo(churchInfo));
+  }, [churchInfo]);
+
+  useEffect(() => {
+    setDraftSiteCopy(parseSiteCopy(siteCopy));
+  }, [siteCopy]);
 
   useEffect(
     () => () => {
@@ -73,8 +99,32 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     () => ({
       title: isKo ? '글로벌 설정' : 'Global Settings',
       subtitle: isKo
-        ? '관리자만 홈페이지 전체 디자인 설정을 변경할 수 있습니다.'
-        : 'Only administrators can update site-wide appearance settings.',
+        ? '테마, 사진, 교회 정보, 페이지 문구를 한 곳에서 바꾸고 사이트 전체에 적용합니다.'
+        : 'Update theme, photos, church facts, and page copy, then apply them across the site.',
+      tabs: {
+        appearance: isKo ? '디자인' : 'Appearance',
+        church: isKo ? '교회 정보' : 'Church information',
+        copy: isKo ? '페이지 문구' : 'Site copy',
+      } as Record<SettingsTab, string>,
+      tabsLabel: isKo ? '설정 영역' : 'Settings sections',
+      saveHint: isKo
+        ? '세 탭의 변경 사항이 함께 저장됩니다.'
+        : 'Saving applies changes from all three tabs.',
+      churchTitle: isKo ? '교회 정보' : 'Church information',
+      churchDescription: isKo
+        ? '주소, 연락처, 예배 시간은 홈, 예배, 문의, 푸터에 함께 반영됩니다.'
+        : 'Address, contact details, and service times appear on Home, Worship, Contact, and the footer.',
+      copyTitle: isKo ? '페이지 문구' : 'Page copy',
+      copyDescription: isKo
+        ? '레이아웃은 그대로 두고 한/영 문장만 수정합니다. HTML은 입력하지 마세요.'
+        : 'Edit Korean and English sentences. Layout stays fixed. Do not enter HTML.',
+      addService: isKo ? '예배 시간 추가' : 'Add a service',
+      addGathering: isKo ? '모임 추가' : 'Add a gathering',
+      remove: isKo ? '삭제' : 'Remove',
+      namesTitle: isKo ? '교회와 목사' : 'Church and pastor',
+      contactFacts: isKo ? '연락처와 위치' : 'Contact and location',
+      servicesTitle: isKo ? '주일 예배' : 'Sunday services',
+      gatheringsTitle: isKo ? '그 외 모임' : 'Other gatherings',
       loading: isKo ? '권한 확인 중...' : 'Checking permissions...',
       forbidden: isKo ? '관리자 권한이 필요합니다.' : 'Administrator role is required.',
       themeTitle: isKo ? '홈페이지 테마' : 'Website Theme',
@@ -130,6 +180,11 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     );
   }
 
+  // Drafts live in this component, so switching tabs never discards pending edits.
+  const goTo = (nextTab: SettingsTab) => {
+    void router.push(buildSettingsHref(nextTab), undefined, { shallow: true });
+  };
+
   const validationMessage = (problem: string) => {
     if (problem === 'empty') return labels.emptyFile;
     if (problem === 'tooLarge') return labels.tooLarge;
@@ -153,6 +208,17 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     setFile(file);
     setPreview(URL.createObjectURL(file));
     setReset(false);
+    setStatus(null);
+  };
+
+  const resetPhoto = (
+    setFile: (file: File | null) => void,
+    setPreview: (url: string | null) => void,
+    setReset: (reset: boolean) => void
+  ) => {
+    setFile(null);
+    setPreview(null);
+    setReset(true);
     setStatus(null);
   };
 
@@ -189,6 +255,8 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
           uploadedLogo ? { uploadedPath: uploadedLogo.blobPath } : logoReset ? 'reset' : 'keep',
           logoImagePath
         ),
+        churchInfo: parseChurchInfo(draftChurchInfo),
+        siteCopy: parseSiteCopy(draftSiteCopy),
       });
 
       if (result.ok) {
@@ -212,167 +280,101 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
         description={labels.subtitle}
       />
 
-      <section className="settings-section">
-        <h2>{labels.themeTitle}</h2>
-        <div className="settings-theme-grid">
-          {THEME_OPTIONS.map((option) => {
-            const isSelected = selectedTheme === option.id;
-            return (
-              <label key={option.id} className={`card theme-option ${isSelected ? 'theme-option--selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="theme"
-                  value={option.id}
-                  checked={isSelected}
-                  onChange={() => {
-                    setSelectedTheme(option.id);
-                    setThemeLocal(option.id);
-                    setStatus(null);
-                  }}
-                />
-                <div className={`theme-preview theme-preview--${option.id}`} aria-hidden="true" />
-                <h3>{isKo ? option.labelKo : option.labelEn}</h3>
-                <p className="muted">{isKo ? option.descriptionKo : option.descriptionEn}</p>
-                <p className="card__eyebrow">{labels.preview}</p>
-              </label>
-            );
-          })}
-        </div>
-      </section>
+      <nav className="settings-tabs" aria-label={labels.tabsLabel}>
+        {SETTINGS_TABS.map((settingsTab) => (
+          <button
+            key={settingsTab}
+            type="button"
+            className={settingsTab === tab ? 'settings-tab settings-tab--active' : 'settings-tab'}
+            aria-current={settingsTab === tab ? 'page' : undefined}
+            onClick={() => goTo(settingsTab)}
+          >
+            {labels.tabs[settingsTab]}
+          </button>
+        ))}
+      </nav>
 
-      <section className="settings-section settings-photo-section">
-        <div className="settings-section__heading">
-          <h2>{labels.logoTitle}</h2>
-          <p className="muted">{labels.logoDescription}</p>
-        </div>
-        <article className="card settings-photo settings-logo">
-          <div className="settings-photo__frame settings-photo__frame--logo">
-            <BrandMark
-              src={previewSrc({
-                pendingFileUrl: logoPreviewUrl,
-                pendingReset: logoReset,
-                publishedUrl: logoImageUrl,
-                fallback: '',
-              })}
-            />
+      {tab === 'church' ? (
+        <section className="settings-section">
+          <div className="settings-section__heading">
+            <h2>{labels.churchTitle}</h2>
+            <p className="muted">{labels.churchDescription}</p>
           </div>
-          <h3>{labels.logoTitle}</h3>
-          <p className="muted">{labels.logoHint}</p>
-          <div className="settings-photo__controls">
-            <label className="button settings-photo__upload">
-              {labels.chooseLogo}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(event) => selectPhoto(event, setLogoFile, setLogoPreviewUrl, setLogoReset)}
-              />
-            </label>
-            <button
-              type="button"
-              className="settings-photo__reset"
-              onClick={() => {
-                setLogoFile(null);
-                setLogoPreviewUrl(null);
-                setLogoReset(true);
-                setStatus(null);
-              }}
-            >
-              {labels.resetLogo}
-            </button>
+          <ChurchInfoFields
+            value={draftChurchInfo}
+            onChange={setDraftChurchInfo}
+            isKo={isKo}
+            labels={{
+              churchTitle: labels.namesTitle,
+              contactTitle: labels.contactFacts,
+              servicesTitle: labels.servicesTitle,
+              gatheringsTitle: labels.gatheringsTitle,
+              addService: labels.addService,
+              addGathering: labels.addGathering,
+              remove: labels.remove,
+            }}
+          />
+        </section>
+      ) : null}
+
+      {tab === 'copy' ? (
+        <section className="settings-section">
+          <div className="settings-section__heading">
+            <h2>{labels.copyTitle}</h2>
+            <p className="muted">{labels.copyDescription}</p>
           </div>
-        </article>
-      </section>
+          <SiteCopyFields value={draftSiteCopy} onChange={setDraftSiteCopy} isKo={isKo} />
+        </section>
+      ) : null}
 
-      <section className="settings-section settings-photo-section">
-        <div className="settings-section__heading">
-          <h2>{labels.photosTitle}</h2>
-          <p className="muted">{labels.photosDescription}</p>
-        </div>
-        <div className="settings-photos">
-          <article className="card settings-photo">
-            <div className="settings-photo__frame settings-photo__frame--hero">
-              <SitePhoto
-                src={previewSrc({
-                  pendingFileUrl: heroPreviewUrl,
-                  pendingReset: heroReset,
-                  publishedUrl: heroImageUrl,
-                  fallback: DEFAULT_HERO_IMAGE,
-                })}
-                fallback={DEFAULT_HERO_IMAGE}
-                alt={labels.heroTitle}
-              />
-            </div>
-            <h3>{labels.heroTitle}</h3>
-            <p className="muted">{labels.heroHint}</p>
-            <div className="settings-photo__controls">
-              <label className="button settings-photo__upload">
-                {labels.choose}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => selectPhoto(event, setHeroFile, setHeroPreviewUrl, setHeroReset)}
-                />
-              </label>
-              <button
-                type="button"
-                className="settings-photo__reset"
-                onClick={() => {
-                  setHeroFile(null);
-                  setHeroPreviewUrl(null);
-                  setHeroReset(true);
-                  setStatus(null);
-                }}
-              >
-                {labels.reset}
-              </button>
-            </div>
-          </article>
-
-          <article className="card settings-photo">
-            <div className="settings-photo__frame settings-photo__frame--pastor">
-              <SitePhoto
-                src={previewSrc({
-                  pendingFileUrl: pastorPreviewUrl,
-                  pendingReset: pastorReset,
-                  publishedUrl: pastorImageUrl,
-                  fallback: DEFAULT_PASTOR_IMAGE,
-                })}
-                fallback={DEFAULT_PASTOR_IMAGE}
-                alt={labels.pastorTitle}
-              />
-            </div>
-            <h3>{labels.pastorTitle}</h3>
-            <p className="muted">{labels.pastorHint}</p>
-            <div className="settings-photo__controls">
-              <label className="button settings-photo__upload">
-                {labels.choose}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => selectPhoto(event, setPastorFile, setPastorPreviewUrl, setPastorReset)}
-                />
-              </label>
-              <button
-                type="button"
-                className="settings-photo__reset"
-                onClick={() => {
-                  setPastorFile(null);
-                  setPastorPreviewUrl(null);
-                  setPastorReset(true);
-                  setStatus(null);
-                }}
-              >
-                {labels.reset}
-              </button>
-            </div>
-          </article>
-        </div>
-      </section>
+      {tab === 'appearance' ? (
+        <AppearanceFields
+          isKo={isKo}
+          labels={labels}
+          selectedTheme={selectedTheme}
+          onSelectTheme={(nextTheme) => {
+            setSelectedTheme(nextTheme);
+            setThemeLocal(nextTheme);
+            setStatus(null);
+          }}
+          logo={{
+            previewUrl: previewSrc({
+              pendingFileUrl: logoPreviewUrl,
+              pendingReset: logoReset,
+              publishedUrl: logoImageUrl,
+              fallback: '',
+            }),
+            onSelect: (event) => selectPhoto(event, setLogoFile, setLogoPreviewUrl, setLogoReset),
+            onReset: () => resetPhoto(setLogoFile, setLogoPreviewUrl, setLogoReset),
+          }}
+          hero={{
+            previewUrl: previewSrc({
+              pendingFileUrl: heroPreviewUrl,
+              pendingReset: heroReset,
+              publishedUrl: heroImageUrl,
+              fallback: DEFAULT_HERO_IMAGE,
+            }),
+            onSelect: (event) => selectPhoto(event, setHeroFile, setHeroPreviewUrl, setHeroReset),
+            onReset: () => resetPhoto(setHeroFile, setHeroPreviewUrl, setHeroReset),
+          }}
+          pastor={{
+            previewUrl: previewSrc({
+              pendingFileUrl: pastorPreviewUrl,
+              pendingReset: pastorReset,
+              publishedUrl: pastorImageUrl,
+              fallback: DEFAULT_PASTOR_IMAGE,
+            }),
+            onSelect: (event) => selectPhoto(event, setPastorFile, setPastorPreviewUrl, setPastorReset),
+            onReset: () => resetPhoto(setPastorFile, setPastorPreviewUrl, setPastorReset),
+          }}
+        />
+      ) : null}
 
       <div className="settings-actions">
         <button type="button" className="button" onClick={onSave} disabled={isSaving}>
           {isSaving ? labels.saving : labels.save}
         </button>
+        <p className="muted">{labels.saveHint}</p>
         {status ? <p className={status === labels.saveOk ? 'success-text' : 'error-text'}>{status}</p> : null}
       </div>
     </article>

@@ -1,47 +1,53 @@
 import Link from 'next/link';
 import { useLanguage } from '../lib/LanguageContext';
 import { useSiteSettings } from '../lib/ThemeContext';
+import { phoneHref } from '../lib/churchInfo';
+import { localize } from '../lib/siteCopy';
 import BrandMark from './BrandMark';
 
 const Footer = () => {
   const { lang } = useLanguage();
-  const { logoImageUrl } = useSiteSettings();
-  const isKo = lang === 'ko';
+  const { logoImageUrl, churchInfo, siteCopy } = useSiteSettings();
+  const footer = siteCopy.footer;
 
   return (
     <footer className="footer">
       <div className="footer__brand">
         <BrandMark src={logoImageUrl} className="footer__mark" />
         <div>
-          <strong>Sydney Samil Church</strong>
-          <p>{isKo ? '믿음이 삶이 되는 공동체' : 'A community where faith becomes life'}</p>
+          <strong>{churchInfo.churchNameEn}</strong>
+          <p>{localize(footer.tagline, lang)}</p>
         </div>
       </div>
 
       <div className="footer__details">
         <div>
-          <span>{isKo ? '찾아오시는 길' : 'Find us'}</span>
-          <p>Corner Bellamy St &amp; Boundary Rd<br />Pennant Hills NSW 2120</p>
+          <span>{localize(footer.findUs, lang)}</span>
+          <p>
+            {churchInfo.addressLine1}
+            <br />
+            {churchInfo.addressLine2}
+          </p>
         </div>
         <div>
-          <span>{isKo ? '연락처' : 'Contact'}</span>
-          <a href="tel:+61433576500">0433 576 500</a>
-          <a href="mailto:info@sydneysamil.org">info@sydneysamil.org</a>
+          <span>{localize(footer.contact, lang)}</span>
+          <a href={phoneHref(churchInfo.phone)}>{churchInfo.phone}</a>
+          <a href={`mailto:${churchInfo.email}`}>{churchInfo.email}</a>
         </div>
         <div>
-          <span>{isKo ? '둘러보기' : 'Explore'}</span>
-          <Link href="/about">{isKo ? '교회 소개' : 'About'}</Link>
-          <Link href="/worship">{isKo ? '예배 안내' : 'Worship'}</Link>
-          <Link href="/sermons">{isKo ? '설교' : 'Sermons'}</Link>
+          <span>{localize(footer.explore, lang)}</span>
+          <Link href="/about">{localize(footer.about, lang)}</Link>
+          <Link href="/worship">{localize(footer.worship, lang)}</Link>
+          <Link href="/sermons">{localize(footer.sermons, lang)}</Link>
         </div>
       </div>
 
       <div className="footer__bottom">
         <small suppressHydrationWarning>
-          &copy; {new Date().getFullYear()} Sydney Samil Church
+          &copy; {new Date().getFullYear()} {churchInfo.churchNameEn}
         </small>
         <Link href="/contact" className="footer__visit">
-          {isKo ? '이번 주일에 만나요' : 'Meet us this Sunday'}
+          {localize(footer.meetUs, lang)}
           <span aria-hidden="true">→</span>
         </Link>
       </div>

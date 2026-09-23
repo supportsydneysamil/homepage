@@ -1465,6 +1465,123 @@ p {
   flex-wrap: wrap;
 }
 
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.8rem 0 0.4rem;
+}
+
+.settings-tab {
+  padding: 0.6rem 1.15rem;
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  background: var(--site-surface);
+  color: var(--site-muted);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.settings-tab:hover {
+  color: var(--site-ink);
+  border-color: var(--site-accent);
+}
+
+.settings-tab--active {
+  background: var(--site-accent);
+  border-color: var(--site-accent);
+  color: var(--site-canvas);
+}
+
+.settings-fields {
+  display: grid;
+  gap: 0.85rem;
+  margin-bottom: 1.6rem;
+}
+
+.settings-fields h3 {
+  margin: 0.4rem 0 0;
+}
+
+.settings-field,
+.settings-bilingual label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-field span,
+.settings-bilingual span,
+.settings-bilingual__label {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.settings-field input,
+.settings-bilingual input,
+.settings-bilingual textarea {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.settings-bilingual {
+  display: grid;
+  gap: 0.55rem;
+}
+
+@media (min-width: 720px) {
+  .settings-bilingual {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settings-bilingual__label {
+    grid-column: 1 / -1;
+    margin: 0.2rem 0 0;
+  }
+}
+
+.settings-repeat {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.settings-repeat__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.7rem;
+  align-items: end;
+}
+
+.settings-copy-groups {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.settings-copy-group {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.settings-copy-group summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.settings-copy-group[open] summary {
+  margin-bottom: 0.9rem;
+}
+
 @keyframes float {
   0% {
     transform: translate3d(0, 0, 0);

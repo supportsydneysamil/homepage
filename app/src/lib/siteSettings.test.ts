@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
+import { DEFAULT_CHURCH_INFO } from './churchInfo';
+import { DEFAULT_SITE_COPY } from './siteCopy';
 import {
   DEFAULT_HERO_IMAGE,
   DEFAULT_PASTOR_IMAGE,
@@ -21,6 +23,8 @@ test('null api urls become built-in paths', () => {
   assert.strictEqual(settings.pastorImageUrl, DEFAULT_PASTOR_IMAGE);
   assert.strictEqual(settings.logoImagePath, null);
   assert.strictEqual(settings.logoImageUrl, '');
+  assert.strictEqual(settings.churchInfo.email, 'info@sydneysamil.org');
+  assert.ok(settings.siteCopy.about.values.length);
 });
 
 test('uploaded urls win over defaults', () => {
@@ -73,11 +77,15 @@ test('putSiteSettings returns parsed settings when fetch succeeds', async () => 
       heroImagePath: 'site/a.jpg',
       pastorImagePath: null,
       logoImagePath: 'site/logo.png',
+      churchInfo: DEFAULT_CHURCH_INFO,
+      siteCopy: DEFAULT_SITE_COPY,
     });
     assert.strictEqual(result.ok, true);
     if (result.ok) {
       assert.strictEqual(result.settings.heroImagePath, 'site/a.jpg');
       assert.strictEqual(result.settings.logoImagePath, 'site/logo.png');
+      assert.ok(result.settings.churchInfo.email);
+      assert.ok(result.settings.siteCopy.home.hero.lead.en);
     }
   } finally {
     globalThis.fetch = original;

@@ -51,6 +51,13 @@ test('site settings gain nullable homepage image path columns', () => {
   assert.ok(SCHEMA_SQL.includes('LogoImagePath NVARCHAR(400) NULL'));
 });
 
+test('site settings gain church info and site copy json columns', () => {
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'ChurchInfoJson')"));
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'SiteCopyJson')"));
+  assert.ok(SCHEMA_SQL.includes('ChurchInfoJson NVARCHAR(MAX) NULL'));
+  assert.ok(SCHEMA_SQL.includes('SiteCopyJson NVARCHAR(MAX) NULL'));
+});
+
 test('content tables record who changed them', () => {
   assert.ok(SCHEMA_SQL.includes('CreatedBy'));
   assert.ok(SCHEMA_SQL.includes('UpdatedBy'));

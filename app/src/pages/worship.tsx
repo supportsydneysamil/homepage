@@ -2,31 +2,33 @@ import type { NextPage } from 'next';
 import Link from 'next/link';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
-
-const DIRECTIONS_URL =
-  'https://maps.google.com/?q=Corner+Bellamy+St+%26+Boundary+Rd+Pennant+Hills+NSW+2120';
+import { useSiteSettings } from '../lib/ThemeContext';
+import { directionsUrl, formatFullAddress } from '../lib/churchInfo';
+import { localize } from '../lib/siteCopy';
 
 const Worship: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { lang } = useLanguage();
-  const isKo = lang === 'ko';
+  const { churchInfo, siteCopy } = useSiteSettings();
+  const worship = siteCopy.worship;
 
   return (
     <article className="site-page worship-page">
       <PageHero
-        eyebrow={isKo ? '예배 안내' : 'Worship with us'}
-        title={isKo ? '이번 주일, 함께 예배해요' : 'There is a place for you this Sunday'}
-        description={
-          isKo
-            ? '말씀과 찬양 안에서 하나님을 만나고, 따뜻한 공동체와 새로운 한 주를 시작하세요.'
-            : 'Encounter God through Scripture and worship, and begin a new week with a welcoming community.'
-        }
+        eyebrow={localize(worship.eyebrow, lang)}
+        title={localize(worship.title, lang)}
+        description={localize(worship.description, lang)}
         actions={
           <>
-            <a className="site-button site-button--primary" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">
-              {isKo ? '길찾기' : 'Get directions'} <span aria-hidden="true">→</span>
+            <a
+              className="site-button site-button--primary"
+              href={directionsUrl(churchInfo.mapsQuery)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {localize(worship.directions, lang)} <span aria-hidden="true">→</span>
             </a>
             <Link className="site-button site-button--quiet" href="/contact">
-              {isKo ? '방문 문의' : 'Ask about your visit'}
+              {localize(worship.askVisit, lang)}
             </Link>
           </>
         }
@@ -34,37 +36,33 @@ const Worship: NextPage & { meta?: { title?: string; description?: string } } = 
 
       <section className="worship-times">
         <div className="worship-times__intro">
-          <p className="site-kicker">{isKo ? '주일 예배' : 'Sunday gatherings'}</p>
-          <h2>{isKo ? '두 번의 예배, 하나의 공동체' : 'Two services, one community'}</h2>
-          <p>{isKo ? '편안한 복장으로 부담 없이 오세요.' : 'Come as you are. You will be warmly welcomed.'}</p>
+          <p className="site-kicker">{localize(worship.timesKicker, lang)}</p>
+          <h2>{localize(worship.timesTitle, lang)}</h2>
+          <p>{localize(worship.timesIntro, lang)}</p>
         </div>
-        <div className="worship-time">
-          <span>{isKo ? '1부' : '1st'}</span>
-          <strong>9:30</strong>
-          <small>{isKo ? 'AM · 어린이 예배' : 'AM · KIDS'}</small>
-        </div>
-        <div className="worship-time">
-          <span>{isKo ? '2부' : '2nd'}</span>
-          <strong>11:00</strong>
-          <small>{isKo ? 'AM · 메인 예배' : 'AM · MAIN'}</small>
-        </div>
+        {churchInfo.services.map((service) => (
+          <div className="worship-time" key={service.id}>
+            <span>{localize(service.label, lang)}</span>
+            <strong>{service.time}</strong>
+            <small>
+              {service.period} · {localize(service.note, lang)}
+            </small>
+          </div>
+        ))}
       </section>
 
       <section className="worship-details">
-        <article>
-          <span>WED</span>
-          <h3>{isKo ? '수요 기도회' : 'Wednesday prayer'}</h3>
-          <p>{isKo ? '수요일 저녁 8:00 · 온라인' : 'Wednesday 8:00 PM · Online'}</p>
-        </article>
-        <article>
-          <span>SUN</span>
-          <h3>{isKo ? '생명의 삶 공부' : 'Life Bible study'}</h3>
-          <p>{isKo ? '주일 오후 2:30' : 'Sunday 2:30 PM'}</p>
-        </article>
+        {churchInfo.gatherings.map((gathering) => (
+          <article key={gathering.id}>
+            <span>{gathering.badge}</span>
+            <h3>{localize(gathering.title, lang)}</h3>
+            <p>{localize(gathering.detail, lang)}</p>
+          </article>
+        ))}
         <article>
           <span>HERE</span>
-          <h3>{isKo ? '오시는 곳' : 'Where we meet'}</h3>
-          <p>Corner Bellamy St &amp; Boundary Rd, Pennant Hills NSW 2120</p>
+          <h3>{localize(worship.locationTitle, lang)}</h3>
+          <p>{formatFullAddress(churchInfo)}</p>
         </article>
       </section>
     </article>

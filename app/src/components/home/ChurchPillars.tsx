@@ -1,28 +1,27 @@
-import { HOME_PILLARS, localize, type Language } from './homeContent';
+import type { Language } from './homeContent';
+import { useSiteSettings } from '../../lib/ThemeContext';
+import { localize } from '../../lib/siteCopy';
 
 const ChurchPillars = ({ lang }: { lang: Language }) => {
-  const isKo = lang === 'ko';
+  const { siteCopy } = useSiteSettings();
+  const pillars = siteCopy.home.pillars;
 
   return (
     <section className="home-section home-pillars">
       <div className="home-section__heading home-section__heading--split">
         <div>
-          <p className="home-kicker">{isKo ? '우리가 꿈꾸는 교회' : 'The church we hope to be'}</p>
-          <h2>{isKo ? '믿음이 삶이 되는 공동체' : 'A community where faith becomes life'}</h2>
+          <p className="home-kicker">{localize(pillars.kicker, lang)}</p>
+          <h2>{localize(pillars.title, lang)}</h2>
         </div>
-        <p>
-          {isKo
-            ? '주일의 예배가 평일의 삶으로 이어지고, 모든 세대가 함께 자라기를 소망합니다.'
-            : 'We long for Sunday worship to shape everyday life and for every generation to grow together.'}
-        </p>
+        <p>{localize(pillars.intro, lang)}</p>
       </div>
 
       <div className="home-pillars__grid">
-        {HOME_PILLARS.map((pillar) => (
-          <article className="home-pillar" key={pillar.number}>
-            <span>{pillar.number}</span>
+        {pillars.items.map((pillar, index) => (
+          <article className="home-pillar" key={`${index}-${pillar.title.en}`}>
+            <span>{String(index + 1).padStart(2, '0')}</span>
             <h3>{localize(pillar.title, lang)}</h3>
-            <p>{localize(pillar.description, lang)}</p>
+            <p>{localize(pillar.body, lang)}</p>
           </article>
         ))}
       </div>

@@ -5,6 +5,31 @@ const { deleteBlob, publicUrlFor, SITE_FOLDER } = require('../shared/blob');
 const SUPPORTED_THEMES = ['dark', 'light', 'church', 'modern-sky', 'modern-sand'];
 const DEFAULT_THEME = 'church';
 const DEFAULT_SETTING_KEY = 'theme';
+const MAX_CONTENT_JSON = 200000;
+
+const parseStoredJson = (raw) => {
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const parseContentObject = (value, field) => {
+  if (value === undefined) return { omitted: true };
+  if (value === null) return { value: null };
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return { error: `${field} must be an object.` };
+  }
+  const json = JSON.stringify(value);
+  if (json.length > MAX_CONTENT_JSON) return { error: `${field} is too large.` };
+  return { value };
+};
+
+const toJson = (value) => (value == null ? null : JSON.stringify(value));
 
 const getCurrentSettings = async () =>
   withSchema(async () => {
@@ -13,7 +38,7 @@ const getCurrentSettings = async () =>
       .request()
       .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
       .query(`
-SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, UpdatedAt, UpdatedBy
+SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, UpdatedAt, UpdatedBy
 FROM dbo.SiteSettings
 WHERE SettingKey = @settingKey
 `);
@@ -25,6 +50,8 @@ WHERE SettingKey = @settingKey
         heroImagePath: row.HeroImagePath || null,
         pastorImagePath: row.PastorImagePath || null,
         logoImagePath: row.LogoImagePath || null,
+        churchInfo: parseStoredJson(row.ChurchInfoJson),
+        siteCopy: parseStoredJson(row.SiteCopyJson),
         updatedAt: row.UpdatedAt ? new Date(row.UpdatedAt).toISOString() : null,
         updatedBy: row.UpdatedBy || null,
       };
@@ -41,6 +68,8 @@ WHERE SettingKey = @settingKey
       heroImagePath: null,
       pastorImagePath: null,
       logoImagePath: null,
+      churchInfo: null,
+      siteCopy: null,
       updatedAt: null,
       updatedBy: null,
     };
@@ -56,6 +85,8 @@ const saveSettings = async (settings, updatedBy) => {
     .input('heroImagePath', sql.NVarChar(400), settings.heroImagePath)
     .input('pastorImagePath', sql.NVarChar(400), settings.pastorImagePath)
     .input('logoImagePath', sql.NVarChar(400), settings.logoImagePath)
+    .input('churchInfoJson', sql.NVarChar(sql.MAX), settings.churchInfoJson)
+    .input('siteCopyJson', sql.NVarChar(sql.MAX), settings.siteCopyJson)
     .input('updatedBy', sql.NVarChar(256), updatedBy)
     .query(`
 MERGE dbo.SiteSettings AS target
@@ -66,6 +97,8 @@ USING (
     @heroImagePath AS HeroImagePath,
     @pastorImagePath AS PastorImagePath,
     @logoImagePath AS LogoImagePath,
+    @churchInfoJson AS ChurchInfoJson,
+    @siteCopyJson AS SiteCopyJson,
     @updatedBy AS UpdatedBy
 ) AS src
 ON target.SettingKey = src.SettingKey
@@ -75,16 +108,20 @@ WHEN MATCHED THEN
     HeroImagePath = src.HeroImagePath,
     PastorImagePath = src.PastorImagePath,
     LogoImagePath = src.LogoImagePath,
+    ChurchInfoJson = src.ChurchInfoJson,
+    SiteCopyJson = src.SiteCopyJson,
     UpdatedBy = src.UpdatedBy,
     UpdatedAt = SYSUTCDATETIME()
 WHEN NOT MATCHED THEN
-  INSERT (SettingKey, ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, UpdatedBy, UpdatedAt)
+  INSERT (SettingKey, ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, UpdatedBy, UpdatedAt)
   VALUES (
     src.SettingKey,
     src.ThemeId,
     src.HeroImagePath,
     src.PastorImagePath,
     src.LogoImagePath,
+    src.ChurchInfoJson,
+    src.SiteCopyJson,
     src.UpdatedBy,
     SYSUTCDATETIME()
   );
@@ -114,6 +151,8 @@ const withUrls = (settings, urlFor) => ({
   heroImageUrl: settings.heroImagePath ? urlFor(settings.heroImagePath) : null,
   pastorImageUrl: settings.pastorImagePath ? urlFor(settings.pastorImagePath) : null,
   logoImageUrl: settings.logoImagePath ? urlFor(settings.logoImagePath) : null,
+  churchInfo: settings.churchInfo || null,
+  siteCopy: settings.siteCopy || null,
   updatedAt: settings.updatedAt || null,
   updatedBy: settings.updatedBy || null,
 });
@@ -162,13 +201,24 @@ module.exports = async function (context, req, overrides = {}) {
       return;
     }
 
+    const churchInfo = parseContentObject(body.churchInfo, 'churchInfo');
+    const siteCopy = parseContentObject(body.siteCopy, 'siteCopy');
+    if (churchInfo.error || siteCopy.error) {
+      context.res = { status: 400, body: { error: churchInfo.error || siteCopy.error } };
+      return;
+    }
+
     const previous = await deps.getCurrentSettings();
+    const nextChurchInfo = churchInfo.omitted ? previous.churchInfo || null : churchInfo.value;
+    const nextSiteCopy = siteCopy.omitted ? previous.siteCopy || null : siteCopy.value;
     const saved = await deps.saveSettings(
       {
         themeId: nextThemeId,
         heroImagePath: hero.value,
         pastorImagePath: pastor.value,
         logoImagePath: logo.value,
+        churchInfoJson: toJson(nextChurchInfo),
+        siteCopyJson: toJson(nextSiteCopy),
       },
       actorOf(auth.principal)
     );

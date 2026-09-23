@@ -180,6 +180,88 @@ test('blob cleanup failure does not undo saved settings', async () => {
   assert.strictEqual(context.res.status, 200);
 });
 
+test('public get returns stored church info and site copy', async () => {
+  const context = contextOf();
+  await handler(
+    context,
+    { method: 'GET', headers: {} },
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        heroImagePath: null,
+        pastorImagePath: null,
+        logoImagePath: null,
+        churchInfo: { phone: '0400 111 222' },
+        siteCopy: { home: { hero: { lead: { en: 'Hello', ko: '안녕' } } } },
+        updatedAt: null,
+        updatedBy: null,
+      }),
+      publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+    }
+  );
+  assert.strictEqual(context.res.status, 200);
+  assert.strictEqual(context.res.body.churchInfo.phone, '0400 111 222');
+  assert.strictEqual(context.res.body.siteCopy.home.hero.lead.en, 'Hello');
+});
+
+test('an admin can save church info without wiping existing site copy', async () => {
+  const context = contextOf();
+  const saved = [];
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: null,
+      pastorImagePath: null,
+      logoImagePath: null,
+      churchInfo: { phone: '0400 000 000' },
+    }),
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        heroImagePath: null,
+        pastorImagePath: null,
+        logoImagePath: null,
+        churchInfo: { phone: '0433 576 500' },
+        siteCopy: { footer: { tagline: { en: 'Keep me' } } },
+      }),
+      saveSettings: async (next) => {
+        saved.push(next);
+        return {
+          ...next,
+          churchInfo: JSON.parse(next.churchInfoJson),
+          siteCopy: JSON.parse(next.siteCopyJson),
+        };
+      },
+      deleteBlob: async () => {},
+      publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+    }
+  );
+  assert.strictEqual(context.res.status, 200);
+  assert.ok(saved[0].churchInfoJson.includes('0400 000 000'));
+  assert.ok(saved[0].siteCopyJson.includes('Keep me'));
+});
+
+test('rejects church info that is not an object', async () => {
+  const context = contextOf();
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: null,
+      pastorImagePath: null,
+      logoImagePath: null,
+      churchInfo: 'nope',
+    }),
+    {
+      getCurrentSettings: async () => ({}),
+      saveSettings: async () => ({}),
+      deleteBlob: async () => {},
+    }
+  );
+  assert.strictEqual(context.res.status, 400);
+});
+
 test('rejects a put that omits the logo path', async () => {
   const context = contextOf();
   await handler(
