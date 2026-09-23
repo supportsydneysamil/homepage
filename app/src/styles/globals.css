@@ -1858,10 +1858,16 @@ p {
   text-transform: uppercase;
 }
 
+/* auto-fill keeps both tracks, so a field's width comes from its role rather
+   than from how many siblings happen to share its group. */
 .settings-field-group__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr));
   gap: 0.9rem 1.1rem;
+}
+
+.settings-field-group--full .settings-bilingual {
+  grid-column: 1 / -1;
 }
 
 .settings-bilingual,

@@ -51,7 +51,7 @@ const SiteCopyFields = ({
         count={5 + value.about.values.length * 2}
       >
         <CopySection title={isKo ? '페이지 머리말' : 'Page header'} count={3} open>
-          <FieldGroup title={primary}>
+          <FieldGroup title={primary} fullWidth>
             <BilingualField
               fieldPath="about.title"
               label={isKo ? '제목' : 'Title'}
@@ -64,7 +64,6 @@ const SiteCopyFields = ({
               value={value.about.description}
               onChange={(description) => setAbout({ description })}
               multiline
-              full
             />
           </FieldGroup>
           <FieldGroup title={supporting}>
@@ -101,21 +100,19 @@ const SiteCopyFields = ({
                 value={item.body}
                 onChange={(body) => setAbout({ values: replaceAt(value.about.values, index, { body }) })}
                 multiline
-                full
               />
             </article>
           ))}
         </CopySection>
 
         <CopySection title={isKo ? '우리의 고백' : 'Our heartbeat'} count={2}>
-          <FieldGroup title={primary}>
+          <FieldGroup title={primary} fullWidth>
             <BilingualField
               fieldPath="about.quote"
               label={isKo ? '인용문' : 'Quote'}
               value={value.about.quote}
               onChange={(quote) => setAbout({ quote })}
               multiline
-              full
             />
           </FieldGroup>
           <FieldGroup title={supporting}>
@@ -135,7 +132,7 @@ const SiteCopyFields = ({
         count={9}
       >
         <CopySection title={isKo ? '페이지 머리말' : 'Page header'} count={3} open>
-          <FieldGroup title={primary}>
+          <FieldGroup title={primary} fullWidth>
             <BilingualField
               fieldPath="worship.title"
               label={isKo ? '제목' : 'Title'}
@@ -148,7 +145,6 @@ const SiteCopyFields = ({
               value={value.worship.description}
               onChange={(description) => setWorship({ description })}
               multiline
-              full
             />
           </FieldGroup>
           <FieldGroup title={supporting}>
@@ -179,7 +175,7 @@ const SiteCopyFields = ({
         </CopySection>
 
         <CopySection title={isKo ? '예배 안내' : 'Service intro'} count={3}>
-          <FieldGroup title={primary}>
+          <FieldGroup title={primary} fullWidth>
             <BilingualField
               fieldPath="worship.timesTitle"
               label={isKo ? '제목' : 'Title'}
@@ -192,7 +188,6 @@ const SiteCopyFields = ({
               value={value.worship.timesIntro}
               onChange={(timesIntro) => setWorship({ timesIntro })}
               multiline
-              full
             />
           </FieldGroup>
           <FieldGroup title={supporting}>
@@ -223,7 +218,7 @@ const SiteCopyFields = ({
         count={5}
       >
         <CopySection title={isKo ? '페이지 머리말' : 'Page header'} count={3} open>
-          <FieldGroup title={primary}>
+          <FieldGroup title={primary} fullWidth>
             <BilingualField
               fieldPath="contact.title"
               label={isKo ? '제목' : 'Title'}
@@ -236,7 +231,6 @@ const SiteCopyFields = ({
               value={value.contact.description}
               onChange={(description) => setContact({ description })}
               multiline
-              full
             />
           </FieldGroup>
           <FieldGroup title={supporting}>
@@ -275,14 +269,13 @@ const SiteCopyFields = ({
         count={8}
       >
         <CopySection title={isKo ? '소개 문구' : 'Tagline'} count={1} open>
-          <FieldGroup title={primary}>
+          <FieldGroup title={primary} fullWidth>
             <BilingualField
               fieldPath="footer.tagline"
               label={isKo ? '푸터 문구' : 'Tagline'}
               value={value.footer.tagline}
               onChange={(tagline) => setFooter({ tagline })}
               multiline
-              full
             />
           </FieldGroup>
         </CopySection>

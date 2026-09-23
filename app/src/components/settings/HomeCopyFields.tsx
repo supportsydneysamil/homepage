@@ -31,7 +31,7 @@ const HomeCopyFields = ({
         count={7}
         open
       >
-        <FieldGroup title={primary}>
+        <FieldGroup title={primary} fullWidth>
           <BilingualField
             fieldPath="home.hero.title"
             label={isKo ? '큰 제목' : 'Headline'}
@@ -39,7 +39,6 @@ const HomeCopyFields = ({
             value={value.hero.title}
             onChange={(title) => setSection('hero', { title })}
             multiline
-            full
           />
           <BilingualField
             fieldPath="home.hero.lead"
@@ -47,7 +46,6 @@ const HomeCopyFields = ({
             value={value.hero.lead}
             onChange={(lead) => setSection('hero', { lead })}
             multiline
-            full
           />
         </FieldGroup>
         <FieldGroup title={supporting}>
@@ -87,7 +85,6 @@ const HomeCopyFields = ({
             }
             value={value.hero.photoAlt}
             onChange={(photoAlt) => setSection('hero', { photoAlt })}
-            full
           />
         </FieldGroup>
       </CopySection>
@@ -130,7 +127,7 @@ const HomeCopyFields = ({
         description={isKo ? '교회의 핵심 가치 세 가지' : 'The church’s three core values'}
         count={3 + value.pillars.items.length * 2}
       >
-        <FieldGroup title={primary}>
+        <FieldGroup title={primary} fullWidth>
           <BilingualField
             fieldPath="home.pillars.title"
             label={isKo ? '섹션 제목' : 'Section title'}
@@ -143,7 +140,6 @@ const HomeCopyFields = ({
             value={value.pillars.intro}
             onChange={(intro) => setSection('pillars', { intro })}
             multiline
-            full
           />
         </FieldGroup>
         <FieldGroup title={supporting}>
@@ -178,7 +174,6 @@ const HomeCopyFields = ({
                   setSection('pillars', { items: replaceAt(value.pillars.items, index, { body }) })
                 }
                 multiline
-                full
               />
             </article>
           ))}
@@ -190,7 +185,7 @@ const HomeCopyFields = ({
         description={isKo ? '이벤트·설교·자료 카드 위의 안내 문구' : 'Copy around event, sermon, and resource cards'}
         count={5}
       >
-        <FieldGroup title={primary}>
+        <FieldGroup title={primary} fullWidth>
           <BilingualField
             fieldPath="home.weekly.title"
             label={isKo ? '섹션 제목' : 'Section title'}
@@ -203,7 +198,6 @@ const HomeCopyFields = ({
             value={value.weekly.intro}
             onChange={(intro) => setSection('weekly', { intro })}
             multiline
-            full
           />
         </FieldGroup>
         <FieldGroup title={supporting}>
@@ -233,7 +227,7 @@ const HomeCopyFields = ({
         description={isKo ? '예배 분위기, 어린이, 위치 안내' : 'Service atmosphere, children, and location'}
         count={10}
       >
-        <FieldGroup title={primary}>
+        <FieldGroup title={primary} fullWidth>
           <BilingualField
             fieldPath="home.visit.title"
             label={isKo ? '섹션 제목' : 'Section title'}
@@ -246,7 +240,6 @@ const HomeCopyFields = ({
             value={value.visit.intro}
             onChange={(intro) => setSection('visit', { intro })}
             multiline
-            full
           />
           <BilingualField
             fieldPath="home.visit.whatToExpect"
@@ -254,7 +247,6 @@ const HomeCopyFields = ({
             value={value.visit.whatToExpect}
             onChange={(whatToExpect) => setSection('visit', { whatToExpect })}
             multiline
-            full
           />
           <BilingualField
             fieldPath="home.visit.children"
@@ -262,7 +254,6 @@ const HomeCopyFields = ({
             value={value.visit.children}
             onChange={(children) => setSection('visit', { children })}
             multiline
-            full
           />
         </FieldGroup>
         <FieldGroup title={supporting}>
@@ -310,7 +301,7 @@ const HomeCopyFields = ({
         description={isKo ? '방문자가 선택할 수 있는 연결 카드' : 'Link cards that guide visitors forward'}
         count={3 + value.nextSteps.items.length * 3}
       >
-        <FieldGroup title={primary}>
+        <FieldGroup title={primary} fullWidth>
           <BilingualField
             fieldPath="home.nextSteps.title"
             label={isKo ? '섹션 제목' : 'Section title'}
@@ -323,7 +314,6 @@ const HomeCopyFields = ({
             value={value.nextSteps.intro}
             onChange={(intro) => setSection('nextSteps', { intro })}
             multiline
-            full
           />
         </FieldGroup>
         <FieldGroup title={supporting}>
@@ -361,7 +351,6 @@ const HomeCopyFields = ({
                   })
                 }
                 multiline
-                full
               />
               <BilingualField
                 fieldPath="home.nextSteps.items[].label"
@@ -381,14 +370,13 @@ const HomeCopyFields = ({
         description={isKo ? '홈 하단의 담임목사 인사말' : 'The lead pastor message near the end of Home'}
         count={5}
       >
-        <FieldGroup title={primary}>
+        <FieldGroup title={primary} fullWidth>
           <BilingualField
             fieldPath="home.pastor.quote"
             label={isKo ? '인용문' : 'Quote'}
             value={value.pastor.quote}
             onChange={(quote) => setSection('pastor', { quote })}
             multiline
-            full
           />
           <BilingualField
             fieldPath="home.pastor.body"
@@ -396,7 +384,6 @@ const HomeCopyFields = ({
             value={value.pastor.body}
             onChange={(body) => setSection('pastor', { body })}
             multiline
-            full
           />
         </FieldGroup>
         <FieldGroup title={supporting}>
@@ -424,7 +411,6 @@ const HomeCopyFields = ({
             }
             value={value.pastor.photoAlt}
             onChange={(photoAlt) => setSection('pastor', { photoAlt })}
-            full
           />
         </FieldGroup>
       </CopySection>
