@@ -34,8 +34,8 @@ export type ChurchInfo = {
   gatherings: ChurchGathering[];
 };
 
-const MAX_SERVICES = 4;
-const MAX_GATHERINGS = 6;
+export const MAX_SERVICES = 4;
+export const MAX_GATHERINGS = 6;
 const MAX_TEXT = 200;
 const MAX_DETAIL = 400;
 

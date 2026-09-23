@@ -118,13 +118,6 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
       copyDescription: isKo
         ? '레이아웃은 그대로 두고 한/영 문장만 수정합니다. HTML은 입력하지 마세요.'
         : 'Edit Korean and English sentences. Layout stays fixed. Do not enter HTML.',
-      addService: isKo ? '예배 시간 추가' : 'Add a service',
-      addGathering: isKo ? '모임 추가' : 'Add a gathering',
-      remove: isKo ? '삭제' : 'Remove',
-      namesTitle: isKo ? '교회와 목사' : 'Church and pastor',
-      contactFacts: isKo ? '연락처와 위치' : 'Contact and location',
-      servicesTitle: isKo ? '주일 예배' : 'Sunday services',
-      gatheringsTitle: isKo ? '그 외 모임' : 'Other gatherings',
       loading: isKo ? '권한 확인 중...' : 'Checking permissions...',
       forbidden: isKo ? '관리자 권한이 필요합니다.' : 'Administrator role is required.',
       themeTitle: isKo ? '홈페이지 테마' : 'Website Theme',
@@ -300,20 +293,7 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
             <h2>{labels.churchTitle}</h2>
             <p className="muted">{labels.churchDescription}</p>
           </div>
-          <ChurchInfoFields
-            value={draftChurchInfo}
-            onChange={setDraftChurchInfo}
-            isKo={isKo}
-            labels={{
-              churchTitle: labels.namesTitle,
-              contactTitle: labels.contactFacts,
-              servicesTitle: labels.servicesTitle,
-              gatheringsTitle: labels.gatheringsTitle,
-              addService: labels.addService,
-              addGathering: labels.addGathering,
-              remove: labels.remove,
-            }}
-          />
+          <ChurchInfoFields value={draftChurchInfo} onChange={setDraftChurchInfo} isKo={isKo} />
         </section>
       ) : null}
 
