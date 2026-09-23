@@ -121,10 +121,6 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
       loading: isKo ? '권한 확인 중...' : 'Checking permissions...',
       forbidden: isKo ? '관리자 권한이 필요합니다.' : 'Administrator role is required.',
       themeTitle: isKo ? '홈페이지 테마' : 'Website Theme',
-      photosTitle: isKo ? '홈페이지 사진' : 'Homepage Photos',
-      photosDescription: isKo
-        ? '홈 첫 화면의 교회 사진과 담임목사 사진에만 적용됩니다.'
-        : 'These photos appear only in the homepage hero and pastor sections.',
       logoTitle: isKo ? '교회 로고' : 'Church Logo',
       logoDescription: isKo
         ? '헤더와 푸터의 브랜드 마크에 적용됩니다. 교회 이름은 그대로 둡니다.'
@@ -132,13 +128,7 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
       logoHint: isKo
         ? '정사각 PNG(투명 배경) 권장'
         : 'Square PNG with a transparent background recommended',
-      heroTitle: isKo ? '교회 히어로 사진' : 'Church Hero Photo',
-      heroHint: isKo ? '가로형 4:3 이상 권장' : 'Landscape, 4:3 or wider recommended',
-      pastorTitle: isKo ? '담임목사 사진' : 'Pastor Photo',
-      pastorHint: isKo ? '세로형 4:5 권장' : 'Portrait, about 4:5 recommended',
-      choose: isKo ? '사진 선택' : 'Choose Photo',
       chooseLogo: isKo ? '로고 선택' : 'Choose Logo',
-      reset: isKo ? '기본 사진으로 되돌리기' : 'Restore Default',
       resetLogo: isKo ? '기본 마크로 되돌리기' : 'Restore Default Mark',
       save: isKo ? '전체 적용 저장' : 'Save and Apply Globally',
       saving: isKo ? '저장 중...' : 'Saving...',
@@ -303,7 +293,32 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
             <h2>{labels.copyTitle}</h2>
             <p className="muted">{labels.copyDescription}</p>
           </div>
-          <SiteCopyFields value={draftSiteCopy} onChange={setDraftSiteCopy} isKo={isKo} />
+          <SiteCopyFields
+            value={draftSiteCopy}
+            onChange={setDraftSiteCopy}
+            isKo={isKo}
+            heroPhoto={{
+              previewUrl: previewSrc({
+                pendingFileUrl: heroPreviewUrl,
+                pendingReset: heroReset,
+                publishedUrl: heroImageUrl,
+                fallback: DEFAULT_HERO_IMAGE,
+              }),
+              onSelect: (event) => selectPhoto(event, setHeroFile, setHeroPreviewUrl, setHeroReset),
+              onReset: () => resetPhoto(setHeroFile, setHeroPreviewUrl, setHeroReset),
+            }}
+            pastorPhoto={{
+              previewUrl: previewSrc({
+                pendingFileUrl: pastorPreviewUrl,
+                pendingReset: pastorReset,
+                publishedUrl: pastorImageUrl,
+                fallback: DEFAULT_PASTOR_IMAGE,
+              }),
+              onSelect: (event) =>
+                selectPhoto(event, setPastorFile, setPastorPreviewUrl, setPastorReset),
+              onReset: () => resetPhoto(setPastorFile, setPastorPreviewUrl, setPastorReset),
+            }}
+          />
         </section>
       ) : null}
 
@@ -326,26 +341,6 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
             }),
             onSelect: (event) => selectPhoto(event, setLogoFile, setLogoPreviewUrl, setLogoReset),
             onReset: () => resetPhoto(setLogoFile, setLogoPreviewUrl, setLogoReset),
-          }}
-          hero={{
-            previewUrl: previewSrc({
-              pendingFileUrl: heroPreviewUrl,
-              pendingReset: heroReset,
-              publishedUrl: heroImageUrl,
-              fallback: DEFAULT_HERO_IMAGE,
-            }),
-            onSelect: (event) => selectPhoto(event, setHeroFile, setHeroPreviewUrl, setHeroReset),
-            onReset: () => resetPhoto(setHeroFile, setHeroPreviewUrl, setHeroReset),
-          }}
-          pastor={{
-            previewUrl: previewSrc({
-              pendingFileUrl: pastorPreviewUrl,
-              pendingReset: pastorReset,
-              publishedUrl: pastorImageUrl,
-              fallback: DEFAULT_PASTOR_IMAGE,
-            }),
-            onSelect: (event) => selectPhoto(event, setPastorFile, setPastorPreviewUrl, setPastorReset),
-            onReset: () => resetPhoto(setPastorFile, setPastorPreviewUrl, setPastorReset),
           }}
         />
       ) : null}

@@ -1360,12 +1360,6 @@ p {
   margin: 0;
 }
 
-.settings-photos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-}
-
 .settings-photo {
   display: flex;
   flex-direction: column;
@@ -1389,12 +1383,8 @@ p {
   border-radius: 48% 48% 1rem 1rem;
 }
 
-/* Narrower than the hero frame by exactly enough to match its height, so both
-   captions start on the same line and stay there as the cards resize. */
 .settings-photo__frame--pastor {
-  width: calc(100% * 0.9 / 1.12);
   aspect-ratio: 0.9 / 1;
-  margin-inline: auto;
   border-radius: 1.2rem;
 }
 
@@ -1856,6 +1846,47 @@ p {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.settings-photo-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--site-line);
+  border-radius: 1rem;
+  background: var(--site-surface-soft);
+}
+
+.settings-photo-field .settings-photo__frame {
+  flex: none;
+  width: 190px;
+  border-color: var(--site-line);
+  background: var(--site-surface);
+}
+
+/* Narrower than the hero frame by exactly enough to match its height, so both
+   section previews are the same size on screen. */
+.settings-photo-field .settings-photo__frame--pastor {
+  width: calc(190px * 0.9 / 1.12);
+}
+
+.settings-photo-field__body {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.settings-photo-field__hint {
+  margin: 0;
+  color: var(--site-muted);
+}
+
+.settings-photo-field .settings-photo__reset {
+  border-color: var(--site-line);
+  background: var(--site-surface);
+  color: var(--site-ink);
 }
 
 /* One phrase per row, so the only horizontal relationship a reader has to

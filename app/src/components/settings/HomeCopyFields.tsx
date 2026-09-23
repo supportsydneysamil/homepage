@@ -1,6 +1,8 @@
 import type { SiteCopy } from '../../lib/siteCopy';
+import { DEFAULT_HERO_IMAGE, DEFAULT_PASTOR_IMAGE } from '../../lib/siteSettings';
 import BilingualField from './BilingualField';
 import { CopySection, FieldGroup } from './SiteCopyEditorParts';
+import SitePhotoField, { type PhotoSlot } from './SitePhotoField';
 
 type HomeCopy = SiteCopy['home'];
 
@@ -11,10 +13,14 @@ const HomeCopyFields = ({
   value,
   onChange,
   isKo,
+  heroPhoto,
+  pastorPhoto,
 }: {
   value: HomeCopy;
   onChange: (next: HomeCopy) => void;
   isKo: boolean;
+  heroPhoto: PhotoSlot;
+  pastorPhoto: PhotoSlot;
 }) => {
   const setSection = <K extends keyof HomeCopy>(key: K, patch: Partial<HomeCopy[K]>) =>
     onChange({ ...value, [key]: { ...value[key], ...patch } });
@@ -22,6 +28,9 @@ const HomeCopyFields = ({
   const primary = isKo ? '주요 문구' : 'Primary copy';
   const supporting = isKo ? '버튼과 보조 문구' : 'Buttons and supporting copy';
   const accessibility = isKo ? '접근성 문구' : 'Accessibility copy';
+  const photoLabel = isKo ? '섹션 사진' : 'Section photo';
+  const choosePhoto = isKo ? '사진 선택' : 'Choose Photo';
+  const restorePhoto = isKo ? '기본 사진으로 되돌리기' : 'Restore Default';
 
   return (
     <>
@@ -31,6 +40,16 @@ const HomeCopyFields = ({
         count={7}
         open
       >
+        <SitePhotoField
+          label={photoLabel}
+          hint={isKo ? '가로형 4:3 이상 권장' : 'Landscape, 4:3 or wider recommended'}
+          alt={isKo ? '교회 히어로 사진' : 'Church hero photo'}
+          fallback={DEFAULT_HERO_IMAGE}
+          variant="hero"
+          chooseLabel={choosePhoto}
+          resetLabel={restorePhoto}
+          slot={heroPhoto}
+        />
         <FieldGroup title={primary}>
           <BilingualField
             fieldPath="home.hero.title"
@@ -370,6 +389,16 @@ const HomeCopyFields = ({
         description={isKo ? '홈 하단의 담임목사 인사말' : 'The lead pastor message near the end of Home'}
         count={5}
       >
+        <SitePhotoField
+          label={photoLabel}
+          hint={isKo ? '세로형 4:5 권장' : 'Portrait, about 4:5 recommended'}
+          alt={isKo ? '담임목사 사진' : 'Pastor photo'}
+          fallback={DEFAULT_PASTOR_IMAGE}
+          variant="pastor"
+          chooseLabel={choosePhoto}
+          resetLabel={restorePhoto}
+          slot={pastorPhoto}
+        />
         <FieldGroup title={primary}>
           <BilingualField
             fieldPath="home.pastor.quote"

@@ -2,6 +2,7 @@ import type { SiteCopy } from '../../lib/siteCopy';
 import BilingualField from './BilingualField';
 import { CopySection, FieldGroup, PageAccordion } from './SiteCopyEditorParts';
 import HomeCopyFields from './HomeCopyFields';
+import type { PhotoSlot } from './SitePhotoField';
 
 const replaceAt = <T,>(items: T[], index: number, patch: Partial<T>) =>
   items.map((item, i) => (i === index ? { ...item, ...patch } : item));
@@ -10,10 +11,14 @@ const SiteCopyFields = ({
   value,
   onChange,
   isKo,
+  heroPhoto,
+  pastorPhoto,
 }: {
   value: SiteCopy;
   onChange: (next: SiteCopy) => void;
   isKo: boolean;
+  heroPhoto: PhotoSlot;
+  pastorPhoto: PhotoSlot;
 }) => {
   const setAbout = (patch: Partial<SiteCopy['about']>) =>
     onChange({ ...value, about: { ...value.about, ...patch } });
@@ -42,6 +47,8 @@ const SiteCopyFields = ({
           value={value.home}
           onChange={(home) => onChange({ ...value, home })}
           isKo={isKo}
+          heroPhoto={heroPhoto}
+          pastorPhoto={pastorPhoto}
         />
       </PageAccordion>
 

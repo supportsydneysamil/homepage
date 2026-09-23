@@ -21,12 +21,20 @@ const localizedPaths = (value: unknown, prefix = ''): string[] => {
 const pathsFromHtml = (html: string) =>
   Array.from(html.matchAll(/data-field-path="([^"]+)"/g), (match) => match[1]);
 
+const photoSlot = {
+  previewUrl: '',
+  onSelect: () => undefined,
+  onReset: () => undefined,
+};
+
 const editorHtml = () =>
   renderToStaticMarkup(
     createElement(SiteCopyFields, {
       value: DEFAULT_SITE_COPY,
       onChange: () => undefined,
       isKo: true,
+      heroPhoto: photoSlot,
+      pastorPhoto: photoSlot,
     })
   );
 
