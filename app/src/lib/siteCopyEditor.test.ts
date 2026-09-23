@@ -51,3 +51,10 @@ test('home editor exposes every localized homepage setting', () => {
 
   assert.deepStrictEqual(Array.from(new Set(rendered)).sort(), Array.from(new Set(expected)).sort());
 });
+
+test('site copy editor exposes every localized setting', () => {
+  assert.deepStrictEqual(
+    Array.from(new Set(pathsFromHtml(editorHtml()))).sort(),
+    Array.from(new Set(localizedPaths(DEFAULT_SITE_COPY))).sort()
+  );
+});
