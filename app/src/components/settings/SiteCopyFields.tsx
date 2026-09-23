@@ -1,6 +1,7 @@
 import type { SiteCopy } from '../../lib/siteCopy';
 import BilingualField from './BilingualField';
 import { CopySection, PageAccordion } from './SiteCopyEditorParts';
+import HomeCopyFields from './HomeCopyFields';
 
 const replaceAt = <T,>(items: T[], index: number, patch: Partial<T>) =>
   items.map((item, i) => (i === index ? { ...item, ...patch } : item));
@@ -14,17 +15,6 @@ const SiteCopyFields = ({
   onChange: (next: SiteCopy) => void;
   isKo: boolean;
 }) => {
-  const home = value.home;
-  const setHero = (patch: Partial<SiteCopy['home']['hero']>) =>
-    onChange({ ...value, home: { ...home, hero: { ...home.hero, ...patch } } });
-  const setPillars = (patch: Partial<SiteCopy['home']['pillars']>) =>
-    onChange({ ...value, home: { ...home, pillars: { ...home.pillars, ...patch } } });
-  const setVisit = (patch: Partial<SiteCopy['home']['visit']>) =>
-    onChange({ ...value, home: { ...home, visit: { ...home.visit, ...patch } } });
-  const setPastor = (patch: Partial<SiteCopy['home']['pastor']>) =>
-    onChange({ ...value, home: { ...home, pastor: { ...home.pastor, ...patch } } });
-  const setNextSteps = (patch: Partial<SiteCopy['home']['nextSteps']>) =>
-    onChange({ ...value, home: { ...home, nextSteps: { ...home.nextSteps, ...patch } } });
   const setAbout = (patch: Partial<SiteCopy['about']>) =>
     onChange({ ...value, about: { ...value.about, ...patch } });
   const setWorship = (patch: Partial<SiteCopy['worship']>) =>
@@ -38,146 +28,19 @@ const SiteCopyFields = ({
     <div className="settings-accordions">
       <PageAccordion
         title={isKo ? '홈' : 'Home'}
-        meta={isKo ? '첫 화면 · 기둥 · 방문 안내 · 담임목사 · 다음 걸음' : 'Hero, pillars, visit, pastor, next steps'}
-        count={24}
+        meta={isKo ? '첫 화면부터 담임목사 소개까지' : 'From hero to pastor feature'}
+        count={
+          37 +
+          value.home.pillars.items.length * 2 +
+          value.home.nextSteps.items.length * 3
+        }
         open
       >
-        <CopySection title={isKo ? '첫 화면' : 'Hero'} count={4} open>
-          <BilingualField
-            label={isKo ? '큰 제목' : 'Headline'}
-            hint={isKo ? '줄바꿈이 그대로 반영됩니다' : 'Line breaks are kept'}
-            value={home.hero.title}
-            onChange={(title) => setHero({ title })}
-            multiline
-            full
-          />
-          <BilingualField
-            label={isKo ? '소개 문장' : 'Lead'}
-            value={home.hero.lead}
-            onChange={(lead) => setHero({ lead })}
-            multiline
-            full
-          />
-          <BilingualField
-            label={isKo ? '방문 버튼' : 'Visit button'}
-            value={home.hero.ctaVisit}
-            onChange={(ctaVisit) => setHero({ ctaVisit })}
-          />
-          <BilingualField
-            label={isKo ? '길찾기 버튼' : 'Directions button'}
-            value={home.hero.ctaDirections}
-            onChange={(ctaDirections) => setHero({ ctaDirections })}
-          />
-        </CopySection>
-
-        <CopySection title={isKo ? '교회의 세 기둥' : 'Church pillars'} count={8}>
-          <BilingualField
-            label={isKo ? '섹션 제목' : 'Section title'}
-            value={home.pillars.title}
-            onChange={(title) => setPillars({ title })}
-          />
-          <BilingualField
-            label={isKo ? '섹션 소개' : 'Section intro'}
-            value={home.pillars.intro}
-            onChange={(intro) => setPillars({ intro })}
-            multiline
-            full
-          />
-          {home.pillars.items.map((item, index) => (
-            <div className="settings-item" key={`pillar-${index}`}>
-              <div className="settings-item__head">
-                <span className="settings-item__index">
-                  {isKo ? '기둥' : 'Pillar'} {String(index + 1).padStart(2, '0')}
-                </span>
-              </div>
-              <BilingualField
-                label={isKo ? '제목' : 'Title'}
-                value={item.title}
-                onChange={(title) => setPillars({ items: replaceAt(home.pillars.items, index, { title }) })}
-              />
-              <BilingualField
-                label={isKo ? '설명' : 'Description'}
-                value={item.body}
-                onChange={(body) => setPillars({ items: replaceAt(home.pillars.items, index, { body }) })}
-                multiline
-                full
-              />
-            </div>
-          ))}
-        </CopySection>
-
-        <CopySection title={isKo ? '처음 방문 안내' : 'First visit'} count={4}>
-          <BilingualField
-            label={isKo ? '섹션 제목' : 'Section title'}
-            value={home.visit.title}
-            onChange={(title) => setVisit({ title })}
-          />
-          <BilingualField
-            label={isKo ? '섹션 소개' : 'Section intro'}
-            value={home.visit.intro}
-            onChange={(intro) => setVisit({ intro })}
-            multiline
-            full
-          />
-          <BilingualField
-            label={isKo ? '예배 분위기' : 'What to expect'}
-            value={home.visit.whatToExpect}
-            onChange={(whatToExpect) => setVisit({ whatToExpect })}
-            multiline
-            full
-          />
-          <BilingualField
-            label={isKo ? '어린이와 언어' : 'Children and language'}
-            value={home.visit.children}
-            onChange={(children) => setVisit({ children })}
-            multiline
-            full
-          />
-        </CopySection>
-
-        <CopySection title={isKo ? '담임목사 소개' : 'Pastor feature'} count={2}>
-          <BilingualField
-            label={isKo ? '인용문' : 'Quote'}
-            value={home.pastor.quote}
-            onChange={(quote) => setPastor({ quote })}
-            multiline
-            full
-          />
-          <BilingualField
-            label={isKo ? '본문' : 'Body'}
-            value={home.pastor.body}
-            onChange={(body) => setPastor({ body })}
-            multiline
-            full
-          />
-        </CopySection>
-
-        <CopySection title={isKo ? '다음 걸음' : 'Next steps'} count={6}>
-          {home.nextSteps.items.map((item, index) => (
-            <div className="settings-item" key={`step-${index}`}>
-              <div className="settings-item__head">
-                <span className="settings-item__index">
-                  {isKo ? '카드' : 'Card'} {String(index + 1).padStart(2, '0')}
-                </span>
-                <span className="settings-item__note">{item.href}</span>
-              </div>
-              <BilingualField
-                label={isKo ? '제목' : 'Title'}
-                value={item.title}
-                onChange={(title) => setNextSteps({ items: replaceAt(home.nextSteps.items, index, { title }) })}
-              />
-              <BilingualField
-                label={isKo ? '설명' : 'Description'}
-                value={item.description}
-                onChange={(description) =>
-                  setNextSteps({ items: replaceAt(home.nextSteps.items, index, { description }) })
-                }
-                multiline
-                full
-              />
-            </div>
-          ))}
-        </CopySection>
+        <HomeCopyFields
+          value={value.home}
+          onChange={(home) => onChange({ ...value, home })}
+          isKo={isKo}
+        />
       </PageAccordion>
 
       <PageAccordion
