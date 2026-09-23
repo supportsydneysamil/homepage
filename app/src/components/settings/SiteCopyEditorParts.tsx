@@ -48,16 +48,8 @@ export const CopySection = ({
   </details>
 );
 
-export const FieldGroup = ({
-  title,
-  fullWidth,
-  children,
-}: {
-  title: string;
-  fullWidth?: boolean;
-  children: ReactNode;
-}) => (
-  <section className={fullWidth ? 'settings-field-group settings-field-group--full' : 'settings-field-group'}>
+export const FieldGroup = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section className="settings-field-group">
     <h4>{title}</h4>
     <div className="settings-field-group__grid">{children}</div>
   </section>

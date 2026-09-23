@@ -31,7 +31,7 @@ const HomeCopyFields = ({
         count={7}
         open
       >
-        <FieldGroup title={primary} fullWidth>
+        <FieldGroup title={primary}>
           <BilingualField
             fieldPath="home.hero.title"
             label={isKo ? '큰 제목' : 'Headline'}
@@ -127,7 +127,7 @@ const HomeCopyFields = ({
         description={isKo ? '교회의 핵심 가치 세 가지' : 'The church’s three core values'}
         count={3 + value.pillars.items.length * 2}
       >
-        <FieldGroup title={primary} fullWidth>
+        <FieldGroup title={primary}>
           <BilingualField
             fieldPath="home.pillars.title"
             label={isKo ? '섹션 제목' : 'Section title'}
@@ -185,7 +185,7 @@ const HomeCopyFields = ({
         description={isKo ? '이벤트·설교·자료 카드 위의 안내 문구' : 'Copy around event, sermon, and resource cards'}
         count={5}
       >
-        <FieldGroup title={primary} fullWidth>
+        <FieldGroup title={primary}>
           <BilingualField
             fieldPath="home.weekly.title"
             label={isKo ? '섹션 제목' : 'Section title'}
@@ -227,7 +227,7 @@ const HomeCopyFields = ({
         description={isKo ? '예배 분위기, 어린이, 위치 안내' : 'Service atmosphere, children, and location'}
         count={10}
       >
-        <FieldGroup title={primary} fullWidth>
+        <FieldGroup title={primary}>
           <BilingualField
             fieldPath="home.visit.title"
             label={isKo ? '섹션 제목' : 'Section title'}
@@ -301,7 +301,7 @@ const HomeCopyFields = ({
         description={isKo ? '방문자가 선택할 수 있는 연결 카드' : 'Link cards that guide visitors forward'}
         count={3 + value.nextSteps.items.length * 3}
       >
-        <FieldGroup title={primary} fullWidth>
+        <FieldGroup title={primary}>
           <BilingualField
             fieldPath="home.nextSteps.title"
             label={isKo ? '섹션 제목' : 'Section title'}
@@ -370,7 +370,7 @@ const HomeCopyFields = ({
         description={isKo ? '홈 하단의 담임목사 인사말' : 'The lead pastor message near the end of Home'}
         count={5}
       >
-        <FieldGroup title={primary} fullWidth>
+        <FieldGroup title={primary}>
           <BilingualField
             fieldPath="home.pastor.quote"
             label={isKo ? '인용문' : 'Quote'}

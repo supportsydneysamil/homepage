@@ -1858,16 +1858,12 @@ p {
   text-transform: uppercase;
 }
 
-/* auto-fill keeps both tracks, so a field's width comes from its role rather
-   than from how many siblings happen to share its group. */
+/* One phrase per row, so the only horizontal relationship a reader has to
+   resolve is 한국어 vs English. */
 .settings-field-group__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr));
-  gap: 0.9rem 1.1rem;
-}
-
-.settings-field-group--full .settings-bilingual {
-  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
 }
 
 .settings-bilingual,
@@ -1890,7 +1886,6 @@ p {
     padding: 0.9rem;
   }
 
-  .settings-field-group__grid,
   .settings-bilingual__pair {
     grid-template-columns: minmax(0, 1fr);
   }
