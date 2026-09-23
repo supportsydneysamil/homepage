@@ -1678,8 +1678,10 @@ p {
 }
 
 .settings-item__note {
+  min-width: 0;
   font-size: 0.76rem;
   color: var(--site-muted);
+  overflow-wrap: anywhere;
 }
 
 .settings-item__remove {
@@ -1745,6 +1747,7 @@ p {
 
 .settings-accordion__meta {
   flex: 1;
+  min-width: 0;
   font-size: 0.8rem;
   color: var(--site-muted);
 }
@@ -1775,6 +1778,7 @@ p {
 
 .settings-count {
   display: inline-flex;
+  flex: 0 0 auto;
   min-width: 1.7rem;
   height: 1.7rem;
   align-items: center;
@@ -1860,33 +1864,58 @@ p {
   gap: 0.9rem 1.1rem;
 }
 
+.settings-bilingual,
+.settings-bilingual__pair,
+.settings-lang,
+.settings-lang :where(input, textarea),
+.settings-field-group__grid > * {
+  min-width: 0;
+}
+
 .settings-accordion > summary:focus-visible,
 .settings-copy-section > summary:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--site-accent) 24%, transparent);
   outline-offset: -3px;
 }
 
-.settings-subgroup {
-  display: grid;
-  gap: 0.9rem 1.1rem;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  align-items: start;
-}
+@media (max-width: 719px) {
+  .settings-accordion__body,
+  .settings-copy-section__body {
+    padding: 0.9rem;
+  }
 
-.settings-subgroup__title,
-.settings-subgroup > .settings-item {
-  grid-column: 1 / -1;
-}
+  .settings-field-group__grid,
+  .settings-bilingual__pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-.settings-subgroup__title {
-  margin: 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--site-line);
-  font-size: 0.73rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--site-muted);
+  .settings-accordion > summary,
+  .settings-copy-section > summary {
+    align-items: flex-start;
+  }
+
+  .settings-accordion__title {
+    order: 1;
+    flex: 1;
+  }
+
+  .settings-accordion > summary .settings-count {
+    order: 2;
+  }
+
+  .settings-accordion > summary::after {
+    order: 3;
+    margin: 0.4rem 0.15rem 0;
+  }
+
+  .settings-accordion__meta {
+    order: 4;
+    flex-basis: 100%;
+  }
+
+  .settings-item__head {
+    align-items: flex-start;
+  }
 }
 
 @keyframes float {
