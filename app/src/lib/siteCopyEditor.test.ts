@@ -3,6 +3,7 @@ import assert from 'node:assert';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import BilingualField from '../components/settings/BilingualField';
+import { SettingsValidationProvider } from '../components/settings/SettingsValidationContext';
 import SiteCopyFields from '../components/settings/SiteCopyFields';
 import { DEFAULT_SITE_COPY } from './siteCopy';
 
@@ -77,4 +78,21 @@ test('home photo fields expose composition controls and result previews', () => 
   assert.match(html, /구도 조절/);
   assert.match(html, /실제 결과/);
   assert.match(html, /구도 초기화/);
+});
+
+test('field validation marks bilingual inputs and explains the problem', () => {
+  const html = renderToStaticMarkup(
+    createElement(
+      SettingsValidationProvider,
+      { errors: { 'home.hero.title': '필수 값을 입력해 주세요.' } },
+      createElement(BilingualField, {
+        fieldPath: 'home.hero.title',
+        label: '큰 제목',
+        value: { ko: '', en: 'Headline' },
+        onChange: () => undefined,
+      })
+    )
+  );
+  assert.strictEqual((html.match(/aria-invalid="true"/g) || []).length, 2);
+  assert.match(html, /필수 값을 입력해 주세요/);
 });

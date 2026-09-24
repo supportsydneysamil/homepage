@@ -25,9 +25,9 @@ const AppearanceFields = ({
   onSelectTheme: (themeId: ThemeId) => void;
   logo: PhotoSlot;
 }) => (
-  <>
-    <section className="settings-section">
-      <h2>{labels.themeTitle}</h2>
+  <div className="settings-appearance">
+    <section className="settings-subsection">
+      <h3>{labels.themeTitle}</h3>
       <div className="settings-theme-grid">
         {THEME_OPTIONS.map((option) => {
           const isSelected = selectedTheme === option.id;
@@ -50,17 +50,33 @@ const AppearanceFields = ({
       </div>
     </section>
 
-    <section className="settings-section settings-photo-section">
+    <section className="settings-subsection settings-photo-section">
       <div className="settings-section__heading">
-        <h2>{labels.logoTitle}</h2>
+        <h3>{labels.logoTitle}</h3>
         <p className="muted">{labels.logoDescription}</p>
       </div>
       <article className="card settings-photo settings-logo">
         <div className="settings-photo__frame settings-photo__frame--logo">
           <BrandMark src={logo.previewUrl} />
         </div>
-        <h3>{labels.logoTitle}</h3>
         <p className="muted">{labels.logoHint}</p>
+        <p className="settings-photo__status" aria-live="polite">
+          <span
+            className={`settings-photo-field__dot settings-photo-field__dot--${logo.status ?? 'published'}`}
+            aria-hidden="true"
+          />
+          {logo.status === 'pending'
+            ? isKo
+              ? '새 로고 선택됨 · 저장 전'
+              : 'New logo selected · unsaved'
+            : logo.status === 'reset'
+              ? isKo
+                ? '기본 마크로 되돌리기 예정 · 저장 전'
+                : 'Will restore default mark · unsaved'
+              : isKo
+                ? '현재 게시된 로고'
+                : 'Currently published logo'}
+        </p>
         <PhotoControls
           chooseLabel={labels.chooseLogo}
           resetLabel={labels.resetLogo}
@@ -69,7 +85,7 @@ const AppearanceFields = ({
         />
       </article>
     </section>
-  </>
+  </div>
 );
 
 export default AppearanceFields;

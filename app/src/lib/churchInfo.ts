@@ -92,6 +92,9 @@ const clipped = (value: unknown, fallback: string, max = MAX_TEXT) => {
   return next ? next.slice(0, max) : fallback;
 };
 
+const optionalClipped = (value: unknown, fallback: string, max = MAX_TEXT) =>
+  typeof value === 'string' ? value.trim().slice(0, max) : fallback;
+
 export const parseLocalized = (value: unknown, fallback: LocalizedText): LocalizedText => {
   const row = asRecord(value);
   return {
@@ -155,7 +158,7 @@ export const parseChurchInfo = (input: unknown): ChurchInfo => {
     phone: clipped(row.phone, DEFAULT_CHURCH_INFO.phone, 40),
     email: clipped(row.email, DEFAULT_CHURCH_INFO.email, 120),
     addressLine1: clipped(row.addressLine1, DEFAULT_CHURCH_INFO.addressLine1),
-    addressLine2: clipped(row.addressLine2, DEFAULT_CHURCH_INFO.addressLine2),
+    addressLine2: optionalClipped(row.addressLine2, DEFAULT_CHURCH_INFO.addressLine2),
     suburb: clipped(row.suburb, DEFAULT_CHURCH_INFO.suburb),
     mapsQuery: clipped(row.mapsQuery, DEFAULT_CHURCH_INFO.mapsQuery, 300),
     pastorNameKo: clipped(row.pastorNameKo, DEFAULT_CHURCH_INFO.pastorNameKo),

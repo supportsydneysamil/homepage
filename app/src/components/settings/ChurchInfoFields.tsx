@@ -44,15 +44,17 @@ const ItemCard = ({
 }: {
   index: string;
   removeLabel: string;
-  onRemove: () => void;
+  onRemove?: () => void;
   children: ReactNode;
 }) => (
   <article className="settings-item">
     <div className="settings-item__head">
       <span className="settings-item__index">{index}</span>
-      <button type="button" className="settings-item__remove" onClick={onRemove}>
-        {removeLabel}
-      </button>
+      {onRemove ? (
+        <button type="button" className="settings-item__remove" onClick={onRemove}>
+          {removeLabel}
+        </button>
+      ) : null}
     </div>
     {children}
   </article>
@@ -83,16 +85,19 @@ const ChurchInfoFields = ({
       >
         <div className="settings-grid">
           <TextField
+            fieldPath="churchNameKo"
             label={isKo ? '한글 교회명' : 'Church name (KO)'}
             value={value.churchNameKo}
             onChange={(churchNameKo) => update({ churchNameKo })}
           />
           <TextField
+            fieldPath="churchNameEn"
             label={isKo ? '영문 교회명' : 'Church name (EN)'}
             value={value.churchNameEn}
             onChange={(churchNameEn) => update({ churchNameEn })}
           />
           <TextField
+            fieldPath="brandTitle"
             label={isKo ? '헤더 브랜드' : 'Header brand'}
             value={value.brandTitle}
             onChange={(brandTitle) => update({ brandTitle })}
@@ -107,11 +112,13 @@ const ChurchInfoFields = ({
       >
         <div className="settings-grid">
           <TextField
+            fieldPath="pastorNameKo"
             label={isKo ? '한글 이름' : 'Name (KO)'}
             value={value.pastorNameKo}
             onChange={(pastorNameKo) => update({ pastorNameKo })}
           />
           <TextField
+            fieldPath="pastorNameEn"
             label={isKo ? '영문 이름' : 'Name (EN)'}
             value={value.pastorNameEn}
             onChange={(pastorNameEn) => update({ pastorNameEn })}
@@ -129,16 +136,24 @@ const ChurchInfoFields = ({
       >
         <div className="settings-grid">
           <TextField
+            fieldPath="phone"
             label={isKo ? '전화' : 'Phone'}
             value={value.phone}
             onChange={(phone) => update({ phone })}
             placeholder="0433 576 500"
+            type="tel"
+            inputMode="tel"
+            maxLength={40}
           />
           <TextField
+            fieldPath="email"
             label={isKo ? '이메일' : 'Email'}
             value={value.email}
             onChange={(email) => update({ email })}
             placeholder="info@sydneysamil.org"
+            type="email"
+            inputMode="email"
+            maxLength={120}
           />
         </div>
       </SettingsPanel>
@@ -149,23 +164,27 @@ const ChurchInfoFields = ({
       >
         <div className="settings-grid">
           <TextField
+            fieldPath="addressLine1"
             label={isKo ? '주소 1줄' : 'Address line 1'}
             value={value.addressLine1}
             onChange={(addressLine1) => update({ addressLine1 })}
             full
           />
           <TextField
+            fieldPath="addressLine2"
             label={isKo ? '주소 2줄' : 'Address line 2'}
             value={value.addressLine2}
             onChange={(addressLine2) => update({ addressLine2 })}
           />
           <TextField
+            fieldPath="suburb"
             label={isKo ? '지역 표기' : 'Suburb'}
             value={value.suburb}
             onChange={(suburb) => update({ suburb })}
             hint={isKo ? '카드에 짧게 보이는 지역명' : 'Short area name shown on cards'}
           />
           <TextField
+            fieldPath="mapsQuery"
             label={isKo ? '지도 검색어' : 'Maps search'}
             value={value.mapsQuery}
             onChange={(mapsQuery) => update({ mapsQuery })}
@@ -175,6 +194,7 @@ const ChurchInfoFields = ({
                 : 'The phrase that finds the church on Google Maps'
             }
             full
+            maxLength={300}
           />
         </div>
       </SettingsPanel>
@@ -193,28 +213,39 @@ const ChurchInfoFields = ({
               key={service.id}
               index={`${isKo ? '예배' : 'Service'} ${String(index + 1).padStart(2, '0')}`}
               removeLabel={remove}
-              onRemove={() => update({ services: value.services.filter((_, i) => i !== index) })}
+              onRemove={
+                value.services.length > 1
+                  ? () => update({ services: value.services.filter((_, i) => i !== index) })
+                  : undefined
+              }
             >
               <div className="settings-grid">
                 <TextField
+                  fieldPath="services[].time"
                   label={isKo ? '시간' : 'Time'}
                   value={service.time}
                   onChange={(time) => updateService(index, { time })}
                   placeholder="9:30"
+                  inputMode="numeric"
+                  maxLength={5}
                 />
                 <TextField
+                  fieldPath="services[].period"
                   label={isKo ? '오전 / 오후' : 'Period'}
                   value={service.period}
-                  onChange={(period) => updateService(index, { period })}
+                  onChange={(period) => updateService(index, { period: period.toUpperCase() })}
                   placeholder="AM"
+                  maxLength={2}
                 />
               </div>
               <BilingualField
+                fieldPath="services[].label"
                 label={isKo ? '예배 이름' : 'Service name'}
                 value={service.label}
                 onChange={(label) => updateService(index, { label })}
               />
               <BilingualField
+                fieldPath="services[].note"
                 label={isKo ? '안내' : 'Note'}
                 value={service.note}
                 onChange={(note) => updateService(index, { note })}
@@ -251,19 +282,23 @@ const ChurchInfoFields = ({
             >
               <div className="settings-grid">
                 <TextField
+                  fieldPath="gatherings[].badge"
                   label={isKo ? '배지' : 'Badge'}
                   value={gathering.badge}
                   onChange={(badge) => updateGathering(index, { badge })}
                   hint={isKo ? '카드 모서리의 짧은 글자' : 'Short mark on the card'}
                   placeholder="WED"
+                  maxLength={12}
                 />
               </div>
               <BilingualField
+                fieldPath="gatherings[].title"
                 label={isKo ? '모임 이름' : 'Gathering name'}
                 value={gathering.title}
                 onChange={(title) => updateGathering(index, { title })}
               />
               <BilingualField
+                fieldPath="gatherings[].detail"
                 label={isKo ? '시간 · 장소' : 'When and where'}
                 value={gathering.detail}
                 onChange={(detail) => updateGathering(index, { detail })}

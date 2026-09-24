@@ -1,4 +1,6 @@
+import { useId } from 'react';
 import type { LocalizedText } from '../../lib/churchInfo';
+import { useSettingsFieldError } from './SettingsValidationContext';
 
 type BilingualFieldProps = {
   fieldPath?: string;
@@ -16,12 +18,16 @@ const LanguageInput = ({
   value,
   onChange,
   multiline,
+  invalid,
+  errorId,
 }: {
   accessibleLabel: string;
   chip: string;
   value: string;
   onChange: (next: string) => void;
   multiline?: boolean;
+  invalid?: boolean;
+  errorId?: string;
 }) => (
   <label className={multiline ? 'settings-lang settings-lang--multiline' : 'settings-lang'}>
     <span className="settings-lang__chip" aria-hidden="true">
@@ -30,6 +36,9 @@ const LanguageInput = ({
     {multiline ? (
       <textarea
         aria-label={accessibleLabel}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? errorId : undefined}
+        maxLength={400}
         rows={3}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
@@ -37,6 +46,9 @@ const LanguageInput = ({
     ) : (
       <input
         aria-label={accessibleLabel}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? errorId : undefined}
+        maxLength={400}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
       />
@@ -52,32 +64,49 @@ const BilingualField = ({
   hint,
   multiline,
   full,
-}: BilingualFieldProps) => (
-  <div
-    className={full ? 'settings-bilingual settings-bilingual--full' : 'settings-bilingual'}
-    data-field-path={fieldPath}
-  >
-    <p className="settings-bilingual__label">
-      {label}
-      {hint ? <span>{hint}</span> : null}
-    </p>
-    <div className="settings-bilingual__pair">
-      <LanguageInput
-        accessibleLabel={`${label} (한국어)`}
-        chip="KO"
-        value={value.ko}
-        multiline={multiline}
-        onChange={(ko) => onChange({ ...value, ko })}
-      />
-      <LanguageInput
-        accessibleLabel={`${label} (English)`}
-        chip="EN"
-        value={value.en}
-        multiline={multiline}
-        onChange={(en) => onChange({ ...value, en })}
-      />
+}: BilingualFieldProps) => {
+  const error = useSettingsFieldError(fieldPath);
+  const errorId = useId();
+  const classes = [
+    'settings-bilingual',
+    full ? 'settings-bilingual--full' : '',
+    error ? 'settings-bilingual--invalid' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return (
+    <div className={classes} data-field-path={fieldPath}>
+      <p className="settings-bilingual__label">
+        {label}
+        {hint ? <span>{hint}</span> : null}
+      </p>
+      <div className="settings-bilingual__pair">
+        <LanguageInput
+          accessibleLabel={`${label} (한국어)`}
+          chip="KO"
+          value={value.ko}
+          multiline={multiline}
+          invalid={Boolean(error)}
+          errorId={errorId}
+          onChange={(ko) => onChange({ ...value, ko })}
+        />
+        <LanguageInput
+          accessibleLabel={`${label} (English)`}
+          chip="EN"
+          value={value.en}
+          multiline={multiline}
+          invalid={Boolean(error)}
+          errorId={errorId}
+          onChange={(en) => onChange({ ...value, en })}
+        />
+      </div>
+      {error ? (
+        <p className="settings-field__error" id={errorId}>
+          {error}
+        </p>
+      ) : null}
     </div>
-  </div>
-);
+  );
+};
 
 export default BilingualField;

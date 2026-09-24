@@ -27,6 +27,11 @@ test('partial church info keeps defaults for omitted fields', () => {
   assert.strictEqual(info.services.length, 1);
 });
 
+test('the optional second address line can be cleared intentionally', () => {
+  const info = parseChurchInfo({ addressLine2: '' });
+  assert.strictEqual(info.addressLine2, '');
+});
+
 test('invalid services and gatherings are dropped instead of breaking the page', () => {
   const info = parseChurchInfo({ services: 'nope', gatherings: [{ badge: '' }] });
   assert.deepStrictEqual(info.services, DEFAULT_CHURCH_INFO.services);

@@ -168,6 +168,8 @@ const defaultDeps = { getCurrentSettings, saveSettings, deleteBlob, publicUrlFor
 
 module.exports = async function (context, req, overrides = {}) {
   const deps = { ...defaultDeps, ...overrides };
+  let failedSaveCleanup = [];
+  let settingsSaved = false;
   try {
     if (req.method === 'GET') {
       const settings = await deps.getCurrentSettings();
@@ -220,6 +222,14 @@ module.exports = async function (context, req, overrides = {}) {
     }
 
     const previous = await deps.getCurrentSettings();
+    const previousPaths = new Set([
+      previous.heroImagePath,
+      previous.pastorImagePath,
+      previous.logoImagePath,
+    ]);
+    failedSaveCleanup = [hero.value, pastor.value, logo.value].filter(
+      (path) => path && !previousPaths.has(path) && isSiteImagePath(path)
+    );
     const nextChurchInfo = churchInfo.omitted ? previous.churchInfo || null : churchInfo.value;
     const nextSiteCopy = siteCopy.omitted ? previous.siteCopy || null : siteCopy.value;
     const nextImagePresentation = imagePresentation.omitted
@@ -237,6 +247,7 @@ module.exports = async function (context, req, overrides = {}) {
       },
       actorOf(auth.principal)
     );
+    settingsSaved = true;
 
     for (const [oldPath, nextPath] of [
       [previous.heroImagePath, hero.value],
@@ -254,6 +265,18 @@ module.exports = async function (context, req, overrides = {}) {
 
     context.res = { status: 200, body: withUrls(saved, deps.publicUrlFor) };
   } catch (error) {
+    if (!settingsSaved) {
+      for (const blobPath of failedSaveCleanup) {
+        try {
+          await deps.deleteBlob(blobPath, SITE_FOLDER);
+        } catch (cleanupError) {
+          context.log.error(
+            'failed settings upload cleanup failed:',
+            (cleanupError && cleanupError.message) || cleanupError
+          );
+        }
+      }
+    }
     context.log.error('site-settings error:', (error && error.message) || error);
     context.res = {
       status: 500,

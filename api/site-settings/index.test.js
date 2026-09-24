@@ -180,6 +180,36 @@ test('blob cleanup failure does not undo saved settings', async () => {
   assert.strictEqual(context.res.status, 200);
 });
 
+test('a failed settings save removes newly uploaded unreferenced site images', async () => {
+  const context = contextOf();
+  const deleted = [];
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: 'site/new-hero.jpg',
+      pastorImagePath: null,
+      logoImagePath: null,
+    }),
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        heroImagePath: 'site/current-hero.jpg',
+        pastorImagePath: null,
+        logoImagePath: null,
+      }),
+      saveSettings: async () => {
+        throw new Error('database unavailable');
+      },
+      deleteBlob: async (...args) => deleted.push(args),
+      publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+    }
+  );
+
+  assert.strictEqual(context.res.status, 500);
+  assert.deepStrictEqual(deleted, [['site/new-hero.jpg', 'site']]);
+});
+
 test('public get returns stored church info and site copy', async () => {
   const context = contextOf();
   await handler(
