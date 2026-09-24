@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import PageHero from '../components/PageHero';
 import { type ThemeId, useSiteSettings } from '../lib/ThemeContext';
 import { useRequireAuth } from '../lib/swaAuth';
@@ -10,6 +10,7 @@ import AppearanceFields from '../components/settings/AppearanceFields';
 import ChurchInfoFields from '../components/settings/ChurchInfoFields';
 import { SettingsValidationProvider } from '../components/settings/SettingsValidationContext';
 import SiteCopyFields from '../components/settings/SiteCopyFields';
+import { useSettingsActionsDocking } from '../components/settings/useSettingsActionsDocking';
 import { parseChurchInfo, type ChurchInfo } from '../lib/churchInfo';
 import {
   DEFAULT_IMAGE_PRESENTATION,
@@ -18,7 +19,7 @@ import {
   type SiteImagePresentation,
 } from '../lib/imagePresentation';
 import { parseSiteCopy, type SiteCopy } from '../lib/siteCopy';
-import { dirtySettingsTabs, shouldDockSettingsActions } from '../lib/settingsDraft';
+import { dirtySettingsTabs } from '../lib/settingsDraft';
 import {
   settingsValidationMessage,
   validateChurchInfoDraft,
@@ -80,9 +81,8 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   } | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [actionsDocked, setActionsDocked] = useState(false);
   const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
-  const settingsPageRef = useRef<HTMLElement>(null);
+  const { settingsPageRef, actionsDocked } = useSettingsActionsDocking();
 
   useEffect(() => {
     setSelectedTheme(themeId);
@@ -201,34 +201,6 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     });
     return () => window.cancelAnimationFrame(frame);
   }, [showValidation, validationIssues, tab]);
-
-  useEffect(() => {
-    const page = settingsPageRef.current;
-    if (!page) return;
-    let frame = 0;
-    const update = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        setActionsDocked(
-          shouldDockSettingsActions(
-            page.getBoundingClientRect().bottom,
-            window.innerHeight
-          )
-        );
-      });
-    };
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-    const observer = new ResizeObserver(update);
-    observer.observe(page);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-      observer.disconnect();
-    };
-  }, []);
 
   useEffect(() => {
     if (!isDirty) setIsConfirmingDiscard(false);
