@@ -10,10 +10,6 @@ test('defaults to appearance when no tab is requested', () => {
   assert.strictEqual(parseSettingsQuery({}), 'appearance');
 });
 
-test('reads a known tab', () => {
-  assert.strictEqual(parseSettingsQuery({ tab: 'church' }), 'church');
-});
-
 test('falls back to appearance for an unknown tab', () => {
   assert.strictEqual(parseSettingsQuery({ tab: 'payroll' }), 'appearance');
 });
@@ -22,6 +18,10 @@ test('takes the first value when the tab parameter repeats', () => {
   assert.strictEqual(parseSettingsQuery({ tab: ['copy', 'church'] }), 'copy');
 });
 
-test('builds a deep link to a tab', () => {
-  assert.strictEqual(buildSettingsHref('copy'), '/settings?tab=copy');
+test('reads a known tab', () => {
+  assert.strictEqual(parseSettingsQuery({ tab: 'church' }), 'church');
+});
+
+test('builds a deep link into the site settings page', () => {
+  assert.strictEqual(buildSettingsHref('copy'), '/manage/settings?tab=copy');
 });

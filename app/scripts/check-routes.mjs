@@ -38,6 +38,15 @@ test('the profile landing page is protected, not only its children', () => {
 
 test('settings requires the admin role', () => {
   assert.deepStrictEqual(find('/settings').allowedRoles, ['admin']);
+  assert.deepStrictEqual(find('/manage/settings').allowedRoles, ['admin']);
+});
+
+// The editor rule for the rest of the manage area would otherwise swallow the
+// settings page, so the admin rule has to be matched first.
+test('site settings is matched before the editor-wide manage rule', () => {
+  const settingsIndex = routes.findIndex((entry) => entry.route === '/manage/settings');
+  const manageIndex = routes.findIndex((entry) => entry.route === '/manage/*');
+  assert.ok(settingsIndex >= 0 && settingsIndex < manageIndex);
 });
 
 test('public content reads stay anonymous', () => {

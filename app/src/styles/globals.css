@@ -3579,6 +3579,54 @@ body {
   background: var(--site-gold);
 }
 
+.nav__item--menu {
+  position: relative;
+}
+
+.nav__item .nav__menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.nav__menu-chevron {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.nav__submenu {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  z-index: 12;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 170px;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  border: 1px solid var(--site-line);
+  border-radius: 0.9rem;
+  background: var(--site-surface);
+  box-shadow: var(--site-shadow);
+}
+
+.nav__submenu-link {
+  display: block;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.6rem;
+  color: var(--site-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.nav__submenu-link:hover,
+.nav__submenu-link--active {
+  background: color-mix(in srgb, var(--site-accent) 12%, transparent);
+  color: var(--site-accent);
+}
+
 .site-nav__controls {
   display: flex;
   align-items: center;
@@ -3841,6 +3889,36 @@ body {
 
   .nav__item .nav__link--active::after {
     display: none;
+  }
+
+  /* The stacked menu has no room for a popover, so the submenu sits inline. */
+  .nav__item--menu {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nav__item .nav__menu-trigger {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 1rem;
+    text-align: left;
+  }
+
+  .nav__submenu {
+    position: static;
+    width: 100%;
+    padding: 0 0 0 0.8rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .nav__submenu-link {
+    padding: 0.7rem 0.8rem;
+    font-size: 0.95rem;
   }
 
   .site-nav__controls {

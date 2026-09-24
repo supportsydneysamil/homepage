@@ -29,6 +29,7 @@
     { "route": "/api/site-settings", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/site-settings", "methods": ["PUT"], "allowedRoles": ["admin"] },
     { "route": "/resources", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/manage/settings", "allowedRoles": ["admin"] },
     { "route": "/manage", "allowedRoles": ["editor"] },
     { "route": "/manage/*", "allowedRoles": ["editor"] },
     { "route": "/settings", "allowedRoles": ["admin"] },

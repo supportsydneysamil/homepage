@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '../lib/LanguageContext';
 import { useRoles } from '../lib/useRoles';
 import { useSiteSettings } from '../lib/ThemeContext';
@@ -19,14 +19,17 @@ const navItems = [
 
 const Header = () => {
   const { lang, toggleLang } = useLanguage();
-  const { isEditor } = useRoles();
+  const { isEditor, isAdmin } = useRoles();
   const { logoImageUrl, churchInfo } = useSiteSettings();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [isOpsOpen, setIsOpsOpen] = useState(false);
+  const opsMenuRef = useRef<HTMLLIElement | null>(null);
   const isKo = lang === 'ko';
 
   useEffect(() => {
     setIsOpen(false);
+    setIsOpsOpen(false);
   }, [router.asPath]);
 
   useEffect(() => {
@@ -38,8 +41,31 @@ const Header = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpsOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpsOpen(false);
+    };
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!opsMenuRef.current?.contains(event.target as Node)) setIsOpsOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpsOpen]);
+
   const isActive = (href: string) =>
     href === '/' ? router.pathname === '/' : router.pathname.startsWith(href);
+
+  const opsLinks = [
+    { href: '/manage', labelEn: 'Content management', labelKo: '자료 관리', exact: true },
+    ...(isAdmin
+      ? [{ href: '/manage/settings', labelEn: 'Site settings', labelKo: '사이트 설정', exact: false }]
+      : []),
+  ];
 
   return (
     <header className="header">
@@ -81,13 +107,45 @@ const Header = () => {
             </li>
           ))}
           {isEditor ? (
-            <li className="nav__item">
-              <Link
-                href="/manage"
-                className={isActive('/manage') ? 'nav__link nav__link--active' : 'nav__link'}
+            <li className="nav__item nav__item--menu" ref={opsMenuRef}>
+              <button
+                type="button"
+                className={
+                  isActive('/manage')
+                    ? 'nav__link nav__menu-trigger nav__link--active'
+                    : 'nav__link nav__menu-trigger'
+                }
+                aria-expanded={isOpsOpen}
+                aria-haspopup="true"
+                onClick={() => setIsOpsOpen((value) => !value)}
               >
-                {isKo ? '자료 관리' : 'Manage'}
-              </Link>
+                {isKo ? '운영' : 'Operations'}
+                <span className="nav__menu-chevron" aria-hidden="true">
+                  ▾
+                </span>
+              </button>
+              {isOpsOpen ? (
+                <ul className="nav__submenu" aria-label={isKo ? '운영 영역' : 'Operations areas'}>
+                  {opsLinks.map((link) => {
+                    const current = link.exact
+                      ? router.pathname === link.href
+                      : router.pathname.startsWith(link.href);
+                    return (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className={
+                            current ? 'nav__submenu-link nav__submenu-link--active' : 'nav__submenu-link'
+                          }
+                          aria-current={current ? 'page' : undefined}
+                        >
+                          {isKo ? link.labelKo : link.labelEn}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
             </li>
           ) : null}
         </ul>

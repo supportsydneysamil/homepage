@@ -13,4 +13,4 @@ export const parseSettingsQuery = (query: Record<string, QueryValue>): SettingsT
   return isSettingsTab(tab) ? tab : 'appearance';
 };
 
-export const buildSettingsHref = (tab: SettingsTab) => `/settings?tab=${tab}`;
+export const buildSettingsHref = (tab: SettingsTab) => `/manage/settings?tab=${tab}`;
