@@ -66,3 +66,15 @@ test('site copy editor exposes every localized setting', () => {
     Array.from(new Set(localizedPaths(DEFAULT_SITE_COPY))).sort()
   );
 });
+
+test('home photo fields expose composition controls and result previews', () => {
+  const html = editorHtml();
+  assert.strictEqual((html.match(/type="range"/g) || []).length, 2);
+  assert.strictEqual((html.match(/settings-photo-field__focus/g) || []).length, 2);
+  assert.strictEqual((html.match(/settings-photo-field__result-stage/g) || []).length, 2);
+  assert.strictEqual((html.match(/aria-roledescription="2차원 초점 선택기"/g) || []).length, 2);
+  assert.strictEqual((html.match(/aria-live="polite"/g) || []).length, 2);
+  assert.match(html, /구도 조절/);
+  assert.match(html, /실제 결과/);
+  assert.match(html, /구도 초기화/);
+});

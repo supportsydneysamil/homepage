@@ -56,6 +56,8 @@ test('site settings gain church info and site copy json columns', () => {
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'SiteCopyJson')"));
   assert.ok(SCHEMA_SQL.includes('ChurchInfoJson NVARCHAR(MAX) NULL'));
   assert.ok(SCHEMA_SQL.includes('SiteCopyJson NVARCHAR(MAX) NULL'));
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'ImagePresentationJson')"));
+  assert.ok(SCHEMA_SQL.includes('ImagePresentationJson NVARCHAR(MAX) NULL'));
 });
 
 test('content tables record who changed them', () => {

@@ -7,7 +7,7 @@ import { phoneHref } from '../../lib/churchInfo';
 import { localize } from '../../lib/siteCopy';
 
 const PastorFeature = ({ lang }: { lang: Language }) => {
-  const { pastorImageUrl, churchInfo, siteCopy } = useSiteSettings();
+  const { pastorImageUrl, imagePresentation, churchInfo, siteCopy } = useSiteSettings();
   const pastor = siteCopy.home.pastor;
   const name = lang === 'ko' ? churchInfo.pastorNameKo : churchInfo.pastorNameEn;
 
@@ -15,11 +15,14 @@ const PastorFeature = ({ lang }: { lang: Language }) => {
     <section className="home-section home-pastor">
       <div className="home-pastor__portrait">
         <span aria-hidden="true">SAMIL</span>
-        <SitePhoto
-          src={pastorImageUrl}
-          fallback={DEFAULT_PASTOR_IMAGE}
-          alt={localize(pastor.photoAlt, lang)}
-        />
+        <div className="home-pastor__photo">
+          <SitePhoto
+            src={pastorImageUrl}
+            fallback={DEFAULT_PASTOR_IMAGE}
+            alt={localize(pastor.photoAlt, lang)}
+            presentation={imagePresentation.pastor}
+          />
+        </div>
       </div>
 
       <div className="home-pastor__content">

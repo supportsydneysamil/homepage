@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DEFAULT_CHURCH_INFO } from './churchInfo';
+import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
 import { DEFAULT_SITE_COPY } from './siteCopy';
 import {
   DEFAULT_HERO_IMAGE,
@@ -95,6 +96,7 @@ const DEFAULT_SETTINGS: ResolvedSiteSettings = {
   heroImageUrl: DEFAULT_HERO_IMAGE,
   pastorImageUrl: DEFAULT_PASTOR_IMAGE,
   logoImageUrl: '',
+  imagePresentation: DEFAULT_IMAGE_PRESENTATION,
   churchInfo: DEFAULT_CHURCH_INFO,
   siteCopy: DEFAULT_SITE_COPY,
 };
@@ -145,6 +147,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       heroImagePath: settings.heroImagePath,
       pastorImagePath: settings.pastorImagePath,
       logoImagePath: settings.logoImagePath,
+      imagePresentation: settings.imagePresentation,
       churchInfo: settings.churchInfo,
       siteCopy: settings.siteCopy,
     });

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { DEFAULT_CHURCH_INFO } from './churchInfo';
+import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
 import { DEFAULT_SITE_COPY } from './siteCopy';
 import {
   DEFAULT_HERO_IMAGE,
@@ -23,6 +24,7 @@ test('null api urls become built-in paths', () => {
   assert.strictEqual(settings.pastorImageUrl, DEFAULT_PASTOR_IMAGE);
   assert.strictEqual(settings.logoImagePath, null);
   assert.strictEqual(settings.logoImageUrl, '');
+  assert.deepStrictEqual(settings.imagePresentation, DEFAULT_IMAGE_PRESENTATION);
   assert.strictEqual(settings.churchInfo.email, 'info@sydneysamil.org');
   assert.ok(settings.siteCopy.about.values.length);
 });
@@ -77,6 +79,7 @@ test('putSiteSettings returns parsed settings when fetch succeeds', async () => 
       heroImagePath: 'site/a.jpg',
       pastorImagePath: null,
       logoImagePath: 'site/logo.png',
+      imagePresentation: DEFAULT_IMAGE_PRESENTATION,
       churchInfo: DEFAULT_CHURCH_INFO,
       siteCopy: DEFAULT_SITE_COPY,
     });

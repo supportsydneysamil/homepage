@@ -38,7 +38,7 @@ const getCurrentSettings = async () =>
       .request()
       .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
       .query(`
-SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, UpdatedAt, UpdatedBy
+SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, ImagePresentationJson, UpdatedAt, UpdatedBy
 FROM dbo.SiteSettings
 WHERE SettingKey = @settingKey
 `);
@@ -50,6 +50,7 @@ WHERE SettingKey = @settingKey
         heroImagePath: row.HeroImagePath || null,
         pastorImagePath: row.PastorImagePath || null,
         logoImagePath: row.LogoImagePath || null,
+        imagePresentation: parseStoredJson(row.ImagePresentationJson),
         churchInfo: parseStoredJson(row.ChurchInfoJson),
         siteCopy: parseStoredJson(row.SiteCopyJson),
         updatedAt: row.UpdatedAt ? new Date(row.UpdatedAt).toISOString() : null,
@@ -68,6 +69,7 @@ WHERE SettingKey = @settingKey
       heroImagePath: null,
       pastorImagePath: null,
       logoImagePath: null,
+      imagePresentation: null,
       churchInfo: null,
       siteCopy: null,
       updatedAt: null,
@@ -87,6 +89,7 @@ const saveSettings = async (settings, updatedBy) => {
     .input('logoImagePath', sql.NVarChar(400), settings.logoImagePath)
     .input('churchInfoJson', sql.NVarChar(sql.MAX), settings.churchInfoJson)
     .input('siteCopyJson', sql.NVarChar(sql.MAX), settings.siteCopyJson)
+    .input('imagePresentationJson', sql.NVarChar(sql.MAX), settings.imagePresentationJson)
     .input('updatedBy', sql.NVarChar(256), updatedBy)
     .query(`
 MERGE dbo.SiteSettings AS target
@@ -99,6 +102,7 @@ USING (
     @logoImagePath AS LogoImagePath,
     @churchInfoJson AS ChurchInfoJson,
     @siteCopyJson AS SiteCopyJson,
+    @imagePresentationJson AS ImagePresentationJson,
     @updatedBy AS UpdatedBy
 ) AS src
 ON target.SettingKey = src.SettingKey
@@ -110,10 +114,11 @@ WHEN MATCHED THEN
     LogoImagePath = src.LogoImagePath,
     ChurchInfoJson = src.ChurchInfoJson,
     SiteCopyJson = src.SiteCopyJson,
+    ImagePresentationJson = src.ImagePresentationJson,
     UpdatedBy = src.UpdatedBy,
     UpdatedAt = SYSUTCDATETIME()
 WHEN NOT MATCHED THEN
-  INSERT (SettingKey, ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, UpdatedBy, UpdatedAt)
+  INSERT (SettingKey, ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, ImagePresentationJson, UpdatedBy, UpdatedAt)
   VALUES (
     src.SettingKey,
     src.ThemeId,
@@ -122,6 +127,7 @@ WHEN NOT MATCHED THEN
     src.LogoImagePath,
     src.ChurchInfoJson,
     src.SiteCopyJson,
+    src.ImagePresentationJson,
     src.UpdatedBy,
     SYSUTCDATETIME()
   );
@@ -151,6 +157,7 @@ const withUrls = (settings, urlFor) => ({
   heroImageUrl: settings.heroImagePath ? urlFor(settings.heroImagePath) : null,
   pastorImageUrl: settings.pastorImagePath ? urlFor(settings.pastorImagePath) : null,
   logoImageUrl: settings.logoImagePath ? urlFor(settings.logoImagePath) : null,
+  imagePresentation: settings.imagePresentation || null,
   churchInfo: settings.churchInfo || null,
   siteCopy: settings.siteCopy || null,
   updatedAt: settings.updatedAt || null,
@@ -203,14 +210,21 @@ module.exports = async function (context, req, overrides = {}) {
 
     const churchInfo = parseContentObject(body.churchInfo, 'churchInfo');
     const siteCopy = parseContentObject(body.siteCopy, 'siteCopy');
-    if (churchInfo.error || siteCopy.error) {
-      context.res = { status: 400, body: { error: churchInfo.error || siteCopy.error } };
+    const imagePresentation = parseContentObject(body.imagePresentation, 'imagePresentation');
+    if (churchInfo.error || siteCopy.error || imagePresentation.error) {
+      context.res = {
+        status: 400,
+        body: { error: churchInfo.error || siteCopy.error || imagePresentation.error },
+      };
       return;
     }
 
     const previous = await deps.getCurrentSettings();
     const nextChurchInfo = churchInfo.omitted ? previous.churchInfo || null : churchInfo.value;
     const nextSiteCopy = siteCopy.omitted ? previous.siteCopy || null : siteCopy.value;
+    const nextImagePresentation = imagePresentation.omitted
+      ? previous.imagePresentation || null
+      : imagePresentation.value;
     const saved = await deps.saveSettings(
       {
         themeId: nextThemeId,
@@ -219,6 +233,7 @@ module.exports = async function (context, req, overrides = {}) {
         logoImagePath: logo.value,
         churchInfoJson: toJson(nextChurchInfo),
         siteCopyJson: toJson(nextSiteCopy),
+        imagePresentationJson: toJson(nextImagePresentation),
       },
       actorOf(auth.principal)
     );

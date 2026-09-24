@@ -1,4 +1,5 @@
 import type { SiteCopy } from '../../lib/siteCopy';
+import { DEFAULT_IMAGE_PRESENTATION } from '../../lib/imagePresentation';
 import { DEFAULT_HERO_IMAGE, DEFAULT_PASTOR_IMAGE } from '../../lib/siteSettings';
 import BilingualField from './BilingualField';
 import { CopySection, FieldGroup } from './SiteCopyEditorParts';
@@ -28,7 +29,6 @@ const HomeCopyFields = ({
   const primary = isKo ? '주요 문구' : 'Primary copy';
   const supporting = isKo ? '버튼과 보조 문구' : 'Buttons and supporting copy';
   const accessibility = isKo ? '접근성 문구' : 'Accessibility copy';
-  const photoLabel = isKo ? '섹션 사진' : 'Section photo';
   const choosePhoto = isKo ? '사진 선택' : 'Choose Photo';
   const restorePhoto = isKo ? '기본 사진으로 되돌리기' : 'Restore Default';
 
@@ -41,13 +41,16 @@ const HomeCopyFields = ({
         open
       >
         <SitePhotoField
-          label={photoLabel}
+          label={isKo ? '첫 화면 사진' : 'Hero photo'}
           hint={isKo ? '가로형 4:3 이상 권장' : 'Landscape, 4:3 or wider recommended'}
+          usage={isKo ? '홈 첫 화면에 표시됩니다' : 'Shown in the homepage hero'}
           alt={isKo ? '교회 히어로 사진' : 'Church hero photo'}
           fallback={DEFAULT_HERO_IMAGE}
           variant="hero"
           chooseLabel={choosePhoto}
           resetLabel={restorePhoto}
+          isKo={isKo}
+          defaultComposition={DEFAULT_IMAGE_PRESENTATION.hero}
           slot={heroPhoto}
         />
         <FieldGroup title={primary}>
@@ -390,13 +393,16 @@ const HomeCopyFields = ({
         count={5}
       >
         <SitePhotoField
-          label={photoLabel}
+          label={isKo ? '담임목사 사진' : 'Pastor photo'}
           hint={isKo ? '세로형 4:5 권장' : 'Portrait, about 4:5 recommended'}
+          usage={isKo ? '홈 담임목사 소개에 표시됩니다' : 'Shown in the homepage pastor feature'}
           alt={isKo ? '담임목사 사진' : 'Pastor photo'}
           fallback={DEFAULT_PASTOR_IMAGE}
           variant="pastor"
           chooseLabel={choosePhoto}
           resetLabel={restorePhoto}
+          isKo={isKo}
+          defaultComposition={DEFAULT_IMAGE_PRESENTATION.pastor}
           slot={pastorPhoto}
         />
         <FieldGroup title={primary}>

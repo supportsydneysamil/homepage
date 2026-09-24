@@ -242,6 +242,43 @@ test('an admin can save church info without wiping existing site copy', async ()
   assert.ok(saved[0].siteCopyJson.includes('Keep me'));
 });
 
+test('an admin can save image presentation without changing image files', async () => {
+  const context = contextOf();
+  const saved = [];
+  const imagePresentation = {
+    hero: { focusX: 32, focusY: 61, zoom: 1.2 },
+    pastor: { focusX: 50, focusY: 24, zoom: 1 },
+  };
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: 'site/hero.jpg',
+      pastorImagePath: 'site/pastor.jpg',
+      logoImagePath: null,
+      imagePresentation,
+    }),
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        heroImagePath: 'site/hero.jpg',
+        pastorImagePath: 'site/pastor.jpg',
+        logoImagePath: null,
+      }),
+      saveSettings: async (next) => {
+        saved.push(next);
+        return { ...next, imagePresentation: JSON.parse(next.imagePresentationJson) };
+      },
+      deleteBlob: async () => {},
+      publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+    }
+  );
+
+  assert.strictEqual(context.res.status, 200);
+  assert.deepStrictEqual(JSON.parse(saved[0].imagePresentationJson), imagePresentation);
+  assert.deepStrictEqual(context.res.body.imagePresentation, imagePresentation);
+});
+
 test('rejects church info that is not an object', async () => {
   const context = contextOf();
   await handler(

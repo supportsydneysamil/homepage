@@ -8,7 +8,7 @@ import { directionsUrl, formatServiceTimesShort } from '../../lib/churchInfo';
 import { localize } from '../../lib/siteCopy';
 
 const HomeHero = ({ lang }: { lang: Language }) => {
-  const { heroImageUrl, churchInfo, siteCopy } = useSiteSettings();
+  const { heroImageUrl, imagePresentation, churchInfo, siteCopy } = useSiteSettings();
   const hero = siteCopy.home.hero;
 
   return (
@@ -43,6 +43,7 @@ const HomeHero = ({ lang }: { lang: Language }) => {
             src={heroImageUrl}
             fallback={DEFAULT_HERO_IMAGE}
             alt={localize(hero.photoAlt, lang)}
+            presentation={imagePresentation.hero}
           />
         </div>
         <div className="home-hero__service-note">

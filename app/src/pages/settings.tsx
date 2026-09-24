@@ -10,6 +10,12 @@ import AppearanceFields from '../components/settings/AppearanceFields';
 import ChurchInfoFields from '../components/settings/ChurchInfoFields';
 import SiteCopyFields from '../components/settings/SiteCopyFields';
 import { parseChurchInfo, type ChurchInfo } from '../lib/churchInfo';
+import {
+  DEFAULT_IMAGE_PRESENTATION,
+  parseImagePresentation,
+  sameImageComposition,
+  type SiteImagePresentation,
+} from '../lib/imagePresentation';
 import { parseSiteCopy, type SiteCopy } from '../lib/siteCopy';
 import {
   SETTINGS_TABS,
@@ -41,6 +47,7 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     heroImageUrl,
     pastorImageUrl,
     logoImageUrl,
+    imagePresentation,
     churchInfo,
     siteCopy,
     setThemeLocal,
@@ -59,6 +66,8 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   const [logoReset, setLogoReset] = useState(false);
   const [draftChurchInfo, setDraftChurchInfo] = useState<ChurchInfo>(churchInfo);
   const [draftSiteCopy, setDraftSiteCopy] = useState<SiteCopy>(siteCopy);
+  const [draftImagePresentation, setDraftImagePresentation] =
+    useState<SiteImagePresentation>(imagePresentation);
   const [status, setStatus] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -73,6 +82,10 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
   useEffect(() => {
     setDraftSiteCopy(parseSiteCopy(siteCopy));
   }, [siteCopy]);
+
+  useEffect(() => {
+    setDraftImagePresentation(parseImagePresentation(imagePresentation));
+  }, [imagePresentation]);
 
   useEffect(
     () => () => {
@@ -179,19 +192,20 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
     setFile: (file: File | null) => void,
     setPreview: (url: string | null) => void,
     setReset: (reset: boolean) => void
-  ) => {
+  ): boolean => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
-    if (!file) return;
+    if (!file) return false;
     const problem = validateFileForUpload(file, 'site');
     if (problem) {
       setStatus(validationMessage(problem));
-      return;
+      return false;
     }
     setFile(file);
     setPreview(URL.createObjectURL(file));
     setReset(false);
     setStatus(null);
+    return true;
   };
 
   const resetPhoto = (
@@ -238,6 +252,7 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
           uploadedLogo ? { uploadedPath: uploadedLogo.blobPath } : logoReset ? 'reset' : 'keep',
           logoImagePath
         ),
+        imagePresentation: parseImagePresentation(draftImagePresentation),
         churchInfo: parseChurchInfo(draftChurchInfo),
         siteCopy: parseSiteCopy(draftSiteCopy),
       });
@@ -304,8 +319,30 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
                 publishedUrl: heroImageUrl,
                 fallback: DEFAULT_HERO_IMAGE,
               }),
-              onSelect: (event) => selectPhoto(event, setHeroFile, setHeroPreviewUrl, setHeroReset),
-              onReset: () => resetPhoto(setHeroFile, setHeroPreviewUrl, setHeroReset),
+              status: heroReset
+                ? 'reset'
+                : heroPreviewUrl ||
+                    !sameImageComposition(draftImagePresentation.hero, imagePresentation.hero)
+                  ? 'pending'
+                  : 'published',
+              composition: draftImagePresentation.hero,
+              onCompositionChange: (hero) =>
+                setDraftImagePresentation((current) => ({ ...current, hero })),
+              onSelect: (event) => {
+                if (selectPhoto(event, setHeroFile, setHeroPreviewUrl, setHeroReset)) {
+                  setDraftImagePresentation((current) => ({
+                    ...current,
+                    hero: DEFAULT_IMAGE_PRESENTATION.hero,
+                  }));
+                }
+              },
+              onReset: () => {
+                resetPhoto(setHeroFile, setHeroPreviewUrl, setHeroReset);
+                setDraftImagePresentation((current) => ({
+                  ...current,
+                  hero: DEFAULT_IMAGE_PRESENTATION.hero,
+                }));
+              },
             }}
             pastorPhoto={{
               previewUrl: previewSrc({
@@ -314,9 +351,30 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
                 publishedUrl: pastorImageUrl,
                 fallback: DEFAULT_PASTOR_IMAGE,
               }),
-              onSelect: (event) =>
-                selectPhoto(event, setPastorFile, setPastorPreviewUrl, setPastorReset),
-              onReset: () => resetPhoto(setPastorFile, setPastorPreviewUrl, setPastorReset),
+              status: pastorReset
+                ? 'reset'
+                : pastorPreviewUrl ||
+                    !sameImageComposition(draftImagePresentation.pastor, imagePresentation.pastor)
+                  ? 'pending'
+                  : 'published',
+              composition: draftImagePresentation.pastor,
+              onCompositionChange: (pastor) =>
+                setDraftImagePresentation((current) => ({ ...current, pastor })),
+              onSelect: (event) => {
+                if (selectPhoto(event, setPastorFile, setPastorPreviewUrl, setPastorReset)) {
+                  setDraftImagePresentation((current) => ({
+                    ...current,
+                    pastor: DEFAULT_IMAGE_PRESENTATION.pastor,
+                  }));
+                }
+              },
+              onReset: () => {
+                resetPhoto(setPastorFile, setPastorPreviewUrl, setPastorReset);
+                setDraftImagePresentation((current) => ({
+                  ...current,
+                  pastor: DEFAULT_IMAGE_PRESENTATION.pastor,
+                }));
+              },
             }}
           />
         </section>

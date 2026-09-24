@@ -140,6 +140,9 @@ IF COL_LENGTH('dbo.SiteSettings', 'ChurchInfoJson') IS NULL
 IF COL_LENGTH('dbo.SiteSettings', 'SiteCopyJson') IS NULL
   ALTER TABLE dbo.SiteSettings ADD SiteCopyJson NVARCHAR(MAX) NULL;
 
+IF COL_LENGTH('dbo.SiteSettings', 'ImagePresentationJson') IS NULL
+  ALTER TABLE dbo.SiteSettings ADD ImagePresentationJson NVARCHAR(MAX) NULL;
+
 IF OBJECT_ID('dbo.Events', 'U') IS NULL
 BEGIN
   CREATE TABLE dbo.Events (
