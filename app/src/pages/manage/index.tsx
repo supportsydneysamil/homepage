@@ -172,7 +172,6 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     sermons: { filter: 'all', search: '', page: 1 },
     events: { filter: 'all', search: '', page: 1 },
   });
-  const view = views[tab];
   const setView = (changes: Partial<ManageView>) =>
     setViews((previous) => ({ ...previous, [tab]: { ...previous[tab], ...changes } }));
 
@@ -452,7 +451,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   return (
     <article className="site-page manage-page">
       <PageHero
-        eyebrow={isKo ? '편집자' : 'Editors'}
+        eyebrow={isKo ? '운영' : 'Operations'}
         title={isKo ? '자료 관리' : 'Content management'}
         description={
           isKo
@@ -461,7 +460,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         }
       />
 
-      <nav className="manage-tabs" aria-label={isKo ? '관리 영역' : 'Management sections'}>
+      <nav className="manage-tabs" aria-label={isKo ? '자료 종류' : 'Content types'}>
         {MANAGE_TABS.map((manageTab) => (
           <button
             key={manageTab}
@@ -474,7 +473,6 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           </button>
         ))}
       </nav>
-
 
       {tab === 'resources' ? (
         <section className="manage-panel">
@@ -1016,7 +1014,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
 };
 
 ManagePage.meta = {
-  title: 'Manage',
+  title: 'Content management',
   description: 'Content management for Sydney Samil Church editors.',
 };
 

@@ -43,3 +43,7 @@ test('escapes an id that would otherwise break the query string', () => {
 test('exposes the three content tabs', () => {
   assert.deepStrictEqual(MANAGE_TABS, ['resources', 'sermons', 'events']);
 });
+
+test('site settings is a separate page, not a content tab', () => {
+  assert.strictEqual(parseManageQuery({ tab: 'settings' }).tab, 'resources');
+});

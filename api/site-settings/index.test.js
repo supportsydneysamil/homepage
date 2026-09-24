@@ -180,6 +180,155 @@ test('blob cleanup failure does not undo saved settings', async () => {
   assert.strictEqual(context.res.status, 200);
 });
 
+test('a failed settings save removes newly uploaded unreferenced site images', async () => {
+  const context = contextOf();
+  const deleted = [];
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: 'site/new-hero.jpg',
+      pastorImagePath: null,
+      logoImagePath: null,
+    }),
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        heroImagePath: 'site/current-hero.jpg',
+        pastorImagePath: null,
+        logoImagePath: null,
+      }),
+      saveSettings: async () => {
+        throw new Error('database unavailable');
+      },
+      deleteBlob: async (...args) => deleted.push(args),
+      publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+    }
+  );
+
+  assert.strictEqual(context.res.status, 500);
+  assert.deepStrictEqual(deleted, [['site/new-hero.jpg', 'site']]);
+});
+
+test('public get returns stored church info and site copy', async () => {
+  const context = contextOf();
+  await handler(
+    context,
+    { method: 'GET', headers: {} },
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        heroImagePath: null,
+        pastorImagePath: null,
+        logoImagePath: null,
+        churchInfo: { phone: '0400 111 222' },
+        siteCopy: { home: { hero: { lead: { en: 'Hello', ko: '안녕' } } } },
+        updatedAt: null,
+        updatedBy: null,
+      }),
+      publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+    }
+  );
+  assert.strictEqual(context.res.status, 200);
+  assert.strictEqual(context.res.body.churchInfo.phone, '0400 111 222');
+  assert.strictEqual(context.res.body.siteCopy.home.hero.lead.en, 'Hello');
+});
+
+test('an admin can save church info without wiping existing site copy', async () => {
+  const context = contextOf();
+  const saved = [];
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: null,
+      pastorImagePath: null,
+      logoImagePath: null,
+      churchInfo: { phone: '0400 000 000' },
+    }),
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        heroImagePath: null,
+        pastorImagePath: null,
+        logoImagePath: null,
+        churchInfo: { phone: '0433 576 500' },
+        siteCopy: { footer: { tagline: { en: 'Keep me' } } },
+      }),
+      saveSettings: async (next) => {
+        saved.push(next);
+        return {
+          ...next,
+          churchInfo: JSON.parse(next.churchInfoJson),
+          siteCopy: JSON.parse(next.siteCopyJson),
+        };
+      },
+      deleteBlob: async () => {},
+      publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+    }
+  );
+  assert.strictEqual(context.res.status, 200);
+  assert.ok(saved[0].churchInfoJson.includes('0400 000 000'));
+  assert.ok(saved[0].siteCopyJson.includes('Keep me'));
+});
+
+test('an admin can save image presentation without changing image files', async () => {
+  const context = contextOf();
+  const saved = [];
+  const imagePresentation = {
+    hero: { focusX: 32, focusY: 61, zoom: 1.2 },
+    pastor: { focusX: 50, focusY: 24, zoom: 1 },
+  };
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: 'site/hero.jpg',
+      pastorImagePath: 'site/pastor.jpg',
+      logoImagePath: null,
+      imagePresentation,
+    }),
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        heroImagePath: 'site/hero.jpg',
+        pastorImagePath: 'site/pastor.jpg',
+        logoImagePath: null,
+      }),
+      saveSettings: async (next) => {
+        saved.push(next);
+        return { ...next, imagePresentation: JSON.parse(next.imagePresentationJson) };
+      },
+      deleteBlob: async () => {},
+      publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+    }
+  );
+
+  assert.strictEqual(context.res.status, 200);
+  assert.deepStrictEqual(JSON.parse(saved[0].imagePresentationJson), imagePresentation);
+  assert.deepStrictEqual(context.res.body.imagePresentation, imagePresentation);
+});
+
+test('rejects church info that is not an object', async () => {
+  const context = contextOf();
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: null,
+      pastorImagePath: null,
+      logoImagePath: null,
+      churchInfo: 'nope',
+    }),
+    {
+      getCurrentSettings: async () => ({}),
+      saveSettings: async () => ({}),
+      deleteBlob: async () => {},
+    }
+  );
+  assert.strictEqual(context.res.status, 400);
+});
+
 test('rejects a put that omits the logo path', async () => {
   const context = contextOf();
   await handler(

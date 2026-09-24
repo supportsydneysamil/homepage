@@ -1,10 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { DEFAULT_CHURCH_INFO } from './churchInfo';
+import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
+import { DEFAULT_SITE_COPY } from './siteCopy';
 import {
   DEFAULT_HERO_IMAGE,
   DEFAULT_PASTOR_IMAGE,
   fetchSiteSettings,
   putSiteSettings,
   type SiteSettings,
+  type SiteSettingsPayload,
 } from './siteSettings';
 
 export const THEME_IDS = ['dark', 'light', 'church', 'modern-sky', 'modern-sand'] as const;
@@ -63,12 +67,9 @@ type SiteSettingsContextValue = ResolvedSiteSettings & {
   isLoading: boolean;
   setThemeLocal: (nextThemeId: ThemeId) => void;
   saveTheme: (nextThemeId: ThemeId) => Promise<{ ok: boolean; message?: string }>;
-  saveSettings: (payload: {
-    themeId: ThemeId;
-    heroImagePath: string | null;
-    pastorImagePath: string | null;
-    logoImagePath: string | null;
-  }) => Promise<
+  saveSettings: (
+    payload: SiteSettingsPayload
+  ) => Promise<
     { ok: true; settings: ResolvedSiteSettings } | { ok: false; message: string }
   >;
   refreshTheme: () => Promise<void>;
@@ -95,6 +96,9 @@ const DEFAULT_SETTINGS: ResolvedSiteSettings = {
   heroImageUrl: DEFAULT_HERO_IMAGE,
   pastorImageUrl: DEFAULT_PASTOR_IMAGE,
   logoImageUrl: '',
+  imagePresentation: DEFAULT_IMAGE_PRESENTATION,
+  churchInfo: DEFAULT_CHURCH_INFO,
+  siteCopy: DEFAULT_SITE_COPY,
 };
 
 const applyThemeClass = (themeId: ThemeId) => {
@@ -143,6 +147,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       heroImagePath: settings.heroImagePath,
       pastorImagePath: settings.pastorImagePath,
       logoImagePath: settings.logoImagePath,
+      imagePresentation: settings.imagePresentation,
+      churchInfo: settings.churchInfo,
+      siteCopy: settings.siteCopy,
     });
     if (!result.ok) {
       return { ok: false, message: result.message };

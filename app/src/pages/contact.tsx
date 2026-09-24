@@ -2,12 +2,17 @@ import type { NextPage } from 'next';
 import { FormEvent, useState } from 'react';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
+import { useSiteSettings } from '../lib/ThemeContext';
+import { phoneHref } from '../lib/churchInfo';
+import { localize } from '../lib/siteCopy';
 
 const CONTACT_ENDPOINT = '/api/contact';
 
 const Contact: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const { churchInfo, siteCopy } = useSiteSettings();
+  const copy = siteCopy.contact;
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -38,33 +43,31 @@ const Contact: NextPage & { meta?: { title?: string; description?: string } } = 
   return (
     <article className="site-page contact-page">
       <PageHero
-        eyebrow={isKo ? '연락하기' : 'Start a conversation'}
-        title={isKo ? '무엇이든 편하게 물어보세요' : 'We would love to hear from you'}
-        description={
-          isKo
-            ? '첫 방문, 목장 연결, 기도 요청까지 필요한 내용을 남겨주시면 정성껏 답변드리겠습니다.'
-            : 'Whether you are planning a visit, looking for community, or requesting prayer, we are here to help.'
-        }
+        eyebrow={localize(copy.eyebrow, lang)}
+        title={localize(copy.title, lang)}
+        description={localize(copy.description, lang)}
       />
 
       <section className="contact-layout">
         <aside className="contact-intro">
-          <p className="site-kicker">{isKo ? '직접 연락하기' : 'Contact details'}</p>
+          <p className="site-kicker">{localize(copy.detailsKicker, lang)}</p>
           <div>
             <span>{isKo ? '전화' : 'Phone'}</span>
-            <a href="tel:+61433576500">0433 576 500</a>
+            <a href={phoneHref(churchInfo.phone)}>{churchInfo.phone}</a>
           </div>
           <div>
             <span>{isKo ? '이메일' : 'Email'}</span>
-            <a href="mailto:info@sydneysamil.org">info@sydneysamil.org</a>
+            <a href={`mailto:${churchInfo.email}`}>{churchInfo.email}</a>
           </div>
           <div>
             <span>{isKo ? '주소' : 'Address'}</span>
-            <p>Corner Bellamy St &amp; Boundary Rd<br />Pennant Hills NSW 2120</p>
+            <p>
+              {churchInfo.addressLine1}
+              <br />
+              {churchInfo.addressLine2}
+            </p>
           </div>
-          <p className="contact-intro__note">
-            {isKo ? '남겨주신 내용을 확인한 뒤 연락드리겠습니다.' : 'We will review your message and get back to you.'}
-          </p>
+          <p className="contact-intro__note">{localize(copy.note, lang)}</p>
         </aside>
 
         <form className="site-form contact-form" onSubmit={handleSubmit}>

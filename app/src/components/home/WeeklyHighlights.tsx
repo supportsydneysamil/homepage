@@ -1,12 +1,8 @@
 import Link from 'next/link';
-import {
-  formatShortDate,
-} from '../../lib/presentation';
-import {
-  getVisibleWeeklyItems,
-  type Language,
-  type WeeklyItem,
-} from './homeContent';
+import { formatShortDate } from '../../lib/presentation';
+import { useSiteSettings } from '../../lib/ThemeContext';
+import { localize } from '../../lib/siteCopy';
+import { getVisibleWeeklyItems, type Language, type WeeklyItem } from './homeContent';
 
 type WeeklyHighlightsProps = {
   items: WeeklyItem[];
@@ -20,18 +16,16 @@ const WeeklyHighlights = ({
   now = new Date(),
 }: WeeklyHighlightsProps) => {
   const isKo = lang === 'ko';
+  const { siteCopy } = useSiteSettings();
+  const weekly = siteCopy.home.weekly;
   const { active } = getVisibleWeeklyItems(items, now);
 
   return (
     <section className="home-section home-weekly" id="this-week">
       <div className="home-section__heading">
-        <p className="home-kicker">{isKo ? '이번 주 삼일' : 'This week at Samil'}</p>
-        <h2>{isKo ? '이번 주, 함께해요' : 'Come be part of this week'}</h2>
-        <p>
-          {isKo
-            ? '지금 필요한 소식만 간결하게 모았습니다.'
-            : 'A simple view of what is happening in our community.'}
-        </p>
+        <p className="home-kicker">{localize(weekly.kicker, lang)}</p>
+        <h2>{localize(weekly.title, lang)}</h2>
+        <p>{localize(weekly.intro, lang)}</p>
       </div>
 
       {active.length > 0 ? (
@@ -45,7 +39,7 @@ const WeeklyHighlights = ({
               <h3>{isKo ? item.titleKo : item.titleEn}</h3>
               <p>{isKo ? item.summaryKo : item.summaryEn}</p>
               <Link href={item.url}>
-                {isKo ? '자세히 보기' : 'View details'}
+                {localize(weekly.viewDetails, lang)}
                 <span aria-hidden="true">→</span>
               </Link>
             </article>
@@ -53,11 +47,7 @@ const WeeklyHighlights = ({
         </div>
       ) : (
         <div className="weekly-empty">
-          <p>
-            {isKo
-              ? '새로운 주간 소식을 준비하고 있습니다.'
-              : 'Fresh weekly updates are on the way.'}
-          </p>
+          <p>{localize(weekly.empty, lang)}</p>
           <div className="weekly-empty__links">
             <Link href="/events">{isKo ? '행사 보기' : 'Events'}</Link>
             <Link href="/sermons">{isKo ? '설교 듣기' : 'Sermons'}</Link>

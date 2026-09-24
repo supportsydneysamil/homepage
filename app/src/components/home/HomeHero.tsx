@@ -1,52 +1,36 @@
 import Link from 'next/link';
 import type { Language } from './homeContent';
+import CopyLines from '../CopyLines';
 import SitePhoto from '../SitePhoto';
 import { useSiteSettings } from '../../lib/ThemeContext';
 import { DEFAULT_HERO_IMAGE } from '../../lib/siteSettings';
-
-const DIRECTIONS_URL =
-  'https://maps.google.com/?q=Corner%20Bellamy%20St%20%26%20Boundary%20Rd%20Pennant%20Hills%20NSW%202120';
+import { directionsUrl, formatServiceTimesShort } from '../../lib/churchInfo';
+import { localize } from '../../lib/siteCopy';
 
 const HomeHero = ({ lang }: { lang: Language }) => {
-  const isKo = lang === 'ko';
-  const { heroImageUrl } = useSiteSettings();
+  const { heroImageUrl, imagePresentation, churchInfo, siteCopy } = useSiteSettings();
+  const hero = siteCopy.home.hero;
 
   return (
     <section className="home-hero">
       <div className="home-hero__copy">
-        <p className="home-kicker">Sydney · Community · Faith</p>
+        <p className="home-kicker">{localize(hero.kicker, lang)}</p>
         <h1>
-          {isKo ? (
-            <>
-              처음 오셔도,
-              <br />
-              편안한 교회
-            </>
-          ) : (
-            <>
-              A place to belong,
-              <br />
-              a faith to live
-            </>
-          )}
+          <CopyLines text={localize(hero.title, lang)} />
         </h1>
-        <p className="home-hero__lead">
-          {isKo
-            ? '함께 예배하고, 삶을 나누며, 믿음 안에서 자라는 시드니 삼일교회입니다.'
-            : 'Sydney Samil Church is a community where we worship, share life, and grow in faith together.'}
-        </p>
+        <p className="home-hero__lead">{localize(hero.lead, lang)}</p>
         <div className="home-hero__actions">
           <Link href="#visit" className="home-button home-button--primary">
-            {isKo ? '방문 안내 보기' : 'Plan your visit'}
+            {localize(hero.ctaVisit, lang)}
             <span aria-hidden="true">→</span>
           </Link>
           <a
-            href={DIRECTIONS_URL}
+            href={directionsUrl(churchInfo.mapsQuery)}
             className="home-button home-button--quiet"
             target="_blank"
             rel="noreferrer"
           >
-            {isKo ? '오시는 길' : 'Get directions'}
+            {localize(hero.ctaDirections, lang)}
           </a>
         </div>
       </div>
@@ -58,16 +42,13 @@ const HomeHero = ({ lang }: { lang: Language }) => {
           <SitePhoto
             src={heroImageUrl}
             fallback={DEFAULT_HERO_IMAGE}
-            alt={
-              isKo
-                ? '푸른 하늘과 잔디가 보이는 시드니 삼일교회 외관'
-                : 'Sydney Samil Church building beneath a blue sky'
-            }
+            alt={localize(hero.photoAlt, lang)}
+            presentation={imagePresentation.hero}
           />
         </div>
         <div className="home-hero__service-note">
-          <span>{isKo ? '이번 주일' : 'This Sunday'}</span>
-          <strong>9:30 · 11:00 AM</strong>
+          <span>{localize(hero.thisSunday, lang)}</span>
+          <strong>{formatServiceTimesShort(churchInfo.services)}</strong>
         </div>
       </div>
     </section>

@@ -1,3 +1,10 @@
+import { parseChurchInfo, type ChurchInfo } from './churchInfo';
+import {
+  parseImagePresentation,
+  type SiteImagePresentation,
+} from './imagePresentation';
+import { parseSiteCopy, type SiteCopy } from './siteCopy';
+
 export const DEFAULT_HERO_IMAGE = '/church-bg.png';
 export const DEFAULT_PASTOR_IMAGE = '/pastor.jpg';
 
@@ -9,6 +16,9 @@ export type SiteSettings = {
   heroImageUrl: string;
   pastorImageUrl: string;
   logoImageUrl: string;
+  imagePresentation: SiteImagePresentation;
+  churchInfo: ChurchInfo;
+  siteCopy: SiteCopy;
 };
 
 export type SiteSettingsPayload = {
@@ -16,6 +26,9 @@ export type SiteSettingsPayload = {
   heroImagePath: string | null;
   pastorImagePath: string | null;
   logoImagePath: string | null;
+  imagePresentation: SiteImagePresentation;
+  churchInfo: ChurchInfo;
+  siteCopy: SiteCopy;
 };
 
 type PendingImage = 'keep' | 'reset' | { uploadedPath: string };
@@ -33,6 +46,9 @@ export const parseSiteSettings = (input: unknown): SiteSettings => {
     heroImageUrl: stringOrNull(data.heroImageUrl) || DEFAULT_HERO_IMAGE,
     pastorImageUrl: stringOrNull(data.pastorImageUrl) || DEFAULT_PASTOR_IMAGE,
     logoImageUrl: stringOrNull(data.logoImageUrl) || '',
+    imagePresentation: parseImagePresentation(data.imagePresentation),
+    churchInfo: parseChurchInfo(data.churchInfo),
+    siteCopy: parseSiteCopy(data.siteCopy),
   };
 };
 

@@ -1,4 +1,5 @@
-import type { GetStaticProps, NextPage } from 'next';
+import { useEffect, useState } from 'react';
+import type { NextPage } from 'next';
 import ChurchPillars from '../components/home/ChurchPillars';
 import HomeHero from '../components/home/HomeHero';
 import NextSteps from '../components/home/NextSteps';
@@ -7,25 +8,39 @@ import QuickInfo from '../components/home/QuickInfo';
 import VisitOverview from '../components/home/VisitOverview';
 import WeeklyHighlights from '../components/home/WeeklyHighlights';
 import type { WeeklyItem } from '../components/home/homeContent';
-import weeklyData from '../content/weekly.json';
+import { fetchEvents, fetchResources, fetchSermons } from '../lib/contentApi';
+import { todayStamp } from '../lib/events';
 import { useLanguage } from '../lib/LanguageContext';
+import { weeklyItemsFromContent } from '../lib/weeklyHighlights';
 
-type HomeProps = {
-  generatedAt: string;
-};
-
-const Home: NextPage<HomeProps> & { meta?: { title?: string; description?: string } } = ({
-  generatedAt,
-}) => {
+const Home: NextPage & { meta?: { title?: string; description?: string } } = () => {
   const { lang } = useLanguage();
-  const items = weeklyData.items as WeeklyItem[];
+  const [items, setItems] = useState<WeeklyItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const [events, sermons, resources] = await Promise.all([
+        fetchEvents().catch(() => []),
+        fetchSermons().catch(() => []),
+        fetchResources().catch(() => []),
+      ]);
+      if (!cancelled) {
+        setItems(weeklyItemsFromContent({ events, sermons, resources, today: todayStamp() }));
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="home-page">
       <HomeHero lang={lang} />
       <QuickInfo lang={lang} />
       <ChurchPillars lang={lang} />
-      <WeeklyHighlights items={items} lang={lang} now={new Date(generatedAt)} />
+      <WeeklyHighlights items={items} lang={lang} />
       <VisitOverview lang={lang} />
       <NextSteps lang={lang} />
       <PastorFeature lang={lang} />
@@ -38,11 +53,5 @@ Home.meta = {
   description:
     'Worship, community, and faith for everyday life at Sydney Samil Church.',
 };
-
-export const getStaticProps: GetStaticProps<HomeProps> = async () => ({
-  props: {
-    generatedAt: new Date().toISOString(),
-  },
-});
 
 export default Home;

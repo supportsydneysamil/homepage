@@ -115,7 +115,7 @@ To restrict sign-in to your church tenant, use custom Entra ID auth:
 | --- | --- | --- |
 | Any signed-in church account | `member` | View and download the resource library and sermon files |
 | `Samil-Homepage-Editors` | `editor` | Everything above, plus upload files and maintain events and sermons |
-| `Samil-Homepage-Admins` | `admin` | Everything above, plus site settings at `/settings` |
+| `Samil-Homepage-Admins` | `admin` | Everything above, plus site settings at `/manage/settings` |
 
 Roles are cumulative and resolved from group **object IDs**, not names.
 
