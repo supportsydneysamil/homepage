@@ -54,6 +54,7 @@ const SettingsWorkspace = () => {
     churchInfo,
     siteCopy,
     saveSettings,
+    setPreviewTheme,
   } = useSiteSettings();
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(themeId);
   const [heroFile, setHeroFile] = useState<File | null>(null);
@@ -81,6 +82,10 @@ const SettingsWorkspace = () => {
   useEffect(() => {
     setSelectedTheme(themeId);
   }, [themeId]);
+
+  // Leaving the page without saving drops the preview and restores the
+  // published theme.
+  useEffect(() => () => setPreviewTheme(null), []);
 
   useEffect(() => {
     setDraftChurchInfo(parseChurchInfo(churchInfo));
@@ -318,6 +323,7 @@ const SettingsWorkspace = () => {
 
   const discardAllChanges = () => {
     setSelectedTheme(themeId);
+    setPreviewTheme(null);
     setDraftChurchInfo(parseChurchInfo(churchInfo));
     setDraftSiteCopy(parseSiteCopy(siteCopy));
     setDraftImagePresentation(parseImagePresentation(imagePresentation));
@@ -520,6 +526,7 @@ const SettingsWorkspace = () => {
             selectedTheme={selectedTheme}
             onSelectTheme={(nextTheme) => {
               setSelectedTheme(nextTheme);
+              setPreviewTheme(nextTheme);
               setStatus(null);
             }}
             logo={{

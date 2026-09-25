@@ -1400,6 +1400,13 @@ p {
   box-shadow: 0 0 0 1px var(--primary), 0 16px 34px rgba(16, 38, 68, 0.26);
 }
 
+/* Descriptions wrap to different line counts, so pin the caption to the card
+   floor instead of letting it float with the text above it. */
+.theme-option .card__eyebrow {
+  margin-top: auto;
+  margin-bottom: 0;
+}
+
 .theme-preview {
   width: 100%;
   height: 96px;

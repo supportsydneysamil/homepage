@@ -9,7 +9,8 @@ Make Appearance, Church Information, and Site Copy behave as one coherent settin
 - Detect changes independently for Appearance, Church Information, and Site Copy.
 - Keep one fixed save bar visible across all tabs.
 - Name the tabs with unsaved changes and disable save when nothing changed.
-- Treat theme selection as a draft; apply it globally only after a successful save.
+- Treat theme selection as a draft; publish it globally only after a successful save.
+- Paint the drafted theme locally as a live preview, because an animated theme such as Living cannot be judged from a static swatch. Track the preview separately from the published theme so unsaved-change detection keeps comparing against what is saved, and drop the preview when the workspace unmounts, when the user discards changes, or once a save succeeds.
 - Announce save success and failure accessibly.
 
 ## Validation

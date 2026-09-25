@@ -19,7 +19,7 @@ const Layout = ({ children, title, description }: LayoutProps) => {
       : `${title} | Sydney Samil Church`;
   const pageDescription =
     description || 'Worship, community, and faith for everyday life in Sydney.';
-  const { themeId } = useTheme();
+  const { activeThemeId } = useTheme();
   const { lang } = useLanguage();
 
   return (
@@ -28,7 +28,7 @@ const Layout = ({ children, title, description }: LayoutProps) => {
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
       </Head>
-      <div className={`layout theme-${themeId}`} lang={lang}>
+      <div className={`layout theme-${activeThemeId}`} lang={lang}>
         <ScrollActivity />
         <Header />
         <main className="content">{children}</main>
