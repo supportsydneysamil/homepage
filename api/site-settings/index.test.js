@@ -21,7 +21,10 @@ const adminReq = (method, body) => ({
 });
 
 test('exports the supported theme list', () => {
-  assert.deepStrictEqual(SUPPORTED_THEMES, ['dark', 'light', 'church', 'modern-sky', 'modern-sand']);
+  assert.deepStrictEqual(
+    SUPPORTED_THEMES,
+    ['dark', 'light', 'church', 'modern-sky', 'modern-sand', 'living']
+  );
 });
 
 test('no longer checks the Entra Global Administrator directory role', () => {
