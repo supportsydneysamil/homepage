@@ -15,14 +15,14 @@ Add a sixth site theme, Living, whose palette drifts continuously. Visitors shou
 
 ## Architecture
 
-Three numbers plus a 1.2s light/dark flip drive the whole palette.
+Three continuous numbers plus a discrete ink side drive the whole palette.
 
 | Token | Meaning |
 | --- | --- |
 | `--living-hue` | Base hue in degrees |
 | `--living-sat` | Base saturation (percent units, without `%`) |
 | `--living-dark` | Darkness after snap, 0 (day) to 1 (night) |
-| `--living-flip` | Ink inversion, 0 (dark text) to 1 (light text) |
+| `--living-flip` | Discrete ink side, 0 (dark text) or 1 (light text) |
 
 `app/src/lib/livingTheme.ts` is a pure module: given a `Date` and reduced-motion flag, it returns `{ hue, sat, dark, flip }`. Tests live in `livingTheme.test.ts` using the existing `tsx --test` convention.
 
@@ -63,7 +63,7 @@ Chaos `C = 0.55`.
 
 ### Light / dark snap
 
-Do not lerp `--living-flip` with `--living-dark`. When computed dark crosses 0.5, animate both darkness and flip from the day pole to the night pole (or back) over 1.2 seconds with a smoothstep. Day pole darkness is `0.04 + 0.14 * dark`; night pole is `0.80 + 0.19 * dark`. This skips the unreadable mid-gray band.
+Do not lerp `--living-flip`. When computed dark crosses 0.5, animate background darkness from the day pole to the night pole (or back) over 1.2 seconds with a smoothstep. Day pole darkness is `0.04 + 0.14 * dark`; night pole is `0.80 + 0.19 * dark`. During that transition, switch `--living-flip` discretely between black and white at the frame where the incoming ink has higher contrast. Exhaustive sampling of the approved hue, saturation, and darkness ranges gives a minimum best-side contrast of 4.58:1; softer 16%/92% ink falls to 3.36:1 and is not permitted. This avoids creating a mid-gray ink color and keeps text readable throughout the snap.
 
 The snap may be visible twice a day. That is accepted. Background-tab pause (`document.visibilityState`) stops the interval; on return, recompute instantly with no catch-up animation other than completing an in-progress 1.2s snap if the side changed while hidden.
 
@@ -82,7 +82,7 @@ Body text contrast against the page background must stay at or above WCAG AA (4.
 - Midnight wrap is continuous in hue (shortest-arc).
 - Same local calendar date + same time of day + reduced-motion on yields identical output.
 - Different dates at the same clock time differ.
-- Crossing dark = 0.5 produces a 1.2s snap, not a 20-minute gray fade.
+- Crossing dark = 0.5 produces a 1.2s background snap with one discrete ink switch, not a 20-minute gray fade.
 - Reduced-motion: wander amplitude is 0.
 - `SUPPORTED_THEMES` and front-end `THEME_IDS` both include `living`.
 - Selecting a non-Living theme removes Living custom properties from `document.body`.
