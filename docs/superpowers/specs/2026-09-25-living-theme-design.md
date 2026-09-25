@@ -20,11 +20,11 @@ Three continuous numbers plus a discrete ink side drive the whole palette.
 | Token | Meaning |
 | --- | --- |
 | `--living-hue` | Base hue in degrees |
-| `--living-sat` | Base saturation (percent units, without `%`) |
-| `--living-dark` | Darkness after snap, 0 (day) to 1 (night) |
-| `--living-flip` | Discrete ink side, 0 (dark text) or 1 (light text) |
+| `--living-sat` | Base saturation as a CSS percentage |
+| `--living-dark` | Darkness after snap as a CSS percentage |
+| `--living-flip` | Discrete ink side, `0%` (dark text) or `100%` (light text) |
 
-`app/src/lib/livingTheme.ts` is a pure module: given a `Date` and reduced-motion flag, it returns `{ hue, sat, dark, flip }`. Tests live in `livingTheme.test.ts` using the existing `tsx --test` convention.
+`app/src/lib/livingTheme.ts` is a pure module. `computeLivingTarget(Date, reducedMotion)` returns the seeded clock target, and `resolveLivingTone(target, progress)` returns `{ hue, sat, dark, flip }` for a transition frame. Tests live in `livingTheme.test.ts` using the existing `tsx --test` convention.
 
 `ThemeContext` applies `theme-living` on `document.body` when `themeId === 'living'`. A 2-second interval (and an immediate tick) writes the four custom properties. When the theme is not Living, the interval is cleared and the four properties are removed so leftover inline values cannot leak into other themes.
 
@@ -52,14 +52,14 @@ Interpolate these keypoints around a 24-hour wrap. Hue interpolates the short ar
 
 ### Daily seed and wander
 
-`seed = floor(UTC midnight of the visitor's Y-M-D / 86400000)` so the integer is timezone-stable for a given local calendar date.
+`seed = floor(UTC midnight of the visitor's Y-M-D / 86400000)` so the integer is timezone-stable for a given local calendar date. Interpolate today's seeded profile toward tomorrow's profile over the whole local day; this keeps midnight continuous while every date still has a distinct deterministic path.
 
 Chaos `C = 0.55`.
 
 - Shift the sample hour by `(hash(seed) - 0.5) * 1.6 * C` hours (about ±48 minutes at C=1, ±26 minutes at 0.55) so dusk does not always land at the same clock time.
 - Add three-sine wander to hue (±34° × C), sat (±14 × C), and dark (±0.18 × C), with periods that do not share a short common multiple (1900 / 5300 / 21100 seconds and nearby variants). Clamp sat to 14–72 and dark to 0–1.
 
-`prefers-reduced-motion: reduce` zeros wander amplitude and the hour shift. The visitor still gets the clock curve for that date's seed, but it is still.
+`prefers-reduced-motion: reduce` zeros wander amplitude and the hour shift. The visitor gets the still base clock curve without seeded variation.
 
 ### Light / dark snap
 
@@ -77,7 +77,7 @@ Body text contrast against the page background must stay at or above WCAG AA (4.
 
 ## Testing
 
-- `computeLivingTone` stays in range for hue, sat, dark, flip.
+- `computeLivingTarget` and `resolveLivingTone` stay in range for hue, sat, dark, and flip.
 - Adjacent 2-second samples (excluding snap windows) change hue by well under a degree.
 - Midnight wrap is continuous in hue (shortest-arc).
 - Same local calendar date + same time of day + reduced-motion on yields identical output.

@@ -129,7 +129,7 @@ const CLOCK_POINTS = [
 ] as const;
 ```
 
-Use seconds since local midnight for the sine phases. With reduced motion, use `chaos = 0`, which removes both the seeded hour shift and all wander while preserving the base clock curve.
+Use Unix seconds for the sine phases. Blend today's seeded profile toward tomorrow's over the whole local day so midnight is continuous. With reduced motion, use `chaos = 0`, which removes both the seeded hour shift and all wander while preserving the base clock curve.
 
 - [ ] **Step 4: Add failing tests for continuity, rate, snap frames, and contrast**
 
@@ -368,23 +368,28 @@ After `body.theme-modern-sand`, add `body.theme-living`. Keep the ink pole const
 ```css
 body.theme-living {
   --living-hue: 210;
-  --living-sat: 48;
-  --living-dark: 0.08;
-  --living-flip: 0;
-  --living-bg-l: calc(96% - 90% * var(--living-dark));
-  --living-surface-l: calc(99% - 92% * var(--living-dark));
-  --living-ink-l: calc(100% * var(--living-flip));
+  --living-sat: 48%;
+  --living-dark: 8%;
+  --living-flip: 0%;
+  --living-canvas: color-mix(
+    in hsl,
+    hsl(var(--living-hue) var(--living-sat) 96%) calc(100% - var(--living-dark)),
+    hsl(var(--living-hue) var(--living-sat) 6%) var(--living-dark)
+  );
+  --living-ink: color-mix(
+    in srgb,
+    #000000 calc(100% - var(--living-flip)),
+    #ffffff var(--living-flip)
+  );
 
-  --bg: hsl(var(--living-hue) calc(var(--living-sat) * 1%) var(--living-bg-l));
-  --surface-solid: hsl(var(--living-hue) calc(var(--living-sat) * 0.85%) var(--living-surface-l));
-  --primary: hsl(calc(var(--living-hue) + 6) 62% calc(46% + 18% * var(--living-dark)));
-  --accent: hsl(calc(var(--living-hue) + 172) 74% calc(56% + 8% * var(--living-dark)));
-  --text: hsl(var(--living-hue) 22% var(--living-ink-l));
-  --heading: hsl(var(--living-hue) 30% calc(10% + 88% * var(--living-flip)));
-  --muted: hsl(var(--living-hue) 16% var(--living-ink-l));
-  --home-bg: linear-gradient(150deg,
-    hsl(var(--living-hue) var(--living-sat) calc(var(--living-bg-l) - 3%)),
-    hsl(calc(var(--living-hue) + 20) var(--living-sat) var(--living-bg-l)));
+  --bg: var(--living-canvas);
+  --surface-solid: var(--living-surface);
+  --primary: var(--living-primary);
+  --accent: var(--living-accent);
+  --text: var(--living-ink);
+  --heading: var(--living-ink);
+  --muted: var(--living-ink);
+  --home-bg: linear-gradient(150deg, var(--living-canvas), var(--living-primary));
 }
 ```
 
@@ -412,13 +417,12 @@ Add `body.theme-living` after the other `--site-*` theme overrides:
 
 ```css
 body.theme-living {
-  --site-canvas: hsl(var(--living-hue) calc(var(--living-sat) * 1%) var(--living-bg-l));
-  --site-surface: hsl(var(--living-hue) calc(var(--living-sat) * 0.85%) var(--living-surface-l));
-  --site-ink: hsl(var(--living-hue) 22% var(--living-ink-l));
-  --site-muted: hsl(var(--living-hue) 16% var(--living-ink-l));
-  --site-accent: var(--primary);
-  --site-gold: var(--accent);
-  --site-danger: hsl(calc(var(--living-hue) + 145) 70% calc(40% + 35% * var(--living-flip)));
+  --site-canvas: var(--living-canvas);
+  --site-surface: var(--living-surface);
+  --site-ink: var(--living-ink);
+  --site-muted: var(--living-ink);
+  --site-accent: var(--living-ink);
+  --site-gold: var(--living-accent);
 }
 ```
 
