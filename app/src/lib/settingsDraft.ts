@@ -49,8 +49,3 @@ export const dirtySettingsTabs = (input: DirtySettingsInput): SettingsTab[] => {
   }
   return tabs;
 };
-
-export const shouldDockSettingsActions = (
-  settingsPageBottom: number,
-  viewportHeight: number
-) => settingsPageBottom <= viewportHeight;

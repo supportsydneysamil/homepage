@@ -2,7 +2,7 @@ const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, ROLES } = require('../shared/principal');
 const { deleteBlob, publicUrlFor, SITE_FOLDER } = require('../shared/blob');
 
-const SUPPORTED_THEMES = ['dark', 'light', 'church', 'modern-sky', 'modern-sand'];
+const SUPPORTED_THEMES = ['dark', 'light', 'church', 'modern-sky', 'modern-sand', 'living'];
 const DEFAULT_THEME = 'church';
 const DEFAULT_SETTING_KEY = 'theme';
 const MAX_CONTENT_JSON = 200000;

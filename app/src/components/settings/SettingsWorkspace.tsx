@@ -6,7 +6,6 @@ import AppearanceFields from './AppearanceFields';
 import ChurchInfoFields from './ChurchInfoFields';
 import { SettingsValidationProvider } from './SettingsValidationContext';
 import SiteCopyFields from './SiteCopyFields';
-import { useSettingsActionsDocking } from './useSettingsActionsDocking';
 import { parseChurchInfo, type ChurchInfo } from '../../lib/churchInfo';
 import {
   DEFAULT_IMAGE_PRESENTATION,
@@ -54,6 +53,7 @@ const SettingsWorkspace = () => {
     churchInfo,
     siteCopy,
     saveSettings,
+    setPreviewTheme,
   } = useSiteSettings();
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(themeId);
   const [heroFile, setHeroFile] = useState<File | null>(null);
@@ -76,11 +76,14 @@ const SettingsWorkspace = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
-  const { settingsPageRef, actionsDocked } = useSettingsActionsDocking();
 
   useEffect(() => {
     setSelectedTheme(themeId);
   }, [themeId]);
+
+  // Leaving the page without saving drops the preview and restores the
+  // published theme.
+  useEffect(() => () => setPreviewTheme(null), []);
 
   useEffect(() => {
     setDraftChurchInfo(parseChurchInfo(churchInfo));
@@ -318,6 +321,7 @@ const SettingsWorkspace = () => {
 
   const discardAllChanges = () => {
     setSelectedTheme(themeId);
+    setPreviewTheme(null);
     setDraftChurchInfo(parseChurchInfo(churchInfo));
     setDraftSiteCopy(parseSiteCopy(siteCopy));
     setDraftImagePresentation(parseImagePresentation(imagePresentation));
@@ -379,7 +383,7 @@ const SettingsWorkspace = () => {
   };
 
   return (
-    <div className="settings-page" ref={settingsPageRef}>
+    <div className="settings-page">
       <nav className="settings-tabs" aria-label={labels.tabsLabel}>
         {SETTINGS_TABS.map((settingsTab) => (
           <button
@@ -520,6 +524,7 @@ const SettingsWorkspace = () => {
             selectedTheme={selectedTheme}
             onSelectTheme={(nextTheme) => {
               setSelectedTheme(nextTheme);
+              setPreviewTheme(nextTheme);
               setStatus(null);
             }}
             logo={{
@@ -543,13 +548,7 @@ const SettingsWorkspace = () => {
         </section>
       ) : null}
 
-      <div
-        className={
-          actionsDocked
-            ? 'settings-actions settings-actions--docked'
-            : 'settings-actions'
-        }
-      >
+      <div className="settings-actions">
         <div className="settings-actions__summary">
           <strong>
             {isConfirmingDiscard

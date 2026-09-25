@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { DEFAULT_CHURCH_INFO } from './churchInfo';
 import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
 import { DEFAULT_SITE_COPY } from './siteCopy';
+import { useLivingTheme } from './useLivingTheme';
 import {
   DEFAULT_HERO_IMAGE,
   DEFAULT_PASTOR_IMAGE,
@@ -11,7 +12,14 @@ import {
   type SiteSettingsPayload,
 } from './siteSettings';
 
-export const THEME_IDS = ['dark', 'light', 'church', 'modern-sky', 'modern-sand'] as const;
+export const THEME_IDS = [
+  'dark',
+  'light',
+  'church',
+  'modern-sky',
+  'modern-sand',
+  'living',
+] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 
 type ThemeOption = {
@@ -58,14 +66,25 @@ export const THEME_OPTIONS: ThemeOption[] = [
     descriptionEn: 'Original dark theme with high contrast.',
     descriptionKo: '기존 고대비 다크 테마',
   },
+  {
+    id: 'living',
+    labelEn: 'Living',
+    labelKo: '리빙',
+    descriptionEn: 'A living palette that drifts with time and changes each day.',
+    descriptionKo: '시간과 날짜에 따라 천천히 흐르는 다이내믹 테마',
+  },
 ];
 
 type ResolvedSiteSettings = Omit<SiteSettings, 'themeId'> & { themeId: ThemeId };
 
 type SiteSettingsContextValue = ResolvedSiteSettings & {
   themeId: ThemeId;
+  // Unsaved preview. Paints the page without disturbing the published theme
+  // that unsaved-change detection compares against.
+  previewThemeId: ThemeId | null;
+  activeThemeId: ThemeId;
   isLoading: boolean;
-  setThemeLocal: (nextThemeId: ThemeId) => void;
+  setPreviewTheme: (nextThemeId: ThemeId | null) => void;
   saveTheme: (nextThemeId: ThemeId) => Promise<{ ok: boolean; message?: string }>;
   saveSettings: (
     payload: SiteSettingsPayload
@@ -82,6 +101,11 @@ const isThemeId = (value: string): value is ThemeId =>
 
 const normalizeTheme = (value?: string | null): ThemeId =>
   value && isThemeId(value) ? value : 'church';
+
+export const resolveActiveTheme = (
+  publishedThemeId: ThemeId,
+  previewThemeId: ThemeId | null
+): ThemeId => previewThemeId ?? publishedThemeId;
 
 const normalizeSettings = (settings: SiteSettings): ResolvedSiteSettings => ({
   ...settings,
@@ -109,7 +133,10 @@ const applyThemeClass = (themeId: ThemeId) => {
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<ResolvedSiteSettings>(DEFAULT_SETTINGS);
+  const [previewThemeId, setPreviewThemeId] = useState<ThemeId | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const activeThemeId = resolveActiveTheme(settings.themeId, previewThemeId);
+  useLivingTheme(activeThemeId === 'living');
 
   const refreshTheme = async () => {
     try {
@@ -126,11 +153,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    applyThemeClass(settings.themeId);
-  }, [settings.themeId]);
+    applyThemeClass(activeThemeId);
+  }, [activeThemeId]);
 
-  const setThemeLocal = (nextThemeId: ThemeId) => {
-    setSettings((current) => ({ ...current, themeId: normalizeTheme(nextThemeId) }));
+  const setPreviewTheme = (nextThemeId: ThemeId | null) => {
+    setPreviewThemeId(nextThemeId === null ? null : normalizeTheme(nextThemeId));
   };
 
   const saveSettings: SiteSettingsContextValue['saveSettings'] = async (payload) => {
@@ -138,6 +165,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     if (!result.ok) return result;
     const next = normalizeSettings(result.settings);
     setSettings(next);
+    setPreviewThemeId(null);
     return { ok: true, settings: next };
   };
 
@@ -160,13 +188,15 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(
     () => ({
       ...settings,
+      previewThemeId,
+      activeThemeId,
       isLoading,
-      setThemeLocal,
+      setPreviewTheme,
       saveTheme,
       saveSettings,
       refreshTheme,
     }),
-    [settings, isLoading]
+    [settings, previewThemeId, activeThemeId, isLoading]
   );
 
   return <SiteSettingsContext.Provider value={value}>{children}</SiteSettingsContext.Provider>;
@@ -183,10 +213,11 @@ export const useSiteSettings = () => {
 export const useTheme = () => {
   const {
     themeId,
+    activeThemeId,
     isLoading,
-    setThemeLocal,
+    setPreviewTheme,
     saveTheme,
     refreshTheme,
   } = useSiteSettings();
-  return { themeId, isLoading, setThemeLocal, saveTheme, refreshTheme };
+  return { themeId, activeThemeId, isLoading, setPreviewTheme, saveTheme, refreshTheme };
 };
