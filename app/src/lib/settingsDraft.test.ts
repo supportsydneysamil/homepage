@@ -5,7 +5,7 @@ import { parseChurchInfo } from './churchInfo';
 import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
 import { DEFAULT_SITE_COPY } from './siteCopy';
 import { parseSiteCopy } from './siteCopy';
-import { dirtySettingsTabs, shouldDockSettingsActions } from './settingsDraft';
+import { dirtySettingsTabs } from './settingsDraft';
 
 const baseline = {
   currentThemeId: 'church',
@@ -70,10 +70,4 @@ test('photo files and composition changes belong to Site copy', () => {
     }),
     ['copy']
   );
-});
-
-test('the action bar docks only when the settings form end reaches the viewport', () => {
-  assert.strictEqual(shouldDockSettingsActions(1200, 900), false);
-  assert.strictEqual(shouldDockSettingsActions(900, 900), true);
-  assert.strictEqual(shouldDockSettingsActions(760, 900), true);
 });

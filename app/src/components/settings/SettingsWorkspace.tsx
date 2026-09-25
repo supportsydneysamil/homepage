@@ -6,7 +6,6 @@ import AppearanceFields from './AppearanceFields';
 import ChurchInfoFields from './ChurchInfoFields';
 import { SettingsValidationProvider } from './SettingsValidationContext';
 import SiteCopyFields from './SiteCopyFields';
-import { useSettingsActionsDocking } from './useSettingsActionsDocking';
 import { parseChurchInfo, type ChurchInfo } from '../../lib/churchInfo';
 import {
   DEFAULT_IMAGE_PRESENTATION,
@@ -77,7 +76,6 @@ const SettingsWorkspace = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
-  const { settingsPageRef, actionsDocked } = useSettingsActionsDocking();
 
   useEffect(() => {
     setSelectedTheme(themeId);
@@ -385,7 +383,7 @@ const SettingsWorkspace = () => {
   };
 
   return (
-    <div className="settings-page" ref={settingsPageRef}>
+    <div className="settings-page">
       <nav className="settings-tabs" aria-label={labels.tabsLabel}>
         {SETTINGS_TABS.map((settingsTab) => (
           <button
@@ -550,13 +548,7 @@ const SettingsWorkspace = () => {
         </section>
       ) : null}
 
-      <div
-        className={
-          actionsDocked
-            ? 'settings-actions settings-actions--docked'
-            : 'settings-actions'
-        }
-      >
+      <div className="settings-actions">
         <div className="settings-actions__summary">
           <strong>
             {isConfirmingDiscard

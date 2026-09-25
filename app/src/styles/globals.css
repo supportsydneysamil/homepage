@@ -1565,13 +1565,13 @@ p {
   font-weight: 700;
 }
 
+/* Sticky keeps the bar in normal flow, so the gap above it is this margin and
+   never the leftover of a reserved height the bar can outgrow. */
 .settings-actions {
-  position: fixed;
+  position: sticky;
   z-index: 30;
-  left: 50%;
   bottom: 1rem;
-  width: min(1200px, calc(100% - 2.5rem));
-  transform: translateX(-50%);
+  margin-top: 2rem;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -1638,26 +1638,13 @@ p {
 
 .settings-page {
   position: relative;
-  padding-bottom: 7rem;
-}
-
-.settings-actions--docked {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  transform: none;
 }
 
 @media (max-width: 560px) {
   .settings-actions {
     bottom: 0.5rem;
-    width: calc(100% - 1rem);
     flex-wrap: wrap;
     padding: 0.65rem 0.7rem;
-  }
-
-  .settings-actions--docked {
-    width: 100%;
   }
 
   .settings-actions__summary {
@@ -1688,10 +1675,6 @@ p {
     min-height: 40px;
     padding: 0.55rem 0.8rem;
     font-size: 0.78rem;
-  }
-
-  .settings-page {
-    padding-bottom: 9rem;
   }
 }
 
