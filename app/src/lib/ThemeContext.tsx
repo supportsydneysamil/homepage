@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { DEFAULT_CHURCH_INFO } from './churchInfo';
 import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
 import { DEFAULT_SITE_COPY } from './siteCopy';
+import { useLivingTheme } from './useLivingTheme';
 import {
   DEFAULT_HERO_IMAGE,
   DEFAULT_PASTOR_IMAGE,
@@ -11,7 +12,14 @@ import {
   type SiteSettingsPayload,
 } from './siteSettings';
 
-export const THEME_IDS = ['dark', 'light', 'church', 'modern-sky', 'modern-sand'] as const;
+export const THEME_IDS = [
+  'dark',
+  'light',
+  'church',
+  'modern-sky',
+  'modern-sand',
+  'living',
+] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 
 type ThemeOption = {
@@ -57,6 +65,13 @@ export const THEME_OPTIONS: ThemeOption[] = [
     labelKo: '클래식 다크',
     descriptionEn: 'Original dark theme with high contrast.',
     descriptionKo: '기존 고대비 다크 테마',
+  },
+  {
+    id: 'living',
+    labelEn: 'Living',
+    labelKo: '리빙',
+    descriptionEn: 'A living palette that drifts with time and changes each day.',
+    descriptionKo: '시간과 날짜에 따라 천천히 흐르는 다이내믹 테마',
   },
 ];
 
@@ -110,6 +125,7 @@ const applyThemeClass = (themeId: ThemeId) => {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<ResolvedSiteSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
+  useLivingTheme(settings.themeId === 'living');
 
   const refreshTheme = async () => {
     try {
