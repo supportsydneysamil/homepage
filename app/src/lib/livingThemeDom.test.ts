@@ -25,7 +25,9 @@ test('writes all four Living properties', () => {
   applyLivingTone(style, { hue: 210.25, sat: 48.5, dark: 0.12, flip: 0 });
   assert.deepEqual(Array.from(style.values.keys()), LIVING_PROPERTIES);
   assert.equal(style.values.get('--living-hue'), '210.250');
-  assert.equal(style.values.get('--living-flip'), '0');
+  assert.equal(style.values.get('--living-sat'), '48.500%');
+  assert.equal(style.values.get('--living-dark'), '12.00%');
+  assert.equal(style.values.get('--living-flip'), '0%');
 });
 
 test('clears every Living property when the theme deactivates', () => {

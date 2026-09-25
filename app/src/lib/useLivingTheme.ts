@@ -21,9 +21,9 @@ type LivingStyle = {
 
 export const applyLivingTone = (style: LivingStyle, tone: LivingTone) => {
   style.setProperty('--living-hue', tone.hue.toFixed(3));
-  style.setProperty('--living-sat', tone.sat.toFixed(3));
-  style.setProperty('--living-dark', tone.dark.toFixed(4));
-  style.setProperty('--living-flip', String(tone.flip));
+  style.setProperty('--living-sat', `${tone.sat.toFixed(3)}%`);
+  style.setProperty('--living-dark', `${(tone.dark * 100).toFixed(2)}%`);
+  style.setProperty('--living-flip', `${tone.flip * 100}%`);
 };
 
 export const clearLivingTone = (style: LivingStyle) => {
