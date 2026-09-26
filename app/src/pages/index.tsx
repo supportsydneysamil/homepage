@@ -8,6 +8,7 @@ import QuickInfo from '../components/home/QuickInfo';
 import VisitOverview from '../components/home/VisitOverview';
 import WeeklyHighlights from '../components/home/WeeklyHighlights';
 import OpenApplications from '../components/home/OpenApplications';
+import WelcomeBand from '../components/home/WelcomeBand';
 import type { WeeklyItem } from '../components/home/homeContent';
 import { fetchApplications, fetchEvents, fetchResources, fetchSermons, type ApiApplication } from '../lib/contentApi';
 import { todayStamp } from '../lib/events';
@@ -47,6 +48,7 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
       <WeeklyHighlights items={items} lang={lang} />
       <OpenApplications items={applications} lang={lang} />
       <VisitOverview lang={lang} />
+      <WelcomeBand lang={lang} />
       <NextSteps lang={lang} />
       <PastorFeature lang={lang} />
     </div>
