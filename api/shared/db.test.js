@@ -23,7 +23,7 @@ test('returns null for empty input', () => {
 });
 
 test('schema creates every content table idempotently', () => {
-  for (const table of ['Events', 'Sermons', 'Resources', 'EventImages', 'SermonFiles']) {
+  for (const table of ['Events', 'Sermons', 'Resources', 'EventImages', 'SermonFiles', 'Applications']) {
     assert.ok(SCHEMA_SQL.includes(`dbo.${table}`), `${table} missing from schema`);
     assert.ok(
       SCHEMA_SQL.includes(`OBJECT_ID('dbo.${table}', 'U') IS NULL`),
@@ -35,6 +35,17 @@ test('schema creates every content table idempotently', () => {
 test('events gain location and start time columns on existing databases', () => {
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'Location')"));
   assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'StartTime')"));
+});
+
+test('events gain registration columns on existing databases', () => {
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'RegistrationUrl')"));
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'RegistrationLabel')"));
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.Events', 'RegistrationDeadline')"));
+});
+
+test('online applications are created idempotently', () => {
+  assert.ok(SCHEMA_SQL.includes("OBJECT_ID('dbo.Applications', 'U') IS NULL"));
+  assert.ok(SCHEMA_SQL.includes('FormUrl NVARCHAR(500) NOT NULL'));
 });
 
 test('sermons gain a subtitle column on existing databases', () => {

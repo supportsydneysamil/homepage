@@ -183,6 +183,15 @@ IF COL_LENGTH('dbo.Events', 'Location') IS NULL
 IF COL_LENGTH('dbo.Events', 'StartTime') IS NULL
   ALTER TABLE dbo.Events ADD StartTime NVARCHAR(5) NULL;
 
+IF COL_LENGTH('dbo.Events', 'RegistrationUrl') IS NULL
+  ALTER TABLE dbo.Events ADD RegistrationUrl NVARCHAR(500) NULL;
+
+IF COL_LENGTH('dbo.Events', 'RegistrationLabel') IS NULL
+  ALTER TABLE dbo.Events ADD RegistrationLabel NVARCHAR(40) NULL;
+
+IF COL_LENGTH('dbo.Events', 'RegistrationDeadline') IS NULL
+  ALTER TABLE dbo.Events ADD RegistrationDeadline DATE NULL;
+
 IF COL_LENGTH('dbo.Sermons', 'MediaUrl') IS NULL
   ALTER TABLE dbo.Sermons ADD MediaUrl NVARCHAR(600) NULL;
 
@@ -217,6 +226,26 @@ IF COL_LENGTH('dbo.Resources', 'Visibility') IS NULL
 
 IF COL_LENGTH('dbo.Resources', 'ResourceDate') IS NULL
   ALTER TABLE dbo.Resources ADD ResourceDate DATE NULL;
+
+IF OBJECT_ID('dbo.Applications', 'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.Applications (
+    Id UNIQUEIDENTIFIER NOT NULL PRIMARY KEY CONSTRAINT DF_Applications_Id DEFAULT NEWID(),
+    Title NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(500) NULL,
+    FormUrl NVARCHAR(500) NOT NULL,
+    Category NVARCHAR(40) NOT NULL CONSTRAINT DF_Applications_Category DEFAULT 'other',
+    Visibility NVARCHAR(20) NOT NULL CONSTRAINT DF_Applications_Visibility DEFAULT 'member',
+    OpensOn DATE NULL,
+    ClosesOn DATE NULL,
+    IsPublished BIT NOT NULL CONSTRAINT DF_Applications_IsPublished DEFAULT 1,
+    HighlightOnHome BIT NOT NULL CONSTRAINT DF_Applications_HighlightOnHome DEFAULT 0,
+    CreatedBy NVARCHAR(256) NULL,
+    CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_Applications_CreatedAt DEFAULT SYSUTCDATETIME(),
+    UpdatedBy NVARCHAR(256) NULL,
+    UpdatedAt DATETIME2 NOT NULL CONSTRAINT DF_Applications_UpdatedAt DEFAULT SYSUTCDATETIME()
+  );
+END;
 
 IF OBJECT_ID('dbo.EventImages', 'U') IS NULL
 BEGIN

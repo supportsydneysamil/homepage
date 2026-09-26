@@ -5295,6 +5295,25 @@ body {
   gap: 0.5rem;
 }
 
+.library-switch {
+  margin-bottom: 1.4rem;
+}
+
+.application-note {
+  flex: 1 1 100%;
+  margin: 0.15rem 0 0;
+  color: var(--site-muted);
+  font-size: 0.9rem;
+}
+
+.application-action {
+  margin-left: auto;
+}
+
+.application-more {
+  margin: 1.2rem 0 0;
+}
+
 .library-tab {
   padding: 0.5rem 1rem;
   border: 1px solid var(--site-line);

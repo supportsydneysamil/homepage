@@ -24,6 +24,8 @@
     { "route": "/api/sermons", "methods": ["POST", "PUT", "DELETE"], "allowedRoles": ["editor"] },
     { "route": "/api/resources", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/resources", "methods": ["POST", "PUT", "DELETE"], "allowedRoles": ["editor"] },
+    { "route": "/api/applications", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/applications", "methods": ["POST", "PUT", "DELETE"], "allowedRoles": ["editor"] },
     { "route": "/api/files/upload-url", "allowedRoles": ["editor"] },
     { "route": "/api/files/download/*", "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/site-settings", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },

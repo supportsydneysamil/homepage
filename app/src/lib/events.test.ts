@@ -11,9 +11,20 @@ import {
   splitUpcomingAndPast,
   stepEventGalleryIndex,
   takePage,
+  isRegistrationOpen,
   visibleEventImages,
   withoutPendingImages,
 } from './events';
+
+test('event registration stays open through its deadline', () => {
+  const event = {
+    registrationUrl: 'https://forms.office.com/r/retreat',
+    registrationDeadline: '2026-10-20',
+  };
+  assert.equal(isRegistrationOpen(event, '2026-10-20'), true);
+  assert.equal(isRegistrationOpen(event, '2026-10-21'), false);
+  assert.equal(isRegistrationOpen({ registrationUrl: '', registrationDeadline: '' }, '2026-10-20'), false);
+});
 
 test('builds a static-export safe detail path from a slug', () => {
   assert.equal(eventDetailPath('youth-retreat-2025'), '/events/detail?slug=youth-retreat-2025');

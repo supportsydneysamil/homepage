@@ -40,8 +40,8 @@ test('escapes an id that would otherwise break the query string', () => {
   assert.strictEqual(buildManageHref('events', 'a b&c'), '/manage?tab=events&edit=a%20b%26c');
 });
 
-test('exposes the three content tabs', () => {
-  assert.deepStrictEqual(MANAGE_TABS, ['resources', 'sermons', 'events']);
+test('exposes content tabs including online applications', () => {
+  assert.deepStrictEqual(MANAGE_TABS, ['resources', 'sermons', 'events', 'applications']);
 });
 
 test('site settings is a separate page, not a content tab', () => {

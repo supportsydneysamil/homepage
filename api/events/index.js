@@ -1,5 +1,6 @@
 const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
+const { isMicrosoftFormUrl } = require('../shared/applications');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -48,6 +49,9 @@ const validateEventInput = (body) => {
   const location = String(input.location || '').trim();
   const startTime = String(input.startTime || '').trim();
   const youtubeUrl = String(input.youtubeUrl || '').trim();
+  const registrationUrl = String(input.registrationUrl || '').trim();
+  const registrationLabel = String(input.registrationLabel || '').trim();
+  const registrationDeadline = String(input.registrationDeadline || '').trim();
 
   if (slug === 'detail') return { error: 'Slug cannot be "detail".' };
   if (!SLUG_PATTERN.test(slug)) return { error: 'Slug must be lowercase words separated by hyphens.' };
@@ -56,6 +60,19 @@ const validateEventInput = (body) => {
   if (location.length > 200) return { error: 'Location must be 200 characters or fewer.' };
   if (startTime && !TIME_PATTERN.test(startTime)) return { error: 'Start time must be HH:MM.' };
   if (youtubeUrl && !isYouTubeUrl(youtubeUrl)) return { error: 'Video URL must be a YouTube link.' };
+  if (registrationUrl && !isMicrosoftFormUrl(registrationUrl)) {
+    return { error: 'Registration URL must be an https Microsoft Forms link.' };
+  }
+  if (registrationDeadline && !registrationUrl) {
+    return { error: 'A registration deadline needs a Microsoft Forms link.' };
+  }
+  if (registrationLabel.length > 40) return { error: 'Registration label must be 40 characters or fewer.' };
+  if (
+    registrationDeadline &&
+    (!DATE_PATTERN.test(registrationDeadline) || Number.isNaN(Date.parse(registrationDeadline)))
+  ) {
+    return { error: 'Registration deadline must be YYYY-MM-DD.' };
+  }
 
   const images = parseImageBlobPaths(input.imageBlobPaths);
   if (images.error) return { error: images.error };
@@ -69,6 +86,9 @@ const validateEventInput = (body) => {
       location: location || null,
       startTime: startTime || null,
       youtubeUrl: youtubeUrl || null,
+      registrationUrl: registrationUrl || null,
+      registrationLabel: registrationUrl ? registrationLabel || null : null,
+      registrationDeadline: registrationUrl ? registrationDeadline || null : null,
       published: parsePublished(input.published),
       imageBlobPaths: images.imageBlobPaths,
     },
@@ -84,6 +104,12 @@ const mapRow = (row) => ({
   location: row.Location || '',
   startTime: String(row.StartTime || '').trim(),
   youtubeUrl: row.YouTubeUrl || '',
+  registrationUrl: row.RegistrationUrl || '',
+  registrationLabel: row.RegistrationLabel || '',
+  registrationDeadline:
+    row.RegistrationDeadline instanceof Date
+      ? row.RegistrationDeadline.toISOString().slice(0, 10)
+      : String(row.RegistrationDeadline || '').slice(0, 10),
   published: Boolean(row.IsPublished),
   images: Array.isArray(row.images) ? row.images : [],
 });
@@ -112,7 +138,7 @@ const assembleEvents = (eventRows, imageRows) => {
 };
 
 const EVENT_SELECT =
-  'SELECT Id, Slug, EventDate, Title, Description, YouTubeUrl, Location, StartTime, IsPublished FROM dbo.Events';
+  'SELECT Id, Slug, EventDate, Title, Description, YouTubeUrl, Location, StartTime, RegistrationUrl, RegistrationLabel, RegistrationDeadline, IsPublished FROM dbo.Events';
 
 const loadImages = async (pool, eventIds) => {
   if (!eventIds.length) return [];
@@ -220,12 +246,16 @@ module.exports = async function (context, req) {
         .input('location', sql.NVarChar(200), parsed.value.location)
         .input('startTime', sql.NVarChar(5), parsed.value.startTime)
         .input('youTubeUrl', sql.NVarChar(500), parsed.value.youtubeUrl)
+        .input('registrationUrl', sql.NVarChar(500), parsed.value.registrationUrl)
+        .input('registrationLabel', sql.NVarChar(40), parsed.value.registrationLabel)
+        .input('registrationDeadline', sql.Date, parsed.value.registrationDeadline)
         .input('published', sql.Bit, parsed.value.published)
         .input('actor', sql.NVarChar(256), actor)
         .query(`
-INSERT INTO dbo.Events (Slug, EventDate, Title, Description, Location, StartTime, YouTubeUrl, IsPublished, CreatedBy, UpdatedBy)
+INSERT INTO dbo.Events
+  (Slug, EventDate, Title, Description, Location, StartTime, YouTubeUrl, RegistrationUrl, RegistrationLabel, RegistrationDeadline, IsPublished, CreatedBy, UpdatedBy)
 OUTPUT inserted.Id
-VALUES (@slug, @eventDate, @title, @description, @location, @startTime, @youTubeUrl, @published, @actor, @actor);
+VALUES (@slug, @eventDate, @title, @description, @location, @startTime, @youTubeUrl, @registrationUrl, @registrationLabel, @registrationDeadline, @published, @actor, @actor);
 `);
       const id = inserted.recordset[0].Id;
       await addEventImages(pool, id, parsed.value.imageBlobPaths, actor);
@@ -254,12 +284,17 @@ VALUES (@slug, @eventDate, @title, @description, @location, @startTime, @youTube
         .input('location', sql.NVarChar(200), parsed.value.location)
         .input('startTime', sql.NVarChar(5), parsed.value.startTime)
         .input('youTubeUrl', sql.NVarChar(500), parsed.value.youtubeUrl)
+        .input('registrationUrl', sql.NVarChar(500), parsed.value.registrationUrl)
+        .input('registrationLabel', sql.NVarChar(40), parsed.value.registrationLabel)
+        .input('registrationDeadline', sql.Date, parsed.value.registrationDeadline)
         .input('published', sql.Bit, parsed.value.published)
         .input('actor', sql.NVarChar(256), actor)
         .query(`
 UPDATE dbo.Events
 SET Slug = @slug, EventDate = @eventDate, Title = @title, Description = @description,
-    Location = @location, StartTime = @startTime, YouTubeUrl = @youTubeUrl, IsPublished = @published,
+    Location = @location, StartTime = @startTime, YouTubeUrl = @youTubeUrl,
+    RegistrationUrl = @registrationUrl, RegistrationLabel = @registrationLabel,
+    RegistrationDeadline = @registrationDeadline, IsPublished = @published,
     UpdatedBy = @actor, UpdatedAt = SYSUTCDATETIME()
 WHERE Id = @id;
 SELECT @@ROWCOUNT AS Affected;

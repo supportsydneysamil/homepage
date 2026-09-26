@@ -1,4 +1,4 @@
-export const MANAGE_TABS = ['resources', 'sermons', 'events'] as const;
+export const MANAGE_TABS = ['resources', 'sermons', 'events', 'applications'] as const;
 
 export type ManageTab = (typeof MANAGE_TABS)[number];
 

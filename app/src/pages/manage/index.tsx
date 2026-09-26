@@ -33,6 +33,16 @@ import {
   type ResourceCategory,
 } from '../../lib/library';
 import {
+  APPLICATION_CATEGORIES,
+  APPLICATION_VISIBILITIES,
+  applicationCategoryLabel,
+  applicationVisibilityLabel,
+  filterApplications,
+  type ApplicationCategory,
+} from '../../lib/applications';
+import {
+  fetchApplication,
+  fetchApplications,
   fetchEvent,
   fetchEvents,
   fetchResource,
@@ -41,6 +51,7 @@ import {
   fetchSermons,
   useContent,
   useLookup,
+  type ApiApplication,
   type ApiEvent,
   type ApiResource,
   type ApiSermon,
@@ -64,7 +75,7 @@ const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: un
   if (!res.ok) {
     throw new Error(body.error || `Request failed (${res.status})`);
   }
-  const saved = body.resource || body.sermon || body.event;
+  const saved = body.resource || body.sermon || body.event || body.application;
   return saved && saved.id ? saved.id : null;
 };
 
@@ -92,9 +103,11 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const resources = useContent<ApiResource>(fetchResources, tab === 'resources');
   const sermons = useContent<ApiSermon>(fetchSermons, tab === 'sermons');
   const events = useContent<ApiEvent>(fetchEvents, tab === 'events');
+  const applications = useContent<ApiApplication>(fetchApplications, tab === 'applications');
   const editingResourceLookup = useLookup(tab === 'resources' ? editId : null, fetchResource);
   const editingSermonLookup = useLookup(tab === 'sermons' ? editId : null, fetchSermon);
   const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
+  const editingApplicationLookup = useLookup(tab === 'applications' ? editId : null, fetchApplication);
   // The row the open editor is actually showing. It lags the link while the
   // lookup runs, so the form is on the page only once this settles.
   const editingItem =
@@ -102,7 +115,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       ? editingResourceLookup.item
       : tab === 'sermons'
         ? editingSermonLookup.item
-        : editingEventLookup.item;
+        : tab === 'events'
+          ? editingEventLookup.item
+          : editingApplicationLookup.item;
   const openEditorId = editId ? editingItem?.id ?? null : null;
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -171,6 +186,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     resources: { filter: 'all', search: '', page: 1 },
     sermons: { filter: 'all', search: '', page: 1 },
     events: { filter: 'all', search: '', page: 1 },
+    applications: { filter: 'all', search: '', page: 1 },
   });
   const setView = (changes: Partial<ManageView>) =>
     setViews((previous) => ({ ...previous, [tab]: { ...previous[tab], ...changes } }));
@@ -200,6 +216,13 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     const matched = filterEvents(fresh, current.filter, current.search, todayStamp());
     reveal('events', viewShowing(savedId, fresh, matched, current, MANAGE_PAGE_SIZE));
   };
+
+  const revealApplication = (fresh: ApiApplication[], savedId: string | null) => {
+    if (!savedId) return;
+    const current = views.applications;
+    const matched = filterApplications(fresh, current.filter as ApplicationCategory | 'all', current.search);
+    reveal('applications', viewShowing(savedId, fresh, matched, current, MANAGE_PAGE_SIZE));
+  };
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState<string>(RESOURCE_CATEGORIES[0].id);
   const [uploadVisibility, setUploadVisibility] = useState<string>('member');
@@ -222,6 +245,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         resources: isKo ? '자료실' : 'Resources',
         sermons: isKo ? '설교' : 'Sermons',
         events: isKo ? '이벤트' : 'Events',
+        applications: isKo ? '신청' : 'Applications',
       } as Record<ManageTab, string>,
       edit: isKo ? '편집' : 'Edit',
       remove: isKo ? '삭제' : 'Delete',
@@ -297,6 +321,22 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
       emptyResources: isKo ? '등록된 자료가 없습니다.' : 'No resources yet.',
       emptySermons: isKo ? '등록된 설교가 없습니다.' : 'No sermons yet.',
       emptyEvents: isKo ? '등록된 이벤트가 없습니다.' : 'No events yet.',
+      emptyApplications: isKo ? '등록된 신청이 없습니다.' : 'No applications yet.',
+      addApplication: isKo ? '신청 추가' : 'Add an application',
+      editApplication: isKo ? '신청 수정' : 'Edit application',
+      formUrl: isKo ? 'Microsoft Forms 주소' : 'Microsoft Forms URL',
+      formUrlHint: isKo
+        ? 'forms.office.com 또는 forms.microsoft.com 주소만 사용할 수 있습니다.'
+        : 'Only forms.office.com or forms.microsoft.com links are accepted.',
+      opensOn: isKo ? '접수 시작일' : 'Opens on',
+      closesOn: isKo ? '접수 마감일' : 'Closes on',
+      dateOptional: isKo ? '비워두면 기간 제한이 없습니다.' : 'Leave empty when there is no date limit.',
+      highlight: isKo ? '홈 강조' : 'Homepage highlight',
+      highlightOn: isKo ? '홈에 표시' : 'Show on the homepage',
+      highlightOff: isKo ? '표시 안 함' : 'Do not highlight',
+      registrationUrl: isKo ? '신청 폼 주소' : 'Registration form URL',
+      registrationLabel: isKo ? '신청 버튼 문구' : 'Registration button',
+      registrationDeadline: isKo ? '신청 마감일' : 'Registration deadline',
       needFile: isKo ? '제목과 파일을 모두 입력해 주세요.' : 'Provide both a title and a file.',
       uploadFailed: isKo ? '업로드에 실패했습니다.' : 'Upload failed.',
       all: isKo ? '전체' : 'All',
@@ -361,6 +401,7 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
   const editingResource = editingResourceLookup.item;
   const editingSermon = editingSermonLookup.item;
   const editingEvent = editingEventLookup.item;
+  const editingApplication = editingApplicationLookup.item;
   const editingPhotos = withoutPendingImages(editingEvent?.images, pendingRemovedPhotos);
 
   const today = todayStamp();
@@ -396,6 +437,21 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
     { value: 'upcoming', label: labels.upcoming, count: countByStatus('upcoming') },
     { value: 'past', label: labels.past, count: countByStatus('past') },
     { value: 'draft', label: labels.draft, count: countByStatus('draft') },
+  ];
+
+  const matchedApplications = filterApplications(
+    applications.items,
+    views.applications.filter as ApplicationCategory | 'all',
+    views.applications.search
+  );
+  const applicationPage = paginate(matchedApplications, views.applications.page, MANAGE_PAGE_SIZE);
+  const applicationFilterOptions: ManageFilterOption[] = [
+    { value: 'all', label: labels.all, count: applications.items.length },
+    ...APPLICATION_CATEGORIES.map((entry) => ({
+      value: entry.id,
+      label: applicationCategoryLabel(entry.id, lang),
+      count: applications.items.filter((item) => item.category === entry.id).length,
+    })).filter((option) => option.count > 0),
   ];
 
   const onUpload = async (formEvent: React.FormEvent) => {
@@ -455,8 +511,8 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
         title={isKo ? '자료 관리' : 'Content management'}
         description={
           isKo
-            ? '주보와 설교, 이벤트를 한곳에서 등록하고 수정합니다. 파일은 최대 25MB까지 올릴 수 있습니다.'
-            : 'Publish and update bulletins, sermons, and events in one place. Files may be up to 25 MB.'
+            ? '주보, 설교, 이벤트와 온라인 신청을 한곳에서 등록하고 수정합니다. 파일은 최대 25MB까지 올릴 수 있습니다.'
+            : 'Publish bulletins, sermons, events, and online applications in one place. Files may be up to 25 MB.'
         }
       />
 
@@ -881,6 +937,14 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   { name: 'description', label: labels.description, type: 'textarea' },
                   { name: 'youtubeUrl', label: labels.youtube, type: 'url' },
                   {
+                    name: 'registrationUrl',
+                    label: labels.registrationUrl,
+                    type: 'url',
+                    hint: labels.formUrlHint,
+                  },
+                  { name: 'registrationLabel', label: labels.registrationLabel, type: 'text' },
+                  { name: 'registrationDeadline', label: labels.registrationDeadline, type: 'date' },
+                  {
                     name: 'published',
                     label: labels.published,
                     type: 'select',
@@ -908,6 +972,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                       location: editingEvent.location,
                       startTime: editingEvent.startTime,
                       youtubeUrl: editingEvent.youtubeUrl,
+                      registrationUrl: editingEvent.registrationUrl,
+                      registrationLabel: editingEvent.registrationLabel,
+                      registrationDeadline: editingEvent.registrationDeadline,
                       published: editingEvent.published ? 'true' : 'false',
                     }
                   : undefined
@@ -930,6 +997,9 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
                   location: values.location,
                   startTime: values.startTime,
                   youtubeUrl: values.youtubeUrl,
+                  registrationUrl: values.registrationUrl,
+                  registrationLabel: values.registrationLabel,
+                  registrationDeadline: values.registrationDeadline,
                   published: values.published !== 'false',
                   imageBlobPaths,
                 };
@@ -1002,6 +1072,179 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
           <Pager
             page={eventPage.page}
             pageCount={eventPage.pageCount}
+            label={labels.pages}
+            previousLabel={labels.previous}
+            nextLabel={labels.next}
+            onChange={(page) => setView({ page })}
+          />
+        </section>
+      ) : null}
+
+      {tab === 'applications' ? (
+        <section className="manage-panel">
+          <div className="manage-actions">
+            <button type="button" className="manage-button" onClick={openAdd}>
+              + {labels.addApplication}
+            </button>
+          </div>
+
+          {(editId && editingApplicationLookup.isLoading) || !(editId || isAdding) ? null : (
+            <div className="manage-editor" tabIndex={-1}>
+              <h2>{editingApplication ? labels.editApplication : labels.addApplication}</h2>
+              <ContentForm
+                fields={
+                  [
+                    { name: 'title', label: labels.title, type: 'text', required: true },
+                    { name: 'description', label: labels.description, type: 'textarea' },
+                    {
+                      name: 'formUrl',
+                      label: labels.formUrl,
+                      type: 'url',
+                      required: true,
+                      hint: labels.formUrlHint,
+                    },
+                    {
+                      name: 'category',
+                      label: labels.category,
+                      type: 'select',
+                      options: APPLICATION_CATEGORIES.map((entry) => ({
+                        value: entry.id,
+                        label: applicationCategoryLabel(entry.id, lang),
+                      })),
+                    },
+                    {
+                      name: 'visibility',
+                      label: labels.visibility,
+                      type: 'select',
+                      options: APPLICATION_VISIBILITIES.map((entry) => ({
+                        value: entry.id,
+                        label: applicationVisibilityLabel(entry.id, lang),
+                      })),
+                    },
+                    { name: 'opensOn', label: labels.opensOn, type: 'date', hint: labels.dateOptional },
+                    { name: 'closesOn', label: labels.closesOn, type: 'date', hint: labels.dateOptional },
+                    {
+                      name: 'published',
+                      label: labels.published,
+                      type: 'select',
+                      options: [
+                        { value: 'true', label: labels.publishedLive },
+                        { value: 'false', label: labels.publishedDraft },
+                      ],
+                    },
+                    {
+                      name: 'highlightOnHome',
+                      label: labels.highlight,
+                      type: 'select',
+                      options: [
+                        { value: 'false', label: labels.highlightOff },
+                        { value: 'true', label: labels.highlightOn },
+                      ],
+                    },
+                  ] as FormField[]
+                }
+                initialValues={
+                  editingApplication
+                    ? {
+                        title: editingApplication.title,
+                        description: editingApplication.description,
+                        formUrl: editingApplication.formUrl,
+                        category: editingApplication.category,
+                        visibility: editingApplication.visibility,
+                        opensOn: editingApplication.opensOn,
+                        closesOn: editingApplication.closesOn,
+                        published: editingApplication.published ? 'true' : 'false',
+                        highlightOnHome: editingApplication.highlightOnHome ? 'true' : 'false',
+                      }
+                    : {
+                        category: 'discipleship',
+                        visibility: 'member',
+                        published: 'true',
+                        highlightOnHome: 'false',
+                      }
+                }
+                submitLabel={labels.save}
+                busyLabel={labels.saving}
+                cancelLabel={labels.cancel}
+                onCancel={() => goTo('applications')}
+                onSubmit={async (values) => {
+                  const payload = {
+                    title: values.title,
+                    description: values.description,
+                    formUrl: values.formUrl,
+                    category: values.category || 'discipleship',
+                    visibility: values.visibility || 'member',
+                    opensOn: values.opensOn,
+                    closesOn: values.closesOn,
+                    published: values.published !== 'false',
+                    highlightOnHome: values.highlightOnHome === 'true',
+                  };
+                  const savedId = editingApplication
+                    ? await sendContent('/api/applications', 'PUT', { id: editingApplication.id, ...payload })
+                    : await sendContent('/api/applications', 'POST', payload);
+                  revealApplication(await applications.reload(), savedId);
+                  goTo('applications');
+                  flashRow(savedId, labels.saved);
+                }}
+              />
+            </div>
+          )}
+
+          <ManageToolbar
+            id="manage-applications"
+            filterLabel={labels.filterCategory}
+            filterValue={views.applications.filter}
+            filterOptions={applicationFilterOptions}
+            filterAs="chips"
+            onFilterChange={(value) => setView({ filter: value, page: 1 })}
+            searchLabel={isKo ? '신청 검색' : 'Search applications'}
+            searchPlaceholder={isKo ? '신청 검색' : 'Search applications'}
+            searchValue={views.applications.search}
+            clearLabel={labels.clearSearch}
+            onSearchChange={(value) => setView({ search: value, page: 1 })}
+            countLabel={labels.countRange(applicationPage.from, applicationPage.to, matchedApplications.length)}
+          />
+
+          {status?.scope === 'list' ? (
+            <p
+              className={status.isError ? 'manage-status manage-status--error' : 'manage-status'}
+              role={status.isError ? 'alert' : 'status'}
+              aria-live={status.isError ? 'assertive' : 'polite'}
+            >
+              {status.text}
+            </p>
+          ) : null}
+
+          <ManageList
+            items={applicationPage.items.map((item) => ({
+              id: item.id,
+              primary: item.title,
+              secondary: [
+                applicationCategoryLabel(item.category, lang),
+                item.published ? '' : labels.draft,
+                item.highlightOnHome ? (isKo ? '홈' : 'Home') : '',
+              ]
+                .filter(Boolean)
+                .join(' · '),
+            }))}
+            activeId={editId}
+            flashId={flashId}
+            flashLabel={labels.savedMark}
+            emptyLabel={applications.items.length ? labels.noMatch : labels.emptyApplications}
+            editLabel={labels.edit}
+            deleteLabel={labels.remove}
+            confirmLabel={labels.confirm}
+            cancelLabel={labels.cancel}
+            pendingDeleteId={pendingDeleteId}
+            onEdit={(id) => goTo('applications', id)}
+            onRequestDelete={setPendingDeleteId}
+            onConfirmDelete={(id) => onDelete('/api/applications', id, applications.reload)}
+            onCancelDelete={() => setPendingDeleteId(null)}
+          />
+
+          <Pager
+            page={applicationPage.page}
+            pageCount={applicationPage.pageCount}
             label={labels.pages}
             previousLabel={labels.previous}
             nextLabel={labels.next}

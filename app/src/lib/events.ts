@@ -75,6 +75,16 @@ export const visibleEventImages = (images: string[] | undefined) =>
     return !isPlaceholderUrl(image);
   });
 
+export const isRegistrationOpen = (
+  event: { registrationUrl: string; registrationDeadline: string },
+  today: string
+) => {
+  if (!event.registrationUrl.trim()) return false;
+  const deadline = event.registrationDeadline.trim();
+  if (!deadline) return true;
+  return deadline >= today;
+};
+
 export const stepEventGalleryIndex = (index: number, delta: number, length: number) => {
   if (length <= 0) return 0;
   const next = index + delta;
