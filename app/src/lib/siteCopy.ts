@@ -42,6 +42,13 @@ export type SiteCopy = {
       empty: LocalizedText;
       viewDetails: LocalizedText;
     };
+    applications: {
+      kicker: LocalizedText;
+      title: LocalizedText;
+      intro: LocalizedText;
+      applyLabel: LocalizedText;
+      viewAll: LocalizedText;
+    };
     visit: {
       kicker: LocalizedText;
       title: LocalizedText;
@@ -207,6 +214,16 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
         en: 'Fresh weekly updates are on the way.',
       },
       viewDetails: { ko: '자세히 보기', en: 'View details' },
+    },
+    applications: {
+      kicker: { ko: '지금 신청', en: 'Open now' },
+      title: { ko: '접수가 열린 신청', en: 'Applications open now' },
+      intro: {
+        ko: '아래에서 바로 작성하거나, 다른 신청도 함께 살펴보세요.',
+        en: 'Start one of these forms, or browse every open application.',
+      },
+      applyLabel: { ko: '신청하기', en: 'Apply' },
+      viewAll: { ko: '모든 신청 보기', en: 'See all applications' },
     },
     visit: {
       kicker: { ko: '처음 방문 안내', en: 'Your first Sunday' },
@@ -378,6 +395,7 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
   const footer = asRecord(row.footer);
   const homePillars = asRecord(home?.pillars);
   const homeWeekly = asRecord(home?.weekly);
+  const homeApplications = asRecord(home?.applications);
   const homeVisit = asRecord(home?.visit);
   const homeNext = asRecord(home?.nextSteps);
   const homeQuick = asRecord(home?.quick);
@@ -404,6 +422,13 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
         intro: textAt(homeWeekly, 'intro', DEFAULT_SITE_COPY.home.weekly.intro),
         empty: textAt(homeWeekly, 'empty', DEFAULT_SITE_COPY.home.weekly.empty),
         viewDetails: textAt(homeWeekly, 'viewDetails', DEFAULT_SITE_COPY.home.weekly.viewDetails),
+      },
+      applications: {
+        kicker: textAt(homeApplications, 'kicker', DEFAULT_SITE_COPY.home.applications.kicker),
+        title: textAt(homeApplications, 'title', DEFAULT_SITE_COPY.home.applications.title),
+        intro: textAt(homeApplications, 'intro', DEFAULT_SITE_COPY.home.applications.intro),
+        applyLabel: textAt(homeApplications, 'applyLabel', DEFAULT_SITE_COPY.home.applications.applyLabel),
+        viewAll: textAt(homeApplications, 'viewAll', DEFAULT_SITE_COPY.home.applications.viewAll),
       },
       visit: {
         kicker: textAt(homeVisit, 'kicker', DEFAULT_SITE_COPY.home.visit.kicker),

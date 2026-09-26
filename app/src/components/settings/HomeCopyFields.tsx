@@ -245,6 +245,48 @@ const HomeCopyFields = ({
       </CopySection>
 
       <CopySection
+        title={isKo ? '열린 신청' : 'Open applications'}
+        description={isKo ? '홈에 강조된 접수 중 신청 위의 안내 문구' : 'Copy around highlighted applications on the homepage'}
+        count={5}
+      >
+        <FieldGroup title={primary}>
+          <BilingualField
+            fieldPath="home.applications.title"
+            label={isKo ? '섹션 제목' : 'Section title'}
+            value={value.applications.title}
+            onChange={(title) => setSection('applications', { title })}
+          />
+          <BilingualField
+            fieldPath="home.applications.intro"
+            label={isKo ? '섹션 소개' : 'Section intro'}
+            value={value.applications.intro}
+            onChange={(intro) => setSection('applications', { intro })}
+            multiline
+          />
+        </FieldGroup>
+        <FieldGroup title={supporting}>
+          <BilingualField
+            fieldPath="home.applications.kicker"
+            label={isKo ? '작은 제목' : 'Kicker'}
+            value={value.applications.kicker}
+            onChange={(kicker) => setSection('applications', { kicker })}
+          />
+          <BilingualField
+            fieldPath="home.applications.applyLabel"
+            label={isKo ? '신청하기 버튼' : 'Apply button'}
+            value={value.applications.applyLabel}
+            onChange={(applyLabel) => setSection('applications', { applyLabel })}
+          />
+          <BilingualField
+            fieldPath="home.applications.viewAll"
+            label={isKo ? '모든 신청 보기' : 'See all applications'}
+            value={value.applications.viewAll}
+            onChange={(viewAll) => setSection('applications', { viewAll })}
+          />
+        </FieldGroup>
+      </CopySection>
+
+      <CopySection
         title={isKo ? '처음 방문 안내' : 'First visit'}
         description={isKo ? '예배 분위기, 어린이, 위치 안내' : 'Service atmosphere, children, and location'}
         count={10}
