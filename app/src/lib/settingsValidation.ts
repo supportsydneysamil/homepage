@@ -1,5 +1,5 @@
 import type { ChurchInfo, LocalizedText } from './churchInfo';
-import type { SiteCopy } from './siteCopy';
+import { isWelcomeFormUrl, type SiteCopy } from './siteCopy';
 
 export type SettingsValidationCode =
   | 'required'
@@ -8,7 +8,8 @@ export type SettingsValidationCode =
   | 'time'
   | 'period'
   | 'tooLong'
-  | 'serviceRequired';
+  | 'serviceRequired'
+  | 'formUrl';
 
 export type SettingsValidationIssue = {
   tab: 'church' | 'copy';
@@ -129,6 +130,11 @@ export const validateSiteCopyDraft = (
 ): SettingsValidationIssue[] => {
   const issues: SettingsValidationIssue[] = [];
   collectLocalizedIssues(value, '', issues);
+  const welcome = value.home.welcome;
+  const formUrl = welcome.formUrl.trim();
+  if ((welcome.enabled || formUrl) && !isWelcomeFormUrl(formUrl)) {
+    issues.push({ tab: 'copy', path: 'home.welcome.formUrl', code: 'formUrl' });
+  }
   return Array.from(
     new Map(issues.map((issue) => [`${issue.path}:${issue.code}`, issue])).values()
   );
@@ -146,6 +152,7 @@ export const settingsValidationMessage = (
     period: { ko: 'AM 또는 PM을 선택해 주세요.', en: 'Choose AM or PM.' },
     tooLong: { ko: '입력 가능한 글자 수를 초과했습니다.', en: 'This value is too long.' },
     serviceRequired: { ko: '예배 시간을 하나 이상 남겨 주세요.', en: 'Keep at least one service.' },
+    formUrl: { ko: 'Microsoft Forms 주소를 입력해 주세요.', en: 'Enter a Microsoft Forms link.' },
   };
   return isKo ? messages[issue.code].ko : messages[issue.code].en;
 };
