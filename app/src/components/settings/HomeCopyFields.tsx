@@ -4,6 +4,7 @@ import { DEFAULT_HERO_IMAGE, DEFAULT_PASTOR_IMAGE } from '../../lib/siteSettings
 import BilingualField from './BilingualField';
 import { CopySection, FieldGroup } from './SiteCopyEditorParts';
 import SitePhotoField, { type PhotoSlot } from './SitePhotoField';
+import TextField from './TextField';
 
 type HomeCopy = SiteCopy['home'];
 
@@ -356,6 +357,66 @@ const HomeCopyFields = ({
             label={isKo ? '지도 버튼' : 'Map button'}
             value={value.visit.mapsCta}
             onChange={(mapsCta) => setSection('visit', { mapsCta })}
+          />
+        </FieldGroup>
+      </CopySection>
+
+      <CopySection
+        title={isKo ? '새가족 등록' : 'Newcomer registration'}
+        description={
+          isKo ? '‘다음 걸음’ 바로 위에 보이는 안내 한 줄' : 'The band shown right above Next steps'
+        }
+        count={6}
+      >
+        <FieldGroup title={isKo ? '연결' : 'Connection'}>
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={value.welcome.enabled}
+              onChange={(event) => setSection('welcome', { enabled: event.currentTarget.checked })}
+            />
+            <span>{isKo ? '홈에 새가족 안내 표시' : 'Show the newcomer band on Home'}</span>
+          </label>
+          <TextField
+            fieldPath="home.welcome.formUrl"
+            label={isKo ? 'Microsoft Forms 주소' : 'Microsoft Forms link'}
+            hint="forms.office.com · forms.microsoft.com"
+            type="url"
+            inputMode="url"
+            maxLength={500}
+            placeholder="https://forms.office.com/r/..."
+            value={value.welcome.formUrl}
+            onChange={(formUrl) => setSection('welcome', { formUrl })}
+            full
+          />
+        </FieldGroup>
+        <FieldGroup title={primary}>
+          <BilingualField
+            fieldPath="home.welcome.title"
+            label={isKo ? '제목' : 'Title'}
+            value={value.welcome.title}
+            onChange={(title) => setSection('welcome', { title })}
+          />
+          <BilingualField
+            fieldPath="home.welcome.intro"
+            label={isKo ? '소개' : 'Intro'}
+            value={value.welcome.intro}
+            onChange={(intro) => setSection('welcome', { intro })}
+            multiline
+          />
+        </FieldGroup>
+        <FieldGroup title={supporting}>
+          <BilingualField
+            fieldPath="home.welcome.kicker"
+            label={isKo ? '작은 제목' : 'Kicker'}
+            value={value.welcome.kicker}
+            onChange={(kicker) => setSection('welcome', { kicker })}
+          />
+          <BilingualField
+            fieldPath="home.welcome.buttonLabel"
+            label={isKo ? '버튼 문구' : 'Button label'}
+            value={value.welcome.buttonLabel}
+            onChange={(buttonLabel) => setSection('welcome', { buttonLabel })}
           />
         </FieldGroup>
       </CopySection>
