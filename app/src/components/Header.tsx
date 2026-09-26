@@ -13,7 +13,7 @@ const navItems = [
   { href: '/worship', labelEn: 'Worship', labelKo: '예배' },
   { href: '/events', labelEn: 'Events', labelKo: '이벤트' },
   { href: '/sermons', labelEn: 'Sermons', labelKo: '설교' },
-  { href: '/resources', labelEn: 'Resources', labelKo: '자료실' },
+  { href: '/resources', labelEn: 'Resources', labelKo: '자료·신청' },
   { href: '/contact', labelEn: 'Contact', labelKo: '문의' },
 ];
 

@@ -1,6 +1,7 @@
 const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, ROLES } = require('../shared/principal');
 const { deleteBlob, publicUrlFor, SITE_FOLDER } = require('../shared/blob');
+const { isMicrosoftFormUrl } = require('../shared/applications');
 
 const SUPPORTED_THEMES = ['dark', 'light', 'church', 'modern-sky', 'modern-sand', 'living'];
 const DEFAULT_THEME = 'church';
@@ -149,6 +150,18 @@ const parseImagePath = (value) => {
   return { value };
 };
 
+const welcomeFormUrlError = (siteCopy) => {
+  const welcome = siteCopy && siteCopy.home && siteCopy.home.welcome;
+  const raw = welcome ? welcome.formUrl : undefined;
+  if (raw === undefined || raw === null) return null;
+  const formUrl = String(raw).trim();
+  if (!formUrl) return null;
+  if (formUrl.length > 500 || !isMicrosoftFormUrl(formUrl)) {
+    return 'Newcomer form link must be an https Microsoft Forms link.';
+  }
+  return null;
+};
+
 const withUrls = (settings, urlFor) => ({
   themeId: settings.themeId,
   heroImagePath: settings.heroImagePath || null,
@@ -218,6 +231,12 @@ module.exports = async function (context, req, overrides = {}) {
         status: 400,
         body: { error: churchInfo.error || siteCopy.error || imagePresentation.error },
       };
+      return;
+    }
+
+    const welcomeError = siteCopy.omitted ? null : welcomeFormUrlError(siteCopy.value);
+    if (welcomeError) {
+      context.res = { status: 400, body: { error: welcomeError } };
       return;
     }
 

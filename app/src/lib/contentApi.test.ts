@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { parseEvents, parseSermons, parseResources, contentUrl } from './contentApi';
+import { parseEvents, parseSermons, parseResources, parseApplications, contentUrl } from './contentApi';
 
 test('parses an events payload', () => {
   const events = parseEvents({
@@ -25,6 +25,27 @@ test('parses an events payload', () => {
   assert.strictEqual(events[0].startTime, '10:00');
   assert.strictEqual(events[0].published, true);
   assert.deepStrictEqual(events[0].images, ['/api/files/download/img-1']);
+  assert.strictEqual(events[0].registrationUrl, '');
+  assert.strictEqual(events[0].registrationDeadline, '');
+});
+
+test('parses an event registration link', () => {
+  const events = parseEvents({
+    events: [
+      {
+        id: '1',
+        slug: 'retreat',
+        date: '2026-11-01',
+        title: 'Retreat',
+        registrationUrl: 'https://forms.office.com/r/retreat',
+        registrationLabel: '신청하기',
+        registrationDeadline: '2026-10-20',
+      },
+    ],
+  });
+  assert.strictEqual(events[0].registrationUrl, 'https://forms.office.com/r/retreat');
+  assert.strictEqual(events[0].registrationLabel, '신청하기');
+  assert.strictEqual(events[0].registrationDeadline, '2026-10-20');
 });
 
 test('list urls have no lookup query', () => {
@@ -116,6 +137,27 @@ test('keeps the display file name when the API sends one', () => {
     ],
   });
   assert.strictEqual(resources[0].fileName, 'bulletin.pdf');
+});
+
+test('parses an applications payload and drops a non-form address', () => {
+  const applications = parseApplications({
+    applications: [
+      {
+        id: 'a1',
+        title: 'MS 계정',
+        formUrl: 'https://forms.office.com/r/account',
+        category: 'account',
+        visibility: 'member',
+        published: true,
+        highlightOnHome: true,
+      },
+      { id: 'bad', title: 'Elsewhere', formUrl: 'https://example.com/form' },
+    ],
+  });
+  assert.strictEqual(applications.length, 1);
+  assert.strictEqual(applications[0].formUrl, 'https://forms.office.com/r/account');
+  assert.strictEqual(applications[0].highlightOnHome, true);
+  assert.strictEqual(applications[0].opensOn, '');
 });
 
 test('drops resource entries that point at raw storage', () => {

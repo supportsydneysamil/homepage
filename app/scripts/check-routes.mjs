@@ -52,10 +52,11 @@ test('site settings is matched before the editor-wide manage rule', () => {
 test('public content reads stay anonymous', () => {
   assert.ok(find('/api/events', 'GET').allowedRoles.includes('anonymous'));
   assert.ok(find('/api/sermons', 'GET').allowedRoles.includes('anonymous'));
+  assert.ok(find('/api/applications', 'GET').allowedRoles.includes('anonymous'));
 });
 
 test('content writes require the editor role', () => {
-  for (const route of ['/api/events', '/api/sermons', '/api/resources']) {
+  for (const route of ['/api/events', '/api/sermons', '/api/resources', '/api/applications']) {
     for (const method of ['POST', 'PUT', 'DELETE']) {
       const write = routes.find(
         (entry) => entry.route === route && (entry.methods || []).includes(method)
@@ -95,6 +96,7 @@ test('every role-scoped route appears before the catch-all', () => {
     '/api/events/images',
     '/api/sermons',
     '/api/resources',
+    '/api/applications',
     '/api/files/upload-url',
   ];
   for (const route of scoped) {

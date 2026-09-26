@@ -75,6 +75,43 @@ test('rejects a start time that is not HH:MM', () => {
   assert.ok(validateEventInput({ slug: 'a', date: '2026-01-01', title: 'T', startTime: '9am' }).error);
 });
 
+test('accepts a Microsoft Forms registration link on an event', () => {
+  const result = validateEventInput({
+    slug: 'retreat',
+    date: '2026-11-01',
+    title: 'Retreat',
+    registrationUrl: 'https://forms.office.com/r/retreat',
+    registrationLabel: '신청하기',
+    registrationDeadline: '2026-10-20',
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.strictEqual(result.value.registrationUrl, 'https://forms.office.com/r/retreat');
+  assert.strictEqual(result.value.registrationLabel, '신청하기');
+  assert.strictEqual(result.value.registrationDeadline, '2026-10-20');
+});
+
+test('rejects an event registration link that is not Microsoft Forms', () => {
+  assert.ok(
+    validateEventInput({
+      slug: 'a',
+      date: '2026-01-01',
+      title: 'T',
+      registrationUrl: 'https://example.com/form',
+    }).error
+  );
+});
+
+test('rejects a registration deadline when the event has no form', () => {
+  assert.ok(
+    validateEventInput({
+      slug: 'a',
+      date: '2026-01-01',
+      title: 'T',
+      registrationDeadline: '2026-01-01',
+    }).error
+  );
+});
+
 test('rejects an image path outside the events folder', () => {
   assert.ok(
     validateEventInput({

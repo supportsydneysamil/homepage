@@ -332,6 +332,46 @@ test('rejects church info that is not an object', async () => {
   assert.strictEqual(context.res.status, 400);
 });
 
+const putWithWelcome = (formUrl) =>
+  adminReq('PUT', {
+    themeId: 'church',
+    heroImagePath: null,
+    pastorImagePath: null,
+    logoImagePath: null,
+    siteCopy: { home: { welcome: { enabled: true, formUrl } } },
+  });
+
+const welcomeDeps = (saved) => ({
+  getCurrentSettings: async () => ({ themeId: 'church' }),
+  saveSettings: async (next) => {
+    saved.push(next);
+    return { ...next, siteCopy: JSON.parse(next.siteCopyJson) };
+  },
+  deleteBlob: async () => {},
+  publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+});
+
+test('rejects a newcomer link that is not Microsoft Forms', async () => {
+  for (const formUrl of ['https://example.com/form', `https://forms.office.com/r/${'a'.repeat(480)}`]) {
+    const context = contextOf();
+    const saved = [];
+    await handler(context, putWithWelcome(formUrl), welcomeDeps(saved));
+    assert.strictEqual(context.res.status, 400);
+    assert.strictEqual(context.res.body.error, 'Newcomer form link must be an https Microsoft Forms link.');
+    assert.strictEqual(saved.length, 0);
+  }
+});
+
+test('accepts a Microsoft Forms newcomer link or a blank one', async () => {
+  for (const formUrl of ['https://forms.office.com/r/samil-newcomer', '', '   ']) {
+    const context = contextOf();
+    const saved = [];
+    await handler(context, putWithWelcome(formUrl), welcomeDeps(saved));
+    assert.strictEqual(context.res.status, 200, JSON.stringify(formUrl));
+    assert.strictEqual(saved.length, 1);
+  }
+});
+
 test('rejects a put that omits the logo path', async () => {
   const context = contextOf();
   await handler(

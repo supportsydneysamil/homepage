@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isMicrosoftFormUrl } from './applications';
 
 export type ApiEvent = {
   id: string;
@@ -9,6 +10,9 @@ export type ApiEvent = {
   location: string;
   startTime: string;
   youtubeUrl: string;
+  registrationUrl: string;
+  registrationLabel: string;
+  registrationDeadline: string;
   published: boolean;
   images: string[];
 };
@@ -36,6 +40,19 @@ export type ApiResource = {
   downloadUrl: string;
 };
 
+export type ApiApplication = {
+  id: string;
+  title: string;
+  description: string;
+  formUrl: string;
+  category: string;
+  visibility: string;
+  opensOn: string;
+  closesOn: string;
+  published: boolean;
+  highlightOnHome: boolean;
+};
+
 const asArray = (payload: unknown, key: string): unknown[] => {
   const value = (payload as Record<string, unknown> | null)?.[key];
   return Array.isArray(value) ? value : [];
@@ -50,9 +67,12 @@ export const parseEvents = (payload: unknown): ApiEvent[] =>
       date: String(row.date ?? ''),
       title: String(row.title ?? ''),
       description: String(row.description ?? ''),
-      youtubeUrl: String(row.youtubeUrl ?? ''),
       location: String(row.location ?? ''),
       startTime: String(row.startTime ?? ''),
+      youtubeUrl: String(row.youtubeUrl ?? ''),
+      registrationUrl: String(row.registrationUrl ?? ''),
+      registrationLabel: String(row.registrationLabel ?? ''),
+      registrationDeadline: String(row.registrationDeadline ?? ''),
       published: row.published !== false && row.published !== 0 && row.published !== 'false',
       images: Array.isArray(row.images) ? row.images.map(String) : [],
     };
@@ -91,6 +111,30 @@ export const parseResources = (payload: unknown): ApiResource[] =>
     })
     .filter((resource) => resource.downloadUrl.startsWith('/api/files/download/'));
 
+const parseFlag = (value: unknown, fallback: boolean) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  return value !== false && value !== 0 && value !== 'false';
+};
+
+export const parseApplications = (payload: unknown): ApiApplication[] =>
+  asArray(payload, 'applications')
+    .map((item) => {
+      const row = item as Record<string, unknown>;
+      return {
+        id: String(row.id ?? ''),
+        title: String(row.title ?? ''),
+        description: String(row.description ?? ''),
+        formUrl: String(row.formUrl ?? ''),
+        category: String(row.category ?? 'other'),
+        visibility: String(row.visibility ?? 'member'),
+        opensOn: String(row.opensOn ?? ''),
+        closesOn: String(row.closesOn ?? ''),
+        published: parseFlag(row.published, true),
+        highlightOnHome: parseFlag(row.highlightOnHome, false),
+      };
+    })
+    .filter((item) => isMicrosoftFormUrl(item.formUrl));
+
 const getJson = async (url: string): Promise<unknown> => {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
@@ -113,6 +157,8 @@ export const fetchSermons = async (id?: string): Promise<ApiSermon[]> =>
   parseSermons(await getJson(contentUrl('/api/sermons', id ? { id } : undefined)));
 export const fetchResources = async (id?: string): Promise<ApiResource[]> =>
   parseResources(await getJson(contentUrl('/api/resources', id ? { id } : undefined)));
+export const fetchApplications = async (id?: string): Promise<ApiApplication[]> =>
+  parseApplications(await getJson(contentUrl('/api/applications', id ? { id } : undefined)));
 
 export const fetchEvent = async (lookup: { id?: string; slug?: string }): Promise<ApiEvent | null> =>
   (await fetchEvents(lookup))[0] ?? null;
@@ -120,6 +166,8 @@ export const fetchSermon = async (id: string): Promise<ApiSermon | null> =>
   (await fetchSermons(id))[0] ?? null;
 export const fetchResource = async (id: string): Promise<ApiResource | null> =>
   (await fetchResources(id))[0] ?? null;
+export const fetchApplication = async (id: string): Promise<ApiApplication | null> =>
+  (await fetchApplications(id))[0] ?? null;
 
 export const useContent = <T,>(loader: () => Promise<T[]>, enabled = true) => {
   const [items, setItems] = useState<T[]>([]);

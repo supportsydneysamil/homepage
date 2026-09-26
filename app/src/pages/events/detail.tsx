@@ -6,7 +6,7 @@ import EmptyState from '../../components/EmptyState';
 import EventGallery from '../../components/EventGallery';
 import { useLanguage } from '../../lib/LanguageContext';
 import { toYouTubeEmbedUrl } from '../../lib/presentation';
-import { formatEventWhen, visibleEventImages } from '../../lib/events';
+import { formatEventWhen, isRegistrationOpen, todayStamp, visibleEventImages } from '../../lib/events';
 import { fetchEvents, useContent, type ApiEvent } from '../../lib/contentApi';
 
 const EventDetailPage: NextPage & {
@@ -57,6 +57,21 @@ const EventDetailPage: NextPage & {
         <h1>{event.title}</h1>
         {event.location ? <p className="event-detail-location">{event.location}</p> : null}
         {event.description ? <p>{event.description}</p> : null}
+        {event.registrationUrl ? (
+          isRegistrationOpen(event, todayStamp()) ? (
+            <a
+              className="site-button site-button--primary"
+              href={event.registrationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {event.registrationLabel || (isKo ? '신청하기' : 'Register')}
+              <span aria-hidden="true">→</span>
+            </a>
+          ) : (
+            <p className="muted">{isKo ? '신청이 마감되었습니다.' : 'Registration has closed.'}</p>
+          )
+        ) : null}
       </header>
 
       {images.length ? (

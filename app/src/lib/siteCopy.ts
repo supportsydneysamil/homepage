@@ -1,4 +1,5 @@
 import { parseLocalized, type LocalizedText } from './churchInfo';
+import { isMicrosoftFormUrl } from './applications';
 
 export type CopyLink = {
   title: LocalizedText;
@@ -42,6 +43,13 @@ export type SiteCopy = {
       empty: LocalizedText;
       viewDetails: LocalizedText;
     };
+    applications: {
+      kicker: LocalizedText;
+      title: LocalizedText;
+      intro: LocalizedText;
+      applyLabel: LocalizedText;
+      viewAll: LocalizedText;
+    };
     visit: {
       kicker: LocalizedText;
       title: LocalizedText;
@@ -53,6 +61,14 @@ export type SiteCopy = {
       children: LocalizedText;
       addressLabel: LocalizedText;
       mapsCta: LocalizedText;
+    };
+    welcome: {
+      enabled: boolean;
+      formUrl: string;
+      kicker: LocalizedText;
+      title: LocalizedText;
+      intro: LocalizedText;
+      buttonLabel: LocalizedText;
     };
     nextSteps: {
       kicker: LocalizedText;
@@ -105,6 +121,8 @@ export type SiteCopy = {
     meetUs: LocalizedText;
   };
 };
+
+export type WelcomeCopy = SiteCopy['home']['welcome'];
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
@@ -208,6 +226,16 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
       },
       viewDetails: { ko: '자세히 보기', en: 'View details' },
     },
+    applications: {
+      kicker: { ko: '지금 신청', en: 'Open now' },
+      title: { ko: '접수가 열린 신청', en: 'Applications open now' },
+      intro: {
+        ko: '아래에서 바로 작성하거나, 다른 신청도 함께 살펴보세요.',
+        en: 'Start one of these forms, or browse every open application.',
+      },
+      applyLabel: { ko: '신청하기', en: 'Apply' },
+      viewAll: { ko: '모든 신청 보기', en: 'See all applications' },
+    },
     visit: {
       kicker: { ko: '처음 방문 안내', en: 'Your first Sunday' },
       title: { ko: '부담 없이 오세요', en: 'Come just as you are' },
@@ -228,6 +256,17 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
       },
       addressLabel: { ko: '주소', en: 'Address' },
       mapsCta: { ko: 'Google Maps로 길찾기', en: 'Open in Google Maps' },
+    },
+    welcome: {
+      enabled: false,
+      formUrl: '',
+      kicker: { ko: '새가족', en: 'New here' },
+      title: { ko: '처음 오셨나요? 반갑습니다', en: 'First time here? Welcome' },
+      intro: {
+        ko: '이름과 연락처만 남겨 주시면 담당자가 편하게 연락드립니다. 나머지는 알려 주셔도 좋고, 넘어가셔도 괜찮습니다.',
+        en: 'Leave your name and a way to reach you, and we will get in touch. Everything else is optional.',
+      },
+      buttonLabel: { ko: '새가족 등록하기', en: 'Register' },
     },
     nextSteps: {
       kicker: { ko: '다음 걸음', en: 'Your next step' },
@@ -368,6 +407,26 @@ const parseHero = (input: unknown, fallback: SiteCopy['home']['hero']) => {
   };
 };
 
+export const isWelcomeFormUrl = (value: string) => value.length <= 500 && isMicrosoftFormUrl(value);
+
+const parseWelcome = (input: unknown, fallback: WelcomeCopy): WelcomeCopy => {
+  const row = asRecord(input);
+  const formUrl = typeof row?.formUrl === 'string' ? row.formUrl.trim() : '';
+  return {
+    enabled: row?.enabled === true,
+    formUrl: isWelcomeFormUrl(formUrl) ? formUrl : '',
+    kicker: textAt(row, 'kicker', fallback.kicker),
+    title: textAt(row, 'title', fallback.title),
+    intro: textAt(row, 'intro', fallback.intro),
+    buttonLabel: textAt(row, 'buttonLabel', fallback.buttonLabel),
+  };
+};
+
+export const welcomeFormUrl = (welcome: WelcomeCopy) => {
+  const formUrl = welcome.formUrl.trim();
+  return welcome.enabled && isWelcomeFormUrl(formUrl) ? formUrl : null;
+};
+
 export const parseSiteCopy = (input: unknown): SiteCopy => {
   const row = asRecord(input);
   if (!row) return DEFAULT_SITE_COPY;
@@ -378,6 +437,7 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
   const footer = asRecord(row.footer);
   const homePillars = asRecord(home?.pillars);
   const homeWeekly = asRecord(home?.weekly);
+  const homeApplications = asRecord(home?.applications);
   const homeVisit = asRecord(home?.visit);
   const homeNext = asRecord(home?.nextSteps);
   const homeQuick = asRecord(home?.quick);
@@ -405,6 +465,13 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
         empty: textAt(homeWeekly, 'empty', DEFAULT_SITE_COPY.home.weekly.empty),
         viewDetails: textAt(homeWeekly, 'viewDetails', DEFAULT_SITE_COPY.home.weekly.viewDetails),
       },
+      applications: {
+        kicker: textAt(homeApplications, 'kicker', DEFAULT_SITE_COPY.home.applications.kicker),
+        title: textAt(homeApplications, 'title', DEFAULT_SITE_COPY.home.applications.title),
+        intro: textAt(homeApplications, 'intro', DEFAULT_SITE_COPY.home.applications.intro),
+        applyLabel: textAt(homeApplications, 'applyLabel', DEFAULT_SITE_COPY.home.applications.applyLabel),
+        viewAll: textAt(homeApplications, 'viewAll', DEFAULT_SITE_COPY.home.applications.viewAll),
+      },
       visit: {
         kicker: textAt(homeVisit, 'kicker', DEFAULT_SITE_COPY.home.visit.kicker),
         title: textAt(homeVisit, 'title', DEFAULT_SITE_COPY.home.visit.title),
@@ -417,6 +484,7 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
         addressLabel: textAt(homeVisit, 'addressLabel', DEFAULT_SITE_COPY.home.visit.addressLabel),
         mapsCta: textAt(homeVisit, 'mapsCta', DEFAULT_SITE_COPY.home.visit.mapsCta),
       },
+      welcome: parseWelcome(home?.welcome, DEFAULT_SITE_COPY.home.welcome),
       nextSteps: {
         kicker: textAt(homeNext, 'kicker', DEFAULT_SITE_COPY.home.nextSteps.kicker),
         title: textAt(homeNext, 'title', DEFAULT_SITE_COPY.home.nextSteps.title),

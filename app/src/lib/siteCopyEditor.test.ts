@@ -22,6 +22,8 @@ const localizedPaths = (value: unknown, prefix = ''): string[] => {
 const pathsFromHtml = (html: string) =>
   Array.from(html.matchAll(/data-field-path="([^"]+)"/g), (match) => match[1]);
 
+const editablePaths = () => [...localizedPaths(DEFAULT_SITE_COPY), 'home.welcome.formUrl'];
+
 const photoSlot = {
   previewUrl: '',
   onSelect: () => undefined,
@@ -56,7 +58,7 @@ test('bilingual fields identify their content path and language', () => {
 
 test('home editor exposes every localized homepage setting', () => {
   const rendered = pathsFromHtml(editorHtml()).filter((path) => path.startsWith('home.'));
-  const expected = localizedPaths(DEFAULT_SITE_COPY).filter((path) => path.startsWith('home.'));
+  const expected = editablePaths().filter((path) => path.startsWith('home.'));
 
   assert.deepStrictEqual(Array.from(new Set(rendered)).sort(), Array.from(new Set(expected)).sort());
 });
@@ -64,8 +66,15 @@ test('home editor exposes every localized homepage setting', () => {
 test('site copy editor exposes every localized setting', () => {
   assert.deepStrictEqual(
     Array.from(new Set(pathsFromHtml(editorHtml()))).sort(),
-    Array.from(new Set(localizedPaths(DEFAULT_SITE_COPY))).sort()
+    Array.from(new Set(editablePaths())).sort()
   );
+});
+
+test('newcomer section starts off with an empty Forms link', () => {
+  const html = editorHtml();
+  assert.match(html, /새가족 등록/);
+  assert.match(html, /<input type="checkbox"\/>/);
+  assert.match(html, /data-field-path="home\.welcome\.formUrl"[^>]*><span class="settings-field__label">Microsoft Forms 주소/);
 });
 
 test('home photo fields expose composition controls and result previews', () => {

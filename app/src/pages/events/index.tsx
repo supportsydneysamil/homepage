@@ -9,6 +9,7 @@ import {
   PAST_EVENT_PAGE_SIZE,
   eventDetailHref,
   formatEventWhen,
+  isRegistrationOpen,
   splitUpcomingAndPast,
   takePage,
   todayStamp,
@@ -19,10 +20,12 @@ const EventRows = ({
   events,
   lang,
   isKo,
+  today,
 }: {
   events: ApiEvent[];
   lang: 'ko' | 'en';
   isKo: boolean;
+  today: string;
 }) => (
   <section className="content-list">
     {events.map((event, index) => (
@@ -32,6 +35,9 @@ const EventRows = ({
         <div className="content-row__body">
           <h2>{event.title}</h2>
           {event.location ? <p className="content-row__location">{event.location}</p> : null}
+          {isRegistrationOpen(event, today) ? (
+            <p className="content-row__location">{isKo ? '신청 받는 중' : 'Registration open'}</p>
+          ) : null}
           {event.description ? (
             <p className="content-row__description">{event.description}</p>
           ) : null}
@@ -72,14 +78,14 @@ const EventsPage: NextPage & {
       {!isLoading && upcoming.length ? (
         <>
           <h2 className="event-section-title">{isKo ? '다가올 행사' : 'Upcoming'}</h2>
-          <EventRows events={upcoming} lang={lang} isKo={isKo} />
+          <EventRows events={upcoming} lang={lang} isKo={isKo} today={todayStamp()} />
         </>
       ) : null}
 
       {!isLoading && past.length ? (
         <>
           <h2 className="event-section-title">{isKo ? '지난 행사' : 'Past gatherings'}</h2>
-          <EventRows events={visiblePast} lang={lang} isKo={isKo} />
+          <EventRows events={visiblePast} lang={lang} isKo={isKo} today={todayStamp()} />
           {remainingPast > 0 ? (
             <div className="sermon-more">
               <button
