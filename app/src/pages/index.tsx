@@ -44,11 +44,11 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
     <div className="home-page">
       <HomeHero lang={lang} />
       <QuickInfo lang={lang} />
-      <ChurchPillars lang={lang} />
-      <WeeklyHighlights items={items} lang={lang} />
-      <OpenApplications items={applications} lang={lang} />
       <VisitOverview lang={lang} />
       <WelcomeBand lang={lang} />
+      <WeeklyHighlights items={items} lang={lang} />
+      <OpenApplications items={applications} lang={lang} />
+      <ChurchPillars lang={lang} />
       <NextSteps lang={lang} />
       <PastorFeature lang={lang} />
     </div>
