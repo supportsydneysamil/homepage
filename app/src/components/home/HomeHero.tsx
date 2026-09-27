@@ -5,11 +5,12 @@ import SitePhoto from '../SitePhoto';
 import { useSiteSettings } from '../../lib/ThemeContext';
 import { DEFAULT_HERO_IMAGE } from '../../lib/siteSettings';
 import { directionsUrl, formatServiceTimesShort } from '../../lib/churchInfo';
-import { localize } from '../../lib/siteCopy';
+import { localize, welcomeFormUrl } from '../../lib/siteCopy';
 
 const HomeHero = ({ lang }: { lang: Language }) => {
   const { heroImageUrl, imagePresentation, churchInfo, siteCopy } = useSiteSettings();
   const hero = siteCopy.home.hero;
+  const formUrl = welcomeFormUrl(siteCopy.home.welcome);
 
   return (
     <section className="home-hero">
@@ -24,14 +25,20 @@ const HomeHero = ({ lang }: { lang: Language }) => {
             {localize(hero.ctaVisit, lang)}
             <span aria-hidden="true">→</span>
           </Link>
-          <a
-            href={directionsUrl(churchInfo.mapsQuery)}
-            className="home-button home-button--quiet"
-            target="_blank"
-            rel="noreferrer"
-          >
-            {localize(hero.ctaDirections, lang)}
-          </a>
+          {formUrl ? (
+            <a href={formUrl} className="home-button home-button--quiet" target="_blank" rel="noopener noreferrer">
+              {localize(siteCopy.home.welcome.buttonLabel, lang)}
+            </a>
+          ) : (
+            <a
+              href={directionsUrl(churchInfo.mapsQuery)}
+              className="home-button home-button--quiet"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {localize(hero.ctaDirections, lang)}
+            </a>
+          )}
         </div>
       </div>
 

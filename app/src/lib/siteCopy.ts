@@ -25,10 +25,12 @@ export type SiteCopy = {
       thisSunday: LocalizedText;
     };
     quick: {
-      worship: LocalizedText;
-      firstVisit: LocalizedText;
-      firstVisitHint: LocalizedText;
-      findUs: LocalizedText;
+      sermons: LocalizedText;
+      sermonsHint: LocalizedText;
+      events: LocalizedText;
+      eventsHint: LocalizedText;
+      resources: LocalizedText;
+      resourcesHint: LocalizedText;
     };
     pillars: {
       kicker: LocalizedText;
@@ -130,11 +132,6 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
 const textAt = (row: Record<string, unknown> | null, key: string, fallback: LocalizedText) =>
   parseLocalized(row?.[key], fallback);
 
-const stringAt = (row: Record<string, unknown> | null, key: string, fallback: string) => {
-  const value = row?.[key];
-  return typeof value === 'string' && value.trim() ? value.trim().slice(0, 200) : fallback;
-};
-
 const parseValues = (input: unknown, fallback: CopyValue[]): CopyValue[] => {
   if (!Array.isArray(input)) return fallback;
   return fallback.map((item, index) => {
@@ -148,13 +145,14 @@ const parseValues = (input: unknown, fallback: CopyValue[]): CopyValue[] => {
 
 const parseLinks = (input: unknown, fallback: CopyLink[]): CopyLink[] => {
   if (!Array.isArray(input)) return fallback;
-  return fallback.map((item, index) => {
-    const row = asRecord(input[index]);
+  const rows = input.map(asRecord);
+  return fallback.map((item) => {
+    const row = rows.find((candidate) => candidate?.href === item.href) ?? null;
     return {
       title: parseLocalized(row?.title, item.title),
       description: parseLocalized(row?.description, item.description),
       label: parseLocalized(row?.label, item.label),
-      href: stringAt(row, 'href', item.href),
+      href: item.href,
     };
   });
 };
@@ -168,7 +166,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
         ko: '함께 예배하고, 삶을 나누며, 믿음 안에서 자라는 시드니 삼일교회입니다.',
         en: 'Sydney Samil Church is a community where we worship, share life, and grow in faith together.',
       },
-      ctaVisit: { ko: '방문 안내 보기', en: 'Plan your visit' },
+      ctaVisit: { ko: '처음 방문 안내', en: 'Plan your first visit' },
       ctaDirections: { ko: '오시는 길', en: 'Get directions' },
       photoAlt: {
         ko: '푸른 하늘과 잔디가 보이는 시드니 삼일교회 외관',
@@ -177,10 +175,12 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
       thisSunday: { ko: '이번 주일', en: 'This Sunday' },
     },
     quick: {
-      worship: { ko: '주일 예배', en: 'Sunday worship' },
-      firstVisit: { ko: '처음 방문', en: 'First time here' },
-      firstVisitHint: { ko: '미리 알아두면 좋은 안내', en: 'Everything you need to know' },
-      findUs: { ko: '오시는 길', en: 'Find us' },
+      sermons: { ko: '설교 다시 듣기', en: 'Sermons' },
+      sermonsHint: { ko: '지난 주일 말씀', en: 'Catch up on Sunday' },
+      events: { ko: '행사와 소식', en: 'Events and news' },
+      eventsHint: { ko: '이번 달 일정', en: 'What is on this month' },
+      resources: { ko: '자료 · 신청', en: 'Resources and forms' },
+      resourcesHint: { ko: '주보와 신청서', en: 'Bulletins and sign-ups' },
     },
     pillars: {
       kicker: { ko: '우리가 꿈꾸는 교회', en: 'The church we hope to be' },
@@ -261,10 +261,10 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
       enabled: false,
       formUrl: '',
       kicker: { ko: '새가족', en: 'New here' },
-      title: { ko: '처음 오셨나요? 반갑습니다', en: 'First time here? Welcome' },
+      title: { ko: '새가족으로 연결해 드릴게요', en: 'Let us help you get connected' },
       intro: {
-        ko: '이름과 연락처만 남겨 주시면 담당자가 편하게 연락드립니다. 나머지는 알려 주셔도 좋고, 넘어가셔도 괜찮습니다.',
-        en: 'Leave your name and a way to reach you, and we will get in touch. Everything else is optional.',
+        ko: '이름과 연락처만 남겨 주시면 담당자가 목장과 교회 생활을 편하게 안내해 드립니다. 나머지는 알려 주셔도 좋고, 넘어가셔도 괜찮습니다.',
+        en: 'Leave your name and a way to reach you, and we will help you find your place in church life. Everything else is optional.',
       },
       buttonLabel: { ko: '새가족 등록하기', en: 'Register' },
     },
@@ -276,15 +276,6 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
         en: 'Tell us what you need or what you are curious about. We would love to help you connect.',
       },
       items: [
-        {
-          title: { ko: '처음 방문하시나요?', en: 'Planning your first visit?' },
-          description: {
-            ko: '예배와 주차, 어린이 안내를 편하게 물어보세요.',
-            en: 'Ask us anything about services, parking, or children’s ministry.',
-          },
-          label: { ko: '방문 문의', en: 'Plan a visit' },
-          href: '/contact?topic=visit',
-        },
         {
           title: { ko: '목장과 연결되고 싶나요?', en: 'Looking for community?' },
           description: {
@@ -302,6 +293,15 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
           },
           label: { ko: '기도 요청', en: 'Request prayer' },
           href: '/contact?topic=prayer',
+        },
+        {
+          title: { ko: '궁금한 점이 있나요?', en: 'Have a question?' },
+          description: {
+            ko: '예배와 주차, 어린이, 신앙에 대해 무엇이든 편하게 물어보세요.',
+            en: 'Ask us anything about services, parking, children, or faith.',
+          },
+          label: { ko: '교회에 문의', en: 'Contact us' },
+          href: '/contact',
         },
       ],
     },
@@ -447,10 +447,12 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
     home: {
       hero: parseHero(home?.hero, DEFAULT_SITE_COPY.home.hero),
       quick: {
-        worship: textAt(homeQuick, 'worship', DEFAULT_SITE_COPY.home.quick.worship),
-        firstVisit: textAt(homeQuick, 'firstVisit', DEFAULT_SITE_COPY.home.quick.firstVisit),
-        firstVisitHint: textAt(homeQuick, 'firstVisitHint', DEFAULT_SITE_COPY.home.quick.firstVisitHint),
-        findUs: textAt(homeQuick, 'findUs', DEFAULT_SITE_COPY.home.quick.findUs),
+        sermons: textAt(homeQuick, 'sermons', DEFAULT_SITE_COPY.home.quick.sermons),
+        sermonsHint: textAt(homeQuick, 'sermonsHint', DEFAULT_SITE_COPY.home.quick.sermonsHint),
+        events: textAt(homeQuick, 'events', DEFAULT_SITE_COPY.home.quick.events),
+        eventsHint: textAt(homeQuick, 'eventsHint', DEFAULT_SITE_COPY.home.quick.eventsHint),
+        resources: textAt(homeQuick, 'resources', DEFAULT_SITE_COPY.home.quick.resources),
+        resourcesHint: textAt(homeQuick, 'resourcesHint', DEFAULT_SITE_COPY.home.quick.resourcesHint),
       },
       pillars: {
         kicker: textAt(homePillars, 'kicker', DEFAULT_SITE_COPY.home.pillars.kicker),

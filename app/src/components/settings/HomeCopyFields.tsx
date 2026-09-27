@@ -93,6 +93,11 @@ const HomeCopyFields = ({
           <BilingualField
             fieldPath="home.hero.ctaDirections"
             label={isKo ? '길찾기 버튼' : 'Directions button'}
+            hint={
+              isKo
+                ? '새가족 등록이 꺼져 있을 때만 보입니다. 켜져 있으면 새가족 등록 버튼이 이 자리에 나옵니다'
+                : 'Shown only while newcomer registration is off; otherwise its button takes this spot'
+            }
             value={value.hero.ctaDirections}
             onChange={(ctaDirections) => setSection('hero', { ctaDirections })}
           />
@@ -113,94 +118,184 @@ const HomeCopyFields = ({
       </CopySection>
 
       <CopySection
-        title={isKo ? '빠른 안내' : 'Quick information'}
-        description={isKo ? '첫 화면 아래의 예배·방문·위치 카드' : 'Worship, visit, and location cards below the hero'}
-        count={4}
+        title={isKo ? '바로가기' : 'Shortcuts'}
+        description={isKo ? '첫 화면 아래의 설교·행사·자료 카드' : 'Sermon, event, and resource cards below the hero'}
+        count={6}
       >
         <FieldGroup title={supporting}>
           <BilingualField
-            fieldPath="home.quick.worship"
-            label={isKo ? '예배 안내' : 'Worship'}
-            value={value.quick.worship}
-            onChange={(worship) => setSection('quick', { worship })}
+            fieldPath="home.quick.sermons"
+            label={isKo ? '설교' : 'Sermons'}
+            value={value.quick.sermons}
+            onChange={(sermons) => setSection('quick', { sermons })}
           />
           <BilingualField
-            fieldPath="home.quick.firstVisit"
-            label={isKo ? '처음 방문' : 'First visit'}
-            value={value.quick.firstVisit}
-            onChange={(firstVisit) => setSection('quick', { firstVisit })}
+            fieldPath="home.quick.sermonsHint"
+            label={isKo ? '설교 보조 문구' : 'Sermons hint'}
+            value={value.quick.sermonsHint}
+            onChange={(sermonsHint) => setSection('quick', { sermonsHint })}
           />
           <BilingualField
-            fieldPath="home.quick.firstVisitHint"
-            label={isKo ? '처음 방문 보조 문구' : 'First visit hint'}
-            value={value.quick.firstVisitHint}
-            onChange={(firstVisitHint) => setSection('quick', { firstVisitHint })}
+            fieldPath="home.quick.events"
+            label={isKo ? '행사' : 'Events'}
+            value={value.quick.events}
+            onChange={(events) => setSection('quick', { events })}
           />
           <BilingualField
-            fieldPath="home.quick.findUs"
-            label={isKo ? '위치 안내' : 'Find us'}
-            value={value.quick.findUs}
-            onChange={(findUs) => setSection('quick', { findUs })}
+            fieldPath="home.quick.eventsHint"
+            label={isKo ? '행사 보조 문구' : 'Events hint'}
+            value={value.quick.eventsHint}
+            onChange={(eventsHint) => setSection('quick', { eventsHint })}
+          />
+          <BilingualField
+            fieldPath="home.quick.resources"
+            label={isKo ? '자료 · 신청' : 'Resources'}
+            value={value.quick.resources}
+            onChange={(resources) => setSection('quick', { resources })}
+          />
+          <BilingualField
+            fieldPath="home.quick.resourcesHint"
+            label={isKo ? '자료 · 신청 보조 문구' : 'Resources hint'}
+            value={value.quick.resourcesHint}
+            onChange={(resourcesHint) => setSection('quick', { resourcesHint })}
           />
         </FieldGroup>
       </CopySection>
 
       <CopySection
-        title={isKo ? '교회의 세 기둥' : 'Church pillars'}
-        description={isKo ? '교회의 핵심 가치 세 가지' : 'The church’s three core values'}
-        count={3 + value.pillars.items.length * 2}
+        title={isKo ? '처음 방문 안내' : 'First visit'}
+        description={isKo ? '예배 분위기, 어린이, 위치 안내' : 'Service atmosphere, children, and location'}
+        count={10}
       >
         <FieldGroup title={primary}>
           <BilingualField
-            fieldPath="home.pillars.title"
+            fieldPath="home.visit.title"
             label={isKo ? '섹션 제목' : 'Section title'}
-            value={value.pillars.title}
-            onChange={(title) => setSection('pillars', { title })}
+            value={value.visit.title}
+            onChange={(title) => setSection('visit', { title })}
           />
           <BilingualField
-            fieldPath="home.pillars.intro"
+            fieldPath="home.visit.intro"
             label={isKo ? '섹션 소개' : 'Section intro'}
-            value={value.pillars.intro}
-            onChange={(intro) => setSection('pillars', { intro })}
+            value={value.visit.intro}
+            onChange={(intro) => setSection('visit', { intro })}
+            multiline
+          />
+          <BilingualField
+            fieldPath="home.visit.whatToExpect"
+            label={isKo ? '예배 분위기' : 'What to expect'}
+            value={value.visit.whatToExpect}
+            onChange={(whatToExpect) => setSection('visit', { whatToExpect })}
+            multiline
+          />
+          <BilingualField
+            fieldPath="home.visit.children"
+            label={isKo ? '어린이와 언어' : 'Children and language'}
+            value={value.visit.children}
+            onChange={(children) => setSection('visit', { children })}
             multiline
           />
         </FieldGroup>
         <FieldGroup title={supporting}>
           <BilingualField
-            fieldPath="home.pillars.kicker"
+            fieldPath="home.visit.kicker"
             label={isKo ? '작은 제목' : 'Kicker'}
-            value={value.pillars.kicker}
-            onChange={(kicker) => setSection('pillars', { kicker })}
+            value={value.visit.kicker}
+            onChange={(kicker) => setSection('visit', { kicker })}
+          />
+          <BilingualField
+            fieldPath="home.visit.serviceTimes"
+            label={isKo ? '예배 시간 라벨' : 'Service times label'}
+            value={value.visit.serviceTimes}
+            onChange={(serviceTimes) => setSection('visit', { serviceTimes })}
+          />
+          <BilingualField
+            fieldPath="home.visit.whatToExpectLabel"
+            label={isKo ? '예배 분위기 라벨' : 'What to expect label'}
+            value={value.visit.whatToExpectLabel}
+            onChange={(whatToExpectLabel) => setSection('visit', { whatToExpectLabel })}
+          />
+          <BilingualField
+            fieldPath="home.visit.childrenLabel"
+            label={isKo ? '어린이 안내 라벨' : 'Children label'}
+            value={value.visit.childrenLabel}
+            onChange={(childrenLabel) => setSection('visit', { childrenLabel })}
+          />
+          <BilingualField
+            fieldPath="home.visit.addressLabel"
+            label={isKo ? '주소 라벨' : 'Address label'}
+            value={value.visit.addressLabel}
+            onChange={(addressLabel) => setSection('visit', { addressLabel })}
+          />
+          <BilingualField
+            fieldPath="home.visit.mapsCta"
+            label={isKo ? '지도 버튼' : 'Map button'}
+            value={value.visit.mapsCta}
+            onChange={(mapsCta) => setSection('visit', { mapsCta })}
           />
         </FieldGroup>
-        <div className="settings-items">
-          {value.pillars.items.map((item, index) => (
-            <article className="settings-item" key={`pillar-${index}`}>
-              <div className="settings-item__head">
-                <span className="settings-item__index">
-                  {isKo ? '기둥' : 'Pillar'} {String(index + 1).padStart(2, '0')}
-                </span>
-              </div>
-              <BilingualField
-                fieldPath="home.pillars.items[].title"
-                label={isKo ? '제목' : 'Title'}
-                value={item.title}
-                onChange={(title) =>
-                  setSection('pillars', { items: replaceAt(value.pillars.items, index, { title }) })
-                }
-              />
-              <BilingualField
-                fieldPath="home.pillars.items[].body"
-                label={isKo ? '설명' : 'Description'}
-                value={item.body}
-                onChange={(body) =>
-                  setSection('pillars', { items: replaceAt(value.pillars.items, index, { body }) })
-                }
-                multiline
-              />
-            </article>
-          ))}
-        </div>
+      </CopySection>
+
+      <CopySection
+        title={isKo ? '새가족 등록' : 'Newcomer registration'}
+        description={
+          isKo
+            ? '‘처음 방문 안내’ 바로 아래의 안내 한 줄과 첫 화면 보조 버튼'
+            : 'The band right below First visit, plus the hero’s second button'
+        }
+        count={6}
+      >
+        <FieldGroup title={isKo ? '연결' : 'Connection'}>
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={value.welcome.enabled}
+              onChange={(event) => setSection('welcome', { enabled: event.currentTarget.checked })}
+            />
+            <span>{isKo ? '홈에 새가족 안내 표시' : 'Show the newcomer band on Home'}</span>
+          </label>
+          <TextField
+            fieldPath="home.welcome.formUrl"
+            label={isKo ? 'Microsoft Forms 주소' : 'Microsoft Forms link'}
+            hint="forms.office.com · forms.microsoft.com"
+            type="url"
+            inputMode="url"
+            maxLength={500}
+            placeholder="https://forms.office.com/r/..."
+            value={value.welcome.formUrl}
+            onChange={(formUrl) => setSection('welcome', { formUrl })}
+            full
+          />
+        </FieldGroup>
+        <FieldGroup title={primary}>
+          <BilingualField
+            fieldPath="home.welcome.title"
+            label={isKo ? '제목' : 'Title'}
+            value={value.welcome.title}
+            onChange={(title) => setSection('welcome', { title })}
+          />
+          <BilingualField
+            fieldPath="home.welcome.intro"
+            label={isKo ? '소개' : 'Intro'}
+            value={value.welcome.intro}
+            onChange={(intro) => setSection('welcome', { intro })}
+            multiline
+          />
+        </FieldGroup>
+        <FieldGroup title={supporting}>
+          <BilingualField
+            fieldPath="home.welcome.kicker"
+            label={isKo ? '작은 제목' : 'Kicker'}
+            value={value.welcome.kicker}
+            onChange={(kicker) => setSection('welcome', { kicker })}
+          />
+          <BilingualField
+            fieldPath="home.welcome.buttonLabel"
+            label={isKo ? '버튼 문구' : 'Button label'}
+            value={value.welcome.buttonLabel}
+            onChange={(buttonLabel) => setSection('welcome', { buttonLabel })}
+          />
+        </FieldGroup>
       </CopySection>
 
       <CopySection
@@ -288,137 +383,61 @@ const HomeCopyFields = ({
       </CopySection>
 
       <CopySection
-        title={isKo ? '처음 방문 안내' : 'First visit'}
-        description={isKo ? '예배 분위기, 어린이, 위치 안내' : 'Service atmosphere, children, and location'}
-        count={10}
+        title={isKo ? '교회의 세 기둥' : 'Church pillars'}
+        description={isKo ? '교회의 핵심 가치 세 가지' : 'The church’s three core values'}
+        count={3 + value.pillars.items.length * 2}
       >
         <FieldGroup title={primary}>
           <BilingualField
-            fieldPath="home.visit.title"
+            fieldPath="home.pillars.title"
             label={isKo ? '섹션 제목' : 'Section title'}
-            value={value.visit.title}
-            onChange={(title) => setSection('visit', { title })}
+            value={value.pillars.title}
+            onChange={(title) => setSection('pillars', { title })}
           />
           <BilingualField
-            fieldPath="home.visit.intro"
+            fieldPath="home.pillars.intro"
             label={isKo ? '섹션 소개' : 'Section intro'}
-            value={value.visit.intro}
-            onChange={(intro) => setSection('visit', { intro })}
-            multiline
-          />
-          <BilingualField
-            fieldPath="home.visit.whatToExpect"
-            label={isKo ? '예배 분위기' : 'What to expect'}
-            value={value.visit.whatToExpect}
-            onChange={(whatToExpect) => setSection('visit', { whatToExpect })}
-            multiline
-          />
-          <BilingualField
-            fieldPath="home.visit.children"
-            label={isKo ? '어린이와 언어' : 'Children and language'}
-            value={value.visit.children}
-            onChange={(children) => setSection('visit', { children })}
+            value={value.pillars.intro}
+            onChange={(intro) => setSection('pillars', { intro })}
             multiline
           />
         </FieldGroup>
         <FieldGroup title={supporting}>
           <BilingualField
-            fieldPath="home.visit.kicker"
+            fieldPath="home.pillars.kicker"
             label={isKo ? '작은 제목' : 'Kicker'}
-            value={value.visit.kicker}
-            onChange={(kicker) => setSection('visit', { kicker })}
-          />
-          <BilingualField
-            fieldPath="home.visit.serviceTimes"
-            label={isKo ? '예배 시간 라벨' : 'Service times label'}
-            value={value.visit.serviceTimes}
-            onChange={(serviceTimes) => setSection('visit', { serviceTimes })}
-          />
-          <BilingualField
-            fieldPath="home.visit.whatToExpectLabel"
-            label={isKo ? '예배 분위기 라벨' : 'What to expect label'}
-            value={value.visit.whatToExpectLabel}
-            onChange={(whatToExpectLabel) => setSection('visit', { whatToExpectLabel })}
-          />
-          <BilingualField
-            fieldPath="home.visit.childrenLabel"
-            label={isKo ? '어린이 안내 라벨' : 'Children label'}
-            value={value.visit.childrenLabel}
-            onChange={(childrenLabel) => setSection('visit', { childrenLabel })}
-          />
-          <BilingualField
-            fieldPath="home.visit.addressLabel"
-            label={isKo ? '주소 라벨' : 'Address label'}
-            value={value.visit.addressLabel}
-            onChange={(addressLabel) => setSection('visit', { addressLabel })}
-          />
-          <BilingualField
-            fieldPath="home.visit.mapsCta"
-            label={isKo ? '지도 버튼' : 'Map button'}
-            value={value.visit.mapsCta}
-            onChange={(mapsCta) => setSection('visit', { mapsCta })}
+            value={value.pillars.kicker}
+            onChange={(kicker) => setSection('pillars', { kicker })}
           />
         </FieldGroup>
-      </CopySection>
-
-      <CopySection
-        title={isKo ? '새가족 등록' : 'Newcomer registration'}
-        description={
-          isKo ? '‘다음 걸음’ 바로 위에 보이는 안내 한 줄' : 'The band shown right above Next steps'
-        }
-        count={6}
-      >
-        <FieldGroup title={isKo ? '연결' : 'Connection'}>
-          <label className="settings-toggle">
-            <input
-              type="checkbox"
-              checked={value.welcome.enabled}
-              onChange={(event) => setSection('welcome', { enabled: event.currentTarget.checked })}
-            />
-            <span>{isKo ? '홈에 새가족 안내 표시' : 'Show the newcomer band on Home'}</span>
-          </label>
-          <TextField
-            fieldPath="home.welcome.formUrl"
-            label={isKo ? 'Microsoft Forms 주소' : 'Microsoft Forms link'}
-            hint="forms.office.com · forms.microsoft.com"
-            type="url"
-            inputMode="url"
-            maxLength={500}
-            placeholder="https://forms.office.com/r/..."
-            value={value.welcome.formUrl}
-            onChange={(formUrl) => setSection('welcome', { formUrl })}
-            full
-          />
-        </FieldGroup>
-        <FieldGroup title={primary}>
-          <BilingualField
-            fieldPath="home.welcome.title"
-            label={isKo ? '제목' : 'Title'}
-            value={value.welcome.title}
-            onChange={(title) => setSection('welcome', { title })}
-          />
-          <BilingualField
-            fieldPath="home.welcome.intro"
-            label={isKo ? '소개' : 'Intro'}
-            value={value.welcome.intro}
-            onChange={(intro) => setSection('welcome', { intro })}
-            multiline
-          />
-        </FieldGroup>
-        <FieldGroup title={supporting}>
-          <BilingualField
-            fieldPath="home.welcome.kicker"
-            label={isKo ? '작은 제목' : 'Kicker'}
-            value={value.welcome.kicker}
-            onChange={(kicker) => setSection('welcome', { kicker })}
-          />
-          <BilingualField
-            fieldPath="home.welcome.buttonLabel"
-            label={isKo ? '버튼 문구' : 'Button label'}
-            value={value.welcome.buttonLabel}
-            onChange={(buttonLabel) => setSection('welcome', { buttonLabel })}
-          />
-        </FieldGroup>
+        <div className="settings-items">
+          {value.pillars.items.map((item, index) => (
+            <article className="settings-item" key={`pillar-${index}`}>
+              <div className="settings-item__head">
+                <span className="settings-item__index">
+                  {isKo ? '기둥' : 'Pillar'} {String(index + 1).padStart(2, '0')}
+                </span>
+              </div>
+              <BilingualField
+                fieldPath="home.pillars.items[].title"
+                label={isKo ? '제목' : 'Title'}
+                value={item.title}
+                onChange={(title) =>
+                  setSection('pillars', { items: replaceAt(value.pillars.items, index, { title }) })
+                }
+              />
+              <BilingualField
+                fieldPath="home.pillars.items[].body"
+                label={isKo ? '설명' : 'Description'}
+                value={item.body}
+                onChange={(body) =>
+                  setSection('pillars', { items: replaceAt(value.pillars.items, index, { body }) })
+                }
+                multiline
+              />
+            </article>
+          ))}
+        </div>
       </CopySection>
 
       <CopySection

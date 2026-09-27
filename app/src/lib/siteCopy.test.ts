@@ -6,7 +6,37 @@ test('missing site copy returns the current homepage and page text', () => {
   const copy = parseSiteCopy(undefined);
   assert.strictEqual(copy.home.hero.lead.en.includes('Sydney Samil Church'), true);
   assert.strictEqual(copy.about.values.length, 3);
-  assert.strictEqual(copy.home.nextSteps.items[0].href, '/contact?topic=visit');
+  assert.deepStrictEqual(
+    copy.home.nextSteps.items.map((item) => item.href),
+    ['/contact?topic=community', '/contact?topic=prayer', '/contact']
+  );
+});
+
+test('quick strip defaults to member shortcuts', () => {
+  const { quick } = parseSiteCopy(undefined).home;
+  assert.strictEqual(quick.sermons.ko, '설교 다시 듣기');
+  assert.strictEqual(quick.events.ko, '행사와 소식');
+  assert.strictEqual(quick.resources.ko, '자료 · 신청');
+  assert.strictEqual('firstVisit' in quick, false);
+});
+
+test('saved next steps match cards by link, so a retired card drops out', () => {
+  const copy = parseSiteCopy({
+    home: {
+      nextSteps: {
+        items: [
+          { title: { ko: '처음 방문하시나요?', en: 'Visit?' }, href: '/contact?topic=visit' },
+          { title: { ko: '목장 찾기', en: 'Find a group' }, href: '/contact?topic=community' },
+          { title: { ko: '기도', en: 'Prayer' }, href: '/contact?topic=prayer' },
+        ],
+      },
+    },
+  });
+  const [community, prayer, contact] = copy.home.nextSteps.items;
+  assert.strictEqual(community.title.ko, '목장 찾기');
+  assert.strictEqual(community.label.ko, DEFAULT_SITE_COPY.home.nextSteps.items[0].label.ko);
+  assert.strictEqual(prayer.title.ko, '기도');
+  assert.deepStrictEqual(contact, DEFAULT_SITE_COPY.home.nextSteps.items[2]);
 });
 
 test('open application copy falls back and keeps an edited title', () => {

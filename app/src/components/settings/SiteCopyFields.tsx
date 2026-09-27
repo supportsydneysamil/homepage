@@ -37,7 +37,7 @@ const SiteCopyFields = ({
         title={isKo ? '홈' : 'Home'}
         meta={isKo ? '첫 화면부터 담임목사 소개까지' : 'From hero to pastor feature'}
         count={
-          37 +
+          50 +
           value.home.pillars.items.length * 2 +
           value.home.nextSteps.items.length * 3
         }
