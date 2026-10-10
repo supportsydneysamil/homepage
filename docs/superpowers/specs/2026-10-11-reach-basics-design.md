@@ -19,7 +19,7 @@ The exported HTML becomes Korean. The church’s main audience is Korean, Korean
 In scope:
 
 1. Default language: Korean exported HTML and browser-language detection
-2. Share and search: localized page titles and descriptions, preview tags, icons, `robots.txt`, `sitemap.xml`, and church structured data on the homepage
+2. Share and search: localized page titles and descriptions, preview tags, icons, `robots.txt`, `sitemap.xml`, church structured data on the homepage, and a lighter built-in hero photo
 3. Social links: four optional channels in site settings, shown in the footer, on the contact page, and in the structured data
 4. Contact topics: general, community, and prayer, with a sharing choice for prayer requests
 5. Analytics: Cloudflare Web Analytics on the production site only
@@ -77,7 +77,13 @@ Other public pages get a Korean description alongside their current English one.
 
 There is no `og:url` and no canonical link. The event detail page identifies the event by query string, which the exported HTML cannot know, and a wrong canonical would merge every event into one URL.
 
-`og-image.jpg` is the church exterior photo (`church-bg.png`) cropped from the top to 1.91:1 (819 × 429) and saved as JPEG.
+`og-image.jpg` is the church exterior photo cropped from the top to 1.91:1 and resized to 1200 × 628 JPEG.
+
+### Built-in hero photo
+
+The built-in hero `church-bg.png` is an 8.5 MB PNG (2656 × 1600). No hero photo has been uploaded in site settings, so this is what the live homepage loads on every first visit, which is slow on mobile data. It is replaced by `church-hero.jpg`: the same photo at 2000 px wide, JPEG quality 82, about 400 KB. `DEFAULT_HERO_IMAGE`, the three CSS `url('/church-bg.png')` references, and `scripts/check-homepage.py` move to the new file, and `church-bg.png` is removed. Uploaded hero photos are unaffected.
+
+One script, `scripts/make-share-assets.py <photo> <logo>`, writes `church-hero.jpg`, `og-image.jpg`, and the icons below, so they can be regenerated together.
 
 `SITE_URL` (`https://sydneysamil.org`) lives in one module.
 
@@ -172,12 +178,12 @@ The church confirms one wording before release: “교역자만 보기” is acc
 `_document` adds the Cloudflare Web Analytics beacon when `NEXT_PUBLIC_CF_BEACON_TOKEN` is set at build time, the build is a production build, and the token contains only letters and digits:
 
 ```html
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"…","spa":true}'></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"…"}'></script>
 ```
 
 The deploy step in the Static Web Apps workflow sets `NEXT_PUBLIC_CF_BEACON_TOKEN: ${{ github.ref_name == 'main' && vars.CF_BEACON_TOKEN || '' }}`, so only the production site reports. Local development and the dev preview never load the beacon. The token is public by design, so a repository variable is enough.
 
-The beacon sets no cookies, so no consent banner is needed. It reports page views, referrers, devices, and countries. SPA mode counts client-side navigation as page views.
+The beacon sets no cookies, so no consent banner is needed. It reports page views, referrers, devices, and countries, and counts client-side navigation as page views by default.
 
 ## Church Checklist
 
@@ -206,7 +212,7 @@ Unit tests:
 - The site-settings API rejects an invalid social link and accepts valid ones
 - `parseContactTopic` accepts the three topics and defaults anything else
 - `buildContactEmail` subjects and bodies for each topic and share value, including unknown values
-- `robots.txt` and `sitemap.xml` exist in `app/public` with the expected lines
+- `robots.txt` and `sitemap.xml` exist in `app/public` with the expected lines, the share image and icons exist, and `church-bg.png` is gone
 
 Export check after `npm run build`: `out/index.html` has `lang="ko"`, Korean body text, the preview tags, and the icon links, and includes the beacon only when the token is set.
 

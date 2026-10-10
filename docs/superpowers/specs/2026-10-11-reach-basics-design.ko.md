@@ -19,7 +19,7 @@
 포함:
 
 1. 기본 언어: 한국어 HTML 내보내기와 브라우저 언어 감지
-2. 공유와 검색: 언어별 페이지 제목·설명, 미리보기 태그, 아이콘, `robots.txt`, `sitemap.xml`, 홈의 교회 구조화 데이터
+2. 공유와 검색: 언어별 페이지 제목·설명, 미리보기 태그, 아이콘, `robots.txt`, `sitemap.xml`, 홈의 교회 구조화 데이터, 가벼운 기본 첫 화면 사진
 3. 소셜 링크: 사이트 설정의 선택 채널 네 개를 푸터, 문의 페이지, 구조화 데이터에 표시
 4. 문의 종류: 일반, 목장 연결, 기도 요청. 기도 요청에는 공유 범위 선택
 5. 방문 분석: 운영 사이트에만 Cloudflare Web Analytics
@@ -77,7 +77,13 @@
 
 `og:url`과 canonical 링크는 넣지 않는다. 행사 상세는 주소의 쿼리로 행사를 구분하는데, 내보낸 HTML은 그 값을 알 수 없다. 잘못된 canonical은 모든 행사를 한 주소로 합쳐 버린다.
 
-`og-image.jpg`는 교회 외관 사진(`church-bg.png`)을 위에서부터 1.91:1(819 × 429)로 잘라 JPEG로 저장한 것이다.
+`og-image.jpg`는 교회 외관 사진을 위에서부터 1.91:1로 자르고 1200 × 628 JPEG로 줄인 것이다.
+
+### 기본 첫 화면 사진
+
+기본 첫 화면 사진 `church-bg.png`는 8.5MB PNG(2656 × 1600)다. 사이트 설정에 첫 화면 사진을 올린 적이 없어서, 운영 중인 홈은 처음 방문할 때마다 이 파일을 받는다. 모바일 데이터에서는 느리다. 같은 사진을 가로 2000px, JPEG 품질 82로 줄인 `church-hero.jpg`(약 400KB)로 바꾼다. `DEFAULT_HERO_IMAGE`, CSS의 `url('/church-bg.png')` 세 곳, `scripts/check-homepage.py`를 새 파일로 옮기고 `church-bg.png`는 지운다. 관리자가 올린 첫 화면 사진에는 영향이 없다.
+
+스크립트 하나(`scripts/make-share-assets.py <사진> <로고>`)가 `church-hero.jpg`, `og-image.jpg`, 아래 아이콘을 함께 만들어서 나중에 한꺼번에 다시 만들 수 있다.
 
 `SITE_URL`(`https://sydneysamil.org`)은 한 모듈에 둔다.
 
@@ -172,12 +178,12 @@ Sitemap: https://sydneysamil.org/sitemap.xml
 `_document`는 빌드할 때 `NEXT_PUBLIC_CF_BEACON_TOKEN`이 있고, 운영용 빌드이고, 토큰이 영문자와 숫자로만 되어 있을 때 Cloudflare Web Analytics 스크립트를 넣는다.
 
 ```html
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"…","spa":true}'></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"…"}'></script>
 ```
 
 Static Web Apps 워크플로의 배포 단계에 `NEXT_PUBLIC_CF_BEACON_TOKEN: ${{ github.ref_name == 'main' && vars.CF_BEACON_TOKEN || '' }}`를 두어 운영 사이트만 보고하게 한다. 로컬 개발과 dev 미리보기 사이트는 스크립트를 불러오지 않는다. 토큰은 원래 공개되는 값이므로 저장소 변수로 충분하다.
 
-이 스크립트는 쿠키를 쓰지 않으므로 동의 배너가 필요 없다. 페이지 방문수, 유입 경로, 기기, 국가를 보여 준다. SPA 모드는 페이지 안 이동도 방문으로 센다.
+이 스크립트는 쿠키를 쓰지 않으므로 동의 배너가 필요 없다. 페이지 방문수, 유입 경로, 기기, 국가를 보여 주고, 페이지 안 이동도 기본으로 방문으로 센다.
 
 ## 교회가 할 일
 
@@ -206,7 +212,7 @@ Static Web Apps 워크플로의 배포 단계에 `NEXT_PUBLIC_CF_BEACON_TOKEN: $
 - 사이트 설정 API는 잘못된 소셜 링크를 거절하고 올바른 링크는 받는다
 - `parseContactTopic`은 세 종류를 받고 그 밖은 기본값으로 바꾼다
 - `buildContactEmail`의 종류별, 공유 범위별 제목과 본문, 모르는 값 포함
-- `app/public`의 `robots.txt`와 `sitemap.xml`이 있고 기대한 줄을 담는다
+- `app/public`의 `robots.txt`와 `sitemap.xml`이 있고 기대한 줄을 담으며, 공유 이미지와 아이콘이 있고 `church-bg.png`는 없다
 
 `npm run build` 후 내보내기 확인: `out/index.html`에 `lang="ko"`, 한국어 본문, 미리보기 태그, 아이콘 링크가 있고, 토큰이 있을 때만 분석 스크립트가 있다.
 
