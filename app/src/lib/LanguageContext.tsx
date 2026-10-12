@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { pickInitialLanguage, type Lang } from './language';
+import { isCrawler, pickInitialLanguage, type Lang } from './language';
 
 type LanguageContextValue = {
   lang: Lang;
@@ -19,7 +19,12 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [lang, setLangState] = useState<Lang>('ko');
 
   useEffect(() => {
-    setLangState(pickInitialLanguage(window.localStorage.getItem('lang'), browserLanguages()));
+    setLangState(
+      pickInitialLanguage(
+        window.localStorage.getItem('lang'),
+        isCrawler(window.navigator.userAgent) ? [] : browserLanguages()
+      )
+    );
   }, []);
 
   useEffect(() => {

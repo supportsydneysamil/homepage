@@ -2,6 +2,9 @@ export type Lang = 'ko' | 'en';
 
 const isKorean = (tag: string) => /^ko(?:-|$)/i.test(tag);
 
+export const isCrawler = (userAgent: string) =>
+  /bot|crawl|spider|slurp|yeti|daum|facebookexternalhit|kakaotalk-scrap|google-inspectiontool/i.test(userAgent);
+
 export const pickInitialLanguage = (
   stored: string | null,
   browserLanguages: readonly string[] | undefined
