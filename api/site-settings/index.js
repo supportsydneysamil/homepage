@@ -2,6 +2,7 @@ const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, ROLES } = require('../shared/principal');
 const { deleteBlob, publicUrlFor, SITE_FOLDER } = require('../shared/blob');
 const { isMicrosoftFormUrl } = require('../shared/applications');
+const { socialLinksError } = require('../shared/social');
 
 const SUPPORTED_THEMES = ['dark', 'light', 'church', 'modern-sky', 'modern-sand', 'living'];
 const DEFAULT_THEME = 'church';
@@ -237,6 +238,12 @@ module.exports = async function (context, req, overrides = {}) {
     const welcomeError = siteCopy.omitted ? null : welcomeFormUrlError(siteCopy.value);
     if (welcomeError) {
       context.res = { status: 400, body: { error: welcomeError } };
+      return;
+    }
+
+    const socialError = churchInfo.omitted ? null : socialLinksError(churchInfo.value);
+    if (socialError) {
+      context.res = { status: 400, body: { error: socialError } };
       return;
     }
 

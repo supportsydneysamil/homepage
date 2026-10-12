@@ -385,3 +385,51 @@ test('rejects a put that omits the logo path', async () => {
   );
   assert.strictEqual(context.res.status, 400);
 });
+
+const putWithSocial = (social) =>
+  adminReq('PUT', {
+    themeId: 'church',
+    heroImagePath: null,
+    pastorImagePath: null,
+    logoImagePath: null,
+    churchInfo: { social },
+  });
+
+const socialDeps = (saved) => ({
+  getCurrentSettings: async () => ({ themeId: 'church' }),
+  saveSettings: async (next) => {
+    saved.push(next);
+    return { ...next, churchInfo: JSON.parse(next.churchInfoJson) };
+  },
+  deleteBlob: async () => {},
+  publicUrlFor: (blobPath) => `https://example.test/${blobPath}`,
+});
+
+test('rejects a social link that is not on its service', async () => {
+  const context = contextOf();
+  const saved = [];
+  await handler(context, putWithSocial({ instagram: 'https://example.com/me' }), socialDeps(saved));
+  assert.strictEqual(context.res.status, 400);
+  assert.strictEqual(
+    context.res.body.error,
+    'Social links must be https links to Instagram, YouTube, KakaoTalk Channel, or Facebook.'
+  );
+  assert.strictEqual(saved.length, 0);
+});
+
+test('accepts valid or blank social links', async () => {
+  const context = contextOf();
+  const saved = [];
+  await handler(
+    context,
+    putWithSocial({
+      instagram: 'https://www.instagram.com/sydneysamil',
+      kakao: 'https://pf.kakao.com/_abc/chat',
+      youtube: '',
+      facebook: '',
+    }),
+    socialDeps(saved)
+  );
+  assert.strictEqual(context.res.status, 200);
+  assert.strictEqual(saved.length, 1);
+});

@@ -1,3 +1,5 @@
+import { EMPTY_SOCIAL_LINKS, parseSocialLinks, type SocialLinks } from './social';
+
 export type LocalizedText = {
   en: string;
   ko: string;
@@ -32,6 +34,7 @@ export type ChurchInfo = {
   pastorNameEn: string;
   services: ChurchService[];
   gatherings: ChurchGathering[];
+  social: SocialLinks;
 };
 
 export const MAX_SERVICES = 4;
@@ -81,6 +84,7 @@ export const DEFAULT_CHURCH_INFO: ChurchInfo = {
       detail: { ko: '주일 오후 2:30', en: 'Sunday 2:30 PM' },
     },
   ],
+  social: EMPTY_SOCIAL_LINKS,
 };
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
@@ -165,6 +169,7 @@ export const parseChurchInfo = (input: unknown): ChurchInfo => {
     pastorNameEn: clipped(row.pastorNameEn, DEFAULT_CHURCH_INFO.pastorNameEn),
     services: services.length ? services : fallbackServices,
     gatherings,
+    social: parseSocialLinks(row.social),
   };
 };
 

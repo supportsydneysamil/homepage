@@ -1,5 +1,6 @@
 import type { ChurchInfo, LocalizedText } from './churchInfo';
 import { isWelcomeFormUrl, type SiteCopy } from './siteCopy';
+import { SOCIAL_CHANNELS, isSocialUrl } from './social';
 
 export type SettingsValidationCode =
   | 'required'
@@ -9,7 +10,8 @@ export type SettingsValidationCode =
   | 'period'
   | 'tooLong'
   | 'serviceRequired'
-  | 'formUrl';
+  | 'formUrl'
+  | 'socialUrl';
 
 export type SettingsValidationIssue = {
   tab: 'church' | 'copy';
@@ -95,6 +97,12 @@ export const validateChurchInfoDraft = (
     addLocalizedIssue(issues, 'church', 'gatherings[].title', gathering.title);
     addLocalizedIssue(issues, 'church', 'gatherings[].detail', gathering.detail);
   });
+  SOCIAL_CHANNELS.forEach(({ id }) => {
+    const url = value.social[id].trim();
+    if (url && !isSocialUrl(id, url)) {
+      issues.push({ tab: 'church', path: `social.${id}`, code: 'socialUrl' });
+    }
+  });
   return Array.from(
     new Map(issues.map((issue) => [`${issue.path}:${issue.code}`, issue])).values()
   );
@@ -153,6 +161,7 @@ export const settingsValidationMessage = (
     tooLong: { ko: '입력 가능한 글자 수를 초과했습니다.', en: 'This value is too long.' },
     serviceRequired: { ko: '예배 시간을 하나 이상 남겨 주세요.', en: 'Keep at least one service.' },
     formUrl: { ko: 'Microsoft Forms 주소를 입력해 주세요.', en: 'Enter a Microsoft Forms link.' },
+    socialUrl: { ko: '해당 서비스의 https 주소를 입력해 주세요.', en: 'Enter an https link for this service.' },
   };
   return isKo ? messages[issue.code].ko : messages[issue.code].en;
 };
