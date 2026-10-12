@@ -31,3 +31,19 @@ test('serialized structured data cannot close its script tag', () => {
   assert.ok(!serialized.includes('<'));
   assert.deepStrictEqual(JSON.parse(serialized), value);
 });
+
+test('sameAs lists only the social links that are set', () => {
+  const info = {
+    ...DEFAULT_CHURCH_INFO,
+    social: {
+      ...DEFAULT_CHURCH_INFO.social,
+      instagram: 'https://www.instagram.com/a',
+      kakao: 'https://pf.kakao.com/_a',
+    },
+  };
+  assert.deepStrictEqual(churchJsonLd(info, '').sameAs, [
+    'https://www.instagram.com/a',
+    'https://pf.kakao.com/_a',
+  ]);
+  assert.ok(!('sameAs' in churchJsonLd(DEFAULT_CHURCH_INFO, '')));
+});

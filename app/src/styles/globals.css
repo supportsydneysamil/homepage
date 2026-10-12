@@ -4026,6 +4026,10 @@ body {
   border-block: 1px solid color-mix(in srgb, var(--site-canvas) 18%, transparent);
 }
 
+.footer__details--social {
+  grid-template-columns: 1.4fr 1fr 0.7fr 0.7fr;
+}
+
 .footer__details > div {
   display: flex;
   flex-direction: column;

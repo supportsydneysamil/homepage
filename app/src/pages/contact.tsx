@@ -6,6 +6,7 @@ import { useSiteSettings } from '../lib/ThemeContext';
 import { phoneHref } from '../lib/churchInfo';
 import type { PageMeta } from '../lib/pageMeta';
 import { localize } from '../lib/siteCopy';
+import { socialLinkList } from '../lib/social';
 
 const CONTACT_ENDPOINT = '/api/contact';
 
@@ -14,6 +15,10 @@ const Contact: NextPage & { meta?: PageMeta } = () => {
   const isKo = lang === 'ko';
   const { churchInfo, siteCopy } = useSiteSettings();
   const copy = siteCopy.contact;
+  const socialLinks = socialLinkList(churchInfo.social);
+  const messengers = (['kakao', 'instagram'] as const).flatMap((id) =>
+    socialLinks.filter((link) => link.id === id)
+  );
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -60,6 +65,16 @@ const Contact: NextPage & { meta?: PageMeta } = () => {
             <span>{isKo ? '이메일' : 'Email'}</span>
             <a href={`mailto:${churchInfo.email}`}>{churchInfo.email}</a>
           </div>
+          {messengers.length ? (
+            <div>
+              <span>{isKo ? '메시지로 문의' : 'Message us'}</span>
+              {messengers.map((link) => (
+                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer">
+                  {isKo ? link.label.ko : link.label.en}
+                </a>
+              ))}
+            </div>
+          ) : null}
           <div>
             <span>{isKo ? '주소' : 'Address'}</span>
             <p>
