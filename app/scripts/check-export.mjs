@@ -44,3 +44,9 @@ test('the exported homepage describes the church for search engines', () => {
   assert.strictEqual(data['@type'], 'Church');
   assert.strictEqual(data.name, '시드니 삼일교회');
 });
+
+test('the analytics beacon appears only when a token was set at build time', () => {
+  const token = process.env.NEXT_PUBLIC_CF_BEACON_TOKEN;
+  assert.strictEqual(home.includes('static.cloudflareinsights.com/beacon.min.js'), Boolean(token));
+  if (token) assert.ok(home.includes(`data-cf-beacon="{&quot;token&quot;:&quot;${token}&quot;}"`));
+});
