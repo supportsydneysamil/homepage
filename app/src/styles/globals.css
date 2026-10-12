@@ -4446,6 +4446,63 @@ body {
   resize: vertical;
 }
 
+.site-form fieldset {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.site-form legend {
+  padding: 0;
+  color: var(--site-ink);
+  font-size: 0.85rem;
+  font-weight: 750;
+}
+
+.contact-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.site-form .contact-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  background: var(--site-canvas);
+  cursor: pointer;
+}
+
+.site-form .contact-choice input {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  accent-color: var(--site-accent);
+}
+
+.site-form .contact-choice:has(input:checked) {
+  border-color: var(--site-accent);
+  background: color-mix(in srgb, var(--site-accent) 10%, var(--site-canvas));
+}
+
+.site-form .contact-choice:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--site-accent) 16%, transparent);
+}
+
+.contact-form__hint {
+  color: var(--site-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
 .form-status {
   min-height: 1.5rem;
 }

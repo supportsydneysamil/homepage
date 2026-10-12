@@ -1,18 +1,32 @@
 import type { NextPage } from 'next';
-import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/router';
+import { FormEvent, useEffect, useState } from 'react';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
 import { useSiteSettings } from '../lib/ThemeContext';
 import { phoneHref } from '../lib/churchInfo';
+import { parseContactTopic, type ContactTopic, type PrayerShare } from '../lib/contact';
 import type { PageMeta } from '../lib/pageMeta';
 import { localize } from '../lib/siteCopy';
 import { socialLinkList } from '../lib/social';
 
 const CONTACT_ENDPOINT = '/api/contact';
 
+const TOPIC_OPTIONS: { id: ContactTopic; ko: string; en: string }[] = [
+  { id: 'general', ko: '일반 문의', en: 'General question' },
+  { id: 'community', ko: '목장 연결', en: 'Find a community' },
+  { id: 'prayer', ko: '기도 요청', en: 'Prayer request' },
+];
+
+const SHARE_OPTIONS: { id: PrayerShare; ko: string; en: string }[] = [
+  { id: 'staff', ko: '교역자만 보기', en: 'Pastoral staff only' },
+  { id: 'team', ko: '중보기도팀과 함께 기도해도 괜찮아요', en: 'OK to share with the prayer team' },
+];
+
 const Contact: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
+  const router = useRouter();
   const { churchInfo, siteCopy } = useSiteSettings();
   const copy = siteCopy.contact;
   const socialLinks = socialLinkList(churchInfo.social);
@@ -20,12 +34,19 @@ const Contact: NextPage & { meta?: PageMeta } = () => {
     socialLinks.filter((link) => link.id === id)
   );
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [topic, setTopic] = useState<ContactTopic>('general');
+  const [share, setShare] = useState<PrayerShare>('staff');
+  // Remounting the form clears the typed fields while the chosen topic stays in state.
+  const [formKey, setFormKey] = useState(0);
+
+  useEffect(() => {
+    if (router.isReady) setTopic(parseContactTopic(router.query.topic));
+  }, [router.isReady, router.query.topic]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus('submitting');
-    const form = event.currentTarget;
-    const formData = new FormData(form);
+    const formData = new FormData(event.currentTarget);
 
     try {
       const res = await fetch(CONTACT_ENDPOINT, {
@@ -36,11 +57,13 @@ const Contact: NextPage & { meta?: PageMeta } = () => {
           email: (formData.get('email') || '').toString(),
           phone: (formData.get('phone') || '').toString(),
           message: (formData.get('message') || '').toString(),
+          topic,
+          share: topic === 'prayer' ? share : undefined,
         }),
       });
       if (!res.ok) throw new Error('Failed to submit');
       setStatus('success');
-      form.reset();
+      setFormKey((key) => key + 1);
     } catch {
       setStatus('error');
     }
@@ -86,7 +109,24 @@ const Contact: NextPage & { meta?: PageMeta } = () => {
           <p className="contact-intro__note">{localize(copy.note, lang)}</p>
         </aside>
 
-        <form className="site-form contact-form" onSubmit={handleSubmit}>
+        <form key={formKey} className="site-form contact-form" onSubmit={handleSubmit}>
+          <fieldset>
+            <legend>{isKo ? '문의 종류' : 'What is this about?'}</legend>
+            <div className="contact-choices">
+              {TOPIC_OPTIONS.map((option) => (
+                <label className="contact-choice" key={option.id}>
+                  <input
+                    type="radio"
+                    name="topic"
+                    value={option.id}
+                    checked={topic === option.id}
+                    onChange={() => setTopic(option.id)}
+                  />
+                  {isKo ? option.ko : option.en}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <label>
             <span>{isKo ? '이름' : 'Name'}</span>
             <input type="text" name="name" autoComplete="name" required />
@@ -99,8 +139,36 @@ const Contact: NextPage & { meta?: PageMeta } = () => {
             <span>{isKo ? '연락처 (선택)' : 'Phone (optional)'}</span>
             <input type="tel" name="phone" autoComplete="tel" />
           </label>
+          {topic === 'prayer' ? (
+            <fieldset>
+              <legend>{isKo ? '공유 범위' : 'Who may see this?'}</legend>
+              <div className="contact-choices">
+                {SHARE_OPTIONS.map((option) => (
+                  <label className="contact-choice" key={option.id}>
+                    <input
+                      type="radio"
+                      name="share"
+                      value={option.id}
+                      checked={share === option.id}
+                      onChange={() => setShare(option.id)}
+                    />
+                    {isKo ? option.ko : option.en}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
           <label>
-            <span>{isKo ? '메시지' : 'Message'}</span>
+            <span>
+              {topic === 'prayer' ? (isKo ? '기도 제목' : 'Prayer request') : isKo ? '메시지' : 'Message'}
+            </span>
+            {topic === 'community' ? (
+              <small className="contact-form__hint">
+                {isKo
+                  ? '사는 지역, 연령대, 편한 요일을 알려 주시면 맞는 목장을 안내해 드려요.'
+                  : 'Tell us your area, age group, and which days suit you, and we will suggest a community.'}
+              </small>
+            ) : null}
             <textarea name="message" rows={6} required />
           </label>
           <button className="site-button site-button--primary" type="submit" disabled={status === 'submitting'}>
