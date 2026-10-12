@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { NextPage } from 'next';
+import Head from 'next/head';
 import ChurchPillars from '../components/home/ChurchPillars';
 import HomeHero from '../components/home/HomeHero';
 import NextSteps from '../components/home/NextSteps';
@@ -14,10 +15,13 @@ import { fetchApplications, fetchEvents, fetchResources, fetchSermons, type ApiA
 import { todayStamp } from '../lib/events';
 import { useLanguage } from '../lib/LanguageContext';
 import { HOME_DESCRIPTION, type PageMeta } from '../lib/pageMeta';
+import { churchJsonLd, serializeJsonLd } from '../lib/structuredData';
+import { useSiteSettings } from '../lib/ThemeContext';
 import { weeklyItemsFromContent } from '../lib/weeklyHighlights';
 
 const Home: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
+  const { churchInfo, logoImageUrl } = useSiteSettings();
   const [items, setItems] = useState<WeeklyItem[]>([]);
   const [applications, setApplications] = useState<ApiApplication[]>([]);
 
@@ -43,6 +47,13 @@ const Home: NextPage & { meta?: PageMeta } = () => {
 
   return (
     <div className="home-page">
+      <Head>
+        <script
+          key="church-jsonld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(churchJsonLd(churchInfo, logoImageUrl)) }}
+        />
+      </Head>
       <HomeHero lang={lang} />
       <QuickInfo lang={lang} />
       <VisitOverview lang={lang} />

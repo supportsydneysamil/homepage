@@ -36,3 +36,11 @@ test('other pages export their own Korean titles', () => {
   assert.match(read('sermons.html'), /<title[^>]*>설교 \| 시드니 삼일교회<\/title>/);
   assert.match(read('contact.html'), /<title[^>]*>문의 \| 시드니 삼일교회<\/title>/);
 });
+
+test('the exported homepage describes the church for search engines', () => {
+  const match = home.match(/<script[^>]*type="application\/ld\+json"[^>]*>([^<]+)<\/script>/);
+  assert.ok(match, 'structured data script');
+  const data = JSON.parse(match[1]);
+  assert.strictEqual(data['@type'], 'Church');
+  assert.strictEqual(data.name, '시드니 삼일교회');
+});
