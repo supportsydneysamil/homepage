@@ -4456,6 +4456,7 @@ body {
 }
 
 .site-form legend {
+  margin-bottom: 0.45rem;
   padding: 0;
   color: var(--site-ink);
   font-size: 0.85rem;
@@ -4495,6 +4496,10 @@ body {
 
 .site-form .contact-choice:has(input:focus-visible) {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--site-accent) 16%, transparent);
+}
+
+.contact-form__fields {
+  display: contents;
 }
 
 .contact-form__hint {

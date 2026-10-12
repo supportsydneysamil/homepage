@@ -33,7 +33,7 @@ const known = (table, value, fallback) =>
   Object.prototype.hasOwnProperty.call(table, value) ? value : fallback;
 
 const buildContactEmail = ({ name, email, phone, message, topic, share }) => {
-  const topicId = known(TOPICS, String(topic || ''), 'general');
+  const topicId = known(TOPICS, typeof topic === 'string' ? topic : '', 'general');
   const details = TOPICS[topicId];
   const subject = details ? `${details.tag} ${name}` : `Contact form: ${name}`;
   const text = [
@@ -41,7 +41,7 @@ const buildContactEmail = ({ name, email, phone, message, topic, share }) => {
     `Email: ${email}`,
     phone ? `Phone: ${phone}` : null,
     details ? `Topic: ${details.label}` : null,
-    topicId === 'prayer' ? `Sharing: ${SHARES[known(SHARES, String(share || ''), 'staff')]}` : null,
+    topicId === 'prayer' ? `Sharing: ${SHARES[known(SHARES, typeof share === 'string' ? share : '', 'staff')]}` : null,
     '',
     message,
   ]

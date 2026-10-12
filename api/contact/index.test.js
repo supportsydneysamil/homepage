@@ -43,6 +43,7 @@ test('a prayer request can allow the prayer team', () => {
 test('unknown topic and share values fall back to the defaults', () => {
   assert.strictEqual(buildContactEmail({ ...base, topic: 'spam' }).subject, 'Contact form: Kim');
   assert.strictEqual(buildContactEmail({ ...base, topic: '__proto__' }).subject, 'Contact form: Kim');
+  assert.strictEqual(buildContactEmail({ ...base, topic: ['prayer'] }).subject, 'Contact form: Kim');
   assert.strictEqual(buildContactEmail({ ...base }).subject, 'Contact form: Kim');
   assert.ok(
     buildContactEmail({ ...base, topic: 'prayer', share: 'everyone' }).text.includes(
