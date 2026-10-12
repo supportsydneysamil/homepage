@@ -13,9 +13,10 @@ import type { WeeklyItem } from '../components/home/homeContent';
 import { fetchApplications, fetchEvents, fetchResources, fetchSermons, type ApiApplication } from '../lib/contentApi';
 import { todayStamp } from '../lib/events';
 import { useLanguage } from '../lib/LanguageContext';
+import { HOME_DESCRIPTION, type PageMeta } from '../lib/pageMeta';
 import { weeklyItemsFromContent } from '../lib/weeklyHighlights';
 
-const Home: NextPage & { meta?: { title?: string; description?: string } } = () => {
+const Home: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
   const [items, setItems] = useState<WeeklyItem[]>([]);
   const [applications, setApplications] = useState<ApiApplication[]>([]);
@@ -56,9 +57,7 @@ const Home: NextPage & { meta?: { title?: string; description?: string } } = () 
 };
 
 Home.meta = {
-  title: 'Sydney Samil Church',
-  description:
-    'Worship, community, and faith for everyday life at Sydney Samil Church.',
+  description: HOME_DESCRIPTION,
 };
 
 export default Home;

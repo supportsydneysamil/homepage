@@ -13,6 +13,7 @@ import {
   type ApplicationCategory,
 } from '../lib/applications';
 import { useLanguage } from '../lib/LanguageContext';
+import type { PageMeta } from '../lib/pageMeta';
 import { formatDisplayDate } from '../lib/presentation';
 import { todayStamp } from '../lib/events';
 import { fetchApplications, fetchResources, useContent, type ApiApplication, type ApiResource } from '../lib/contentApi';
@@ -34,7 +35,7 @@ const formatSize = (bytes: number) => {
 };
 
 const Resources: NextPage & {
-  meta?: { title?: string; description?: string };
+  meta?: PageMeta;
 } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
@@ -350,8 +351,11 @@ const Resources: NextPage & {
 };
 
 Resources.meta = {
-  title: 'Resources',
-  description: 'Bulletins, resources, and applications from Sydney Samil Church.',
+  title: { ko: '자료·신청', en: 'Resources' },
+  description: {
+    ko: '시드니 삼일교회 주보와 자료, 온라인 신청을 한곳에서 확인하세요.',
+    en: 'Bulletins, resources, and applications from Sydney Samil Church.',
+  },
 };
 
 export default Resources;

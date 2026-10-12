@@ -4,11 +4,12 @@ import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
 import { useSiteSettings } from '../lib/ThemeContext';
 import { phoneHref } from '../lib/churchInfo';
+import type { PageMeta } from '../lib/pageMeta';
 import { localize } from '../lib/siteCopy';
 
 const CONTACT_ENDPOINT = '/api/contact';
 
-const Contact: NextPage & { meta?: { title?: string; description?: string } } = () => {
+const Contact: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const { churchInfo, siteCopy } = useSiteSettings();
@@ -106,8 +107,11 @@ const Contact: NextPage & { meta?: { title?: string; description?: string } } = 
 };
 
 Contact.meta = {
-  title: 'Contact',
-  description: 'Contact Sydney Samil Church, plan a visit, or request prayer.',
+  title: { ko: '문의', en: 'Contact' },
+  description: {
+    ko: '첫 방문, 목장 연결, 기도 요청까지 시드니 삼일교회에 편하게 문의하세요.',
+    en: 'Contact Sydney Samil Church, plan a visit, or request prayer.',
+  },
 };
 
 export default Contact;

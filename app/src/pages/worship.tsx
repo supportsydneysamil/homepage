@@ -4,9 +4,10 @@ import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
 import { useSiteSettings } from '../lib/ThemeContext';
 import { directionsUrl, formatFullAddress } from '../lib/churchInfo';
+import type { PageMeta } from '../lib/pageMeta';
 import { localize } from '../lib/siteCopy';
 
-const Worship: NextPage & { meta?: { title?: string; description?: string } } = () => {
+const Worship: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
   const { churchInfo, siteCopy } = useSiteSettings();
   const worship = siteCopy.worship;
@@ -70,8 +71,11 @@ const Worship: NextPage & { meta?: { title?: string; description?: string } } = 
 };
 
 Worship.meta = {
-  title: 'Worship',
-  description: 'Service times and location for Sydney Samil Church.',
+  title: { ko: '예배', en: 'Worship' },
+  description: {
+    ko: '시드니 삼일교회 주일예배 시간과 오시는 길 안내입니다. 처음 오셔도 편안하게 함께 예배해요.',
+    en: 'Service times and location for Sydney Samil Church.',
+  },
 };
 
 export default Worship;

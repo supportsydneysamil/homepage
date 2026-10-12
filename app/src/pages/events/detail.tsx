@@ -5,12 +5,13 @@ import type { NextPage } from 'next';
 import EmptyState from '../../components/EmptyState';
 import EventGallery from '../../components/EventGallery';
 import { useLanguage } from '../../lib/LanguageContext';
+import { documentTitle, type PageMeta } from '../../lib/pageMeta';
 import { toYouTubeEmbedUrl } from '../../lib/presentation';
 import { formatEventWhen, isRegistrationOpen, todayStamp, visibleEventImages } from '../../lib/events';
 import { fetchEvents, useContent, type ApiEvent } from '../../lib/contentApi';
 
 const EventDetailPage: NextPage & {
-  meta?: { title?: string; description?: string };
+  meta?: PageMeta;
 } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
@@ -45,8 +46,8 @@ const EventDetailPage: NextPage & {
   return (
     <article className="site-page event-detail-page">
       <Head>
-        <title>{event.title} | Sydney Samil Church</title>
-        <meta name="description" content={event.description || event.title} />
+        <title key="title">{documentTitle({ ko: event.title, en: event.title }, lang)}</title>
+        <meta key="description" name="description" content={event.description || event.title} />
       </Head>
 
       <header className="event-detail-hero">
@@ -99,8 +100,11 @@ const EventDetailPage: NextPage & {
 };
 
 EventDetailPage.meta = {
-  title: 'Event',
-  description: 'Event details from Sydney Samil Church.',
+  title: { ko: '이벤트', en: 'Event' },
+  description: {
+    ko: '시드니 삼일교회 행사 안내입니다.',
+    en: 'Event details from Sydney Samil Church.',
+  },
 };
 
 export default EventDetailPage;

@@ -3,12 +3,13 @@ import { useState } from 'react';
 import EmptyState from '../components/EmptyState';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
+import type { PageMeta } from '../lib/pageMeta';
 import { formatDisplayDate, formatListIndex, toYouTubeEmbedUrl } from '../lib/presentation';
 import { fetchSermons, useContent, type ApiSermon } from '../lib/contentApi';
 const PAGE_SIZE = 12;
 
 const Sermons: NextPage & {
-  meta?: { title?: string; description?: string };
+  meta?: PageMeta;
 } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
@@ -100,8 +101,11 @@ const Sermons: NextPage & {
 };
 
 Sermons.meta = {
-  title: 'Sermons',
-  description: 'Recent messages from Sydney Samil Church.',
+  title: { ko: '설교', en: 'Sermons' },
+  description: {
+    ko: '시드니 삼일교회 주일 설교를 다시 들어 보세요.',
+    en: 'Recent messages from Sydney Samil Church.',
+  },
 };
 
 export default Sermons;

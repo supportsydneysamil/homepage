@@ -4,6 +4,7 @@ import type { NextPage } from 'next';
 import EmptyState from '../../components/EmptyState';
 import PageHero from '../../components/PageHero';
 import { useLanguage } from '../../lib/LanguageContext';
+import type { PageMeta } from '../../lib/pageMeta';
 import { formatListIndex } from '../../lib/presentation';
 import {
   PAST_EVENT_PAGE_SIZE,
@@ -51,7 +52,7 @@ const EventRows = ({
 );
 
 const EventsPage: NextPage & {
-  meta?: { title?: string; description?: string };
+  meta?: PageMeta;
 } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
@@ -111,8 +112,11 @@ const EventsPage: NextPage & {
 };
 
 EventsPage.meta = {
-  title: 'Events',
-  description: 'Events and gatherings at Sydney Samil Church.',
+  title: { ko: '이벤트', en: 'Events' },
+  description: {
+    ko: '시드니 삼일교회의 행사와 모임 소식입니다.',
+    en: 'Events and gatherings at Sydney Samil Church.',
+  },
 };
 
 export default EventsPage;
