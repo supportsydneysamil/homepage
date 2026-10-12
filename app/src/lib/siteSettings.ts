@@ -5,7 +5,7 @@ import {
 } from './imagePresentation';
 import { parseSiteCopy, type SiteCopy } from './siteCopy';
 
-export const DEFAULT_HERO_IMAGE = '/church-bg.png';
+export const DEFAULT_HERO_IMAGE = '/church-hero.jpg';
 export const DEFAULT_PASTOR_IMAGE = '/pastor.jpg';
 
 export type SiteSettings = {

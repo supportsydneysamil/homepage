@@ -10,8 +10,9 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test:routes": "node --test scripts/check-routes.mjs",
     "test:export": "node --test scripts/check-export.mjs",
+    "test:public": "node --test scripts/check-public.mjs",
     "test:lib": "tsx --test src/lib/*.test.ts",
-    "test": "npm run test:lib && npm run test:routes"
+    "test": "npm run test:lib && npm run test:routes && npm run test:public"
   },
   "dependencies": {
     "next": "16.3.5",

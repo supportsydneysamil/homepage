@@ -34,7 +34,7 @@ for marker in (
     "home-visit",
     "home-pastor",
     "home-next-steps",
-    "/church-bg.png",
+    "/church-hero.jpg",
 ):
     require(html, marker, "exported homepage")
 
