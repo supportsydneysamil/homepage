@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-
-type Lang = 'en' | 'ko';
+import { pickInitialLanguage, type Lang } from './language';
 
 type LanguageContextValue = {
   lang: Lang;
@@ -10,15 +9,17 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
+const browserLanguages = (): readonly string[] => {
+  const { languages, language } = window.navigator;
+  if (languages && languages.length) return languages;
+  return language ? [language] : [];
+};
+
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [lang, setLangState] = useState<Lang>('en');
+  const [lang, setLangState] = useState<Lang>('ko');
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem('lang');
-    if (stored === 'ko' || stored === 'en') {
-      setLangState(stored);
-    }
+    setLangState(pickInitialLanguage(window.localStorage.getItem('lang'), browserLanguages()));
   }, []);
 
   useEffect(() => {
