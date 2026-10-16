@@ -38,3 +38,13 @@ test('an editor can still request an events upload url', async () => {
   });
   assert.strictEqual(context.res.status, 200);
 });
+
+test('an editor can request a mokjang photo upload url', async () => {
+  const context = contextOf();
+  await handler(context, requestFor(['editor', 'member'], 'mokjang'), {
+    createUploadSas: async () => 'https://example.test/upload',
+  });
+  assert.strictEqual(context.res.status, 200);
+  assert.ok(context.res.body.blobPath.startsWith('mokjang/'));
+  assert.strictEqual(context.res.body.publicUrl, null);
+});

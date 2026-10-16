@@ -51,3 +51,8 @@ test('rejects a pdf in the site folder', () => {
 test('the media limit is larger than the document limit', () => {
   assert.ok(MAX_MEDIA_BYTES > MAX_UPLOAD_BYTES);
 });
+
+test('accepts a photo and rejects a document in the mokjang folder', () => {
+  assert.strictEqual(validateFileForUpload({ size: 1024, type: 'image/jpeg' }, 'mokjang'), null);
+  assert.strictEqual(validateFileForUpload({ size: 1024, type: 'application/pdf' }, 'mokjang'), 'badType');
+});

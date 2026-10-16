@@ -230,3 +230,28 @@ test('rejects a url from another host or container', () => {
   );
   assert.strictEqual(isMediaUrl(''), false);
 });
+
+test('accepts a photo in the private mokjang folder', () => {
+  process.env.AZURE_STORAGE_CONTAINER = 'church-files';
+  process.env.AZURE_STORAGE_MEDIA_CONTAINER = 'samilmedia';
+  const result = validateUploadRequest({
+    folder: 'mokjang',
+    fileName: 'dinner.jpg',
+    contentType: 'image/jpeg',
+    sizeBytes: 2048,
+  });
+  assert.strictEqual(result.error, undefined);
+  assert.ok(result.value.blobPath.startsWith('mokjang/'));
+  assert.strictEqual(containerFor('mokjang'), 'church-files');
+  assert.strictEqual(isPublicFolder('mokjang'), false);
+});
+
+test('rejects a document in the mokjang folder', () => {
+  const result = validateUploadRequest({
+    folder: 'mokjang',
+    fileName: 'list.pdf',
+    contentType: 'application/pdf',
+    sizeBytes: 10,
+  });
+  assert.strictEqual(result.error, 'File type is not allowed. Upload a JPEG, PNG, or WebP image.');
+});

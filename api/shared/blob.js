@@ -11,9 +11,11 @@ const MAX_UPLOAD_BYTES = 26214400; // 25 MB for documents and images
 const MAX_MEDIA_BYTES = 209715200; // 200 MB for sermon recordings
 const MEDIA_FOLDER = 'media';
 const SITE_FOLDER = 'site';
+const MOKJANG_FOLDER = 'mokjang';
 // Public media streams without a signed URL, and homepage images must also be
 // available to anonymous visitors. Other folders live in the private container.
-const ALLOWED_FOLDERS = ['resources', 'sermons', 'events', MEDIA_FOLDER, SITE_FOLDER];
+const ALLOWED_FOLDERS = ['resources', 'sermons', 'events', MOKJANG_FOLDER, MEDIA_FOLDER, SITE_FOLDER];
+const IMAGE_ONLY_FOLDERS = [SITE_FOLDER, MOKJANG_FOLDER];
 const ALLOWED_CONTENT_TYPES = [
   'application/pdf',
   'image/jpeg',
@@ -66,10 +68,10 @@ const validateUploadRequest = (input) => {
   }
 
   const isMedia = folder === MEDIA_FOLDER;
-  const isSite = folder === SITE_FOLDER;
+  const isImageOnly = IMAGE_ONLY_FOLDERS.includes(folder);
   const allowedTypes = isMedia
     ? ALLOWED_MEDIA_CONTENT_TYPES
-    : isSite
+    : isImageOnly
       ? ALLOWED_SITE_CONTENT_TYPES
       : ALLOWED_CONTENT_TYPES;
   const maxBytes = isMedia ? MAX_MEDIA_BYTES : MAX_UPLOAD_BYTES;
@@ -78,7 +80,7 @@ const validateUploadRequest = (input) => {
     return {
       error: isMedia
         ? 'File type is not allowed. Upload an MP3, M4A, WAV, MP4, or WebM recording.'
-        : isSite
+        : isImageOnly
           ? 'File type is not allowed. Upload a JPEG, PNG, or WebP image.'
           : 'File type is not allowed. Upload PDF, image, Word, or PowerPoint files.',
     };
@@ -188,6 +190,7 @@ module.exports = {
   MAX_MEDIA_BYTES,
   MEDIA_FOLDER,
   SITE_FOLDER,
+  MOKJANG_FOLDER,
   ALLOWED_FOLDERS,
   ALLOWED_CONTENT_TYPES,
   ALLOWED_MEDIA_CONTENT_TYPES,
