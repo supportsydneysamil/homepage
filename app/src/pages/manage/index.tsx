@@ -7,7 +7,7 @@ import ContentForm, { type FormField } from '../../components/manage/ContentForm
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
 import MokjangManager from '../../components/manage/MokjangManager';
-import { mokjangPayloadFromForm, sortMokjangs } from '../../lib/mokjang';
+import { mokjangPayloadFromForm, sortMokjangs, suggestMokjangSlug } from '../../lib/mokjang';
 import { useLanguage } from '../../lib/LanguageContext';
 import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
@@ -70,7 +70,7 @@ import { reencodePhoto } from '../../lib/photoPrep';
 const useSettleEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 // Every write returns the saved row, so the caller can highlight it in the list.
-const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: unknown) => {
+const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: unknown, isKo: boolean) => {
   const res = await fetch(endpoint, {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -79,22 +79,23 @@ const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: un
   });
   const body = (await res.json().catch(() => ({}))) as Record<string, { id?: string } | undefined> & {
     error?: string;
+    errorKo?: string;
   };
   if (!res.ok) {
-    throw new Error(body.error || `Request failed (${res.status})`);
+    throw new Error((isKo && body.errorKo) || body.error || `Request failed (${res.status})`);
   }
   const saved = body.resource || body.sermon || body.event || body.application || body.mokjang;
   return saved && saved.id ? saved.id : null;
 };
 
-const deleteContent = async (endpoint: string, id: string) => {
+const deleteContent = async (endpoint: string, id: string, isKo: boolean) => {
   const res = await fetch(`${endpoint}?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
     credentials: 'include',
   });
   if (!res.ok) {
-    const detail = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(detail.error || `Request failed (${res.status})`);
+    const detail = (await res.json().catch(() => ({}))) as { error?: string; errorKo?: string };
+    throw new Error((isKo && detail.errorKo) || detail.error || `Request failed (${res.status})`);
   }
 };
 
@@ -489,13 +490,18 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
     setStatus(null);
     try {
       const uploaded = await uploadFile(uploadFileHandle, 'resources');
-      const savedId = await sendContent('/api/resources', 'POST', {
-        title: uploadTitle.trim(),
-        category: uploadCategory,
-        visibility: uploadVisibility,
-        resourceDate: uploadDate,
-        ...uploaded,
-      });
+      const savedId = await sendContent(
+        '/api/resources',
+        'POST',
+        {
+          title: uploadTitle.trim(),
+          category: uploadCategory,
+          visibility: uploadVisibility,
+          resourceDate: uploadDate,
+          ...uploaded,
+        },
+        isKo
+      );
       setUploadTitle('');
       setUploadDate('');
       setUploadFileHandle(null);
@@ -511,7 +517,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const onDelete = async (endpoint: string, id: string, reload: () => Promise<unknown>) => {
     setPendingDeleteId(null);
     try {
-      await deleteContent(endpoint, id);
+      await deleteContent(endpoint, id, isKo);
       await reload();
       if (editId === id) {
         goTo(tab);
@@ -529,15 +535,20 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   };
 
   const onSaveMokjang = async (values: Record<string, string>, files: File[]) => {
+    if (!suggestMokjangSlug(values.slug ?? '', values.nameEn ?? '')) {
+      throw new Error(
+        isKo ? '주소 이름을 영어 소문자로 입력해 주세요.' : 'Enter an address name in lowercase English letters.'
+      );
+    }
     const uploaded = await Promise.all(
       files.map(async (file) => uploadFile(await reencodePhoto(file), 'mokjang'))
     );
     const payload = mokjangPayloadFromForm(values, uploaded.map((item) => item.blobPath));
     const savedId = editingMokjang
-      ? await sendContent('/api/mokjang', 'PUT', { id: editingMokjang.id, ...payload })
-      : await sendContent('/api/mokjang', 'POST', payload);
+      ? await sendContent('/api/mokjang', 'PUT', { id: editingMokjang.id, ...payload }, isKo)
+      : await sendContent('/api/mokjang', 'POST', payload, isKo);
     const removedIds = eventImageIdsFromUrls(pendingRemovedPhotos);
-    await Promise.all(removedIds.map((id) => deleteContent('/api/mokjang/images', id)));
+    await Promise.all(removedIds.map((id) => deleteContent('/api/mokjang/images', id, isKo)));
     setPendingRemovedPhotos([]);
     revealMokjang(await mokjangs.reload(), savedId);
     goTo('mokjang');
@@ -616,17 +627,22 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
                 onSubmit={async (values, files) => {
                   const [file] = files;
                   const replacement = file ? await uploadFile(file, 'resources') : null;
-                  const savedId = await sendContent('/api/resources', 'PUT', {
-                    id: editingResource.id,
-                    ...values,
-                    ...(replacement
-                      ? {
-                          blobPath: replacement.blobPath,
-                          contentType: replacement.contentType,
-                          sizeBytes: replacement.sizeBytes,
-                        }
-                      : {}),
-                  });
+                  const savedId = await sendContent(
+                    '/api/resources',
+                    'PUT',
+                    {
+                      id: editingResource.id,
+                      ...values,
+                      ...(replacement
+                        ? {
+                            blobPath: replacement.blobPath,
+                            contentType: replacement.contentType,
+                            sizeBytes: replacement.sizeBytes,
+                          }
+                        : {}),
+                    },
+                    isKo
+                  );
                   revealResource(await resources.reload(), savedId);
                   goTo('resources');
                   flashRow(savedId, labels.saved);
@@ -844,8 +860,8 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
                   }
                   const payload = { ...values, ...media };
                   const savedId = editingSermon
-                    ? await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload })
-                    : await sendContent('/api/sermons', 'POST', payload);
+                    ? await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload }, isKo)
+                    : await sendContent('/api/sermons', 'POST', payload, isKo);
                   revealSermon(await sermons.reload(), savedId);
                   goTo('sermons');
                   flashRow(savedId, labels.saved);
@@ -1044,10 +1060,10 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
                   imageBlobPaths,
                 };
                 const savedId = editingEvent
-                  ? await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload })
-                  : await sendContent('/api/events', 'POST', payload);
+                  ? await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload }, isKo)
+                  : await sendContent('/api/events', 'POST', payload, isKo);
                 const removedIds = eventImageIdsFromUrls(pendingRemovedPhotos);
-                await Promise.all(removedIds.map((id) => deleteContent('/api/events/images', id)));
+                await Promise.all(removedIds.map((id) => deleteContent('/api/events/images', id, isKo)));
                 setPendingRemovedPhotos([]);
                 revealEvent(await events.reload(), savedId);
                 goTo('events');
@@ -1249,8 +1265,8 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
                     highlightOnHome: values.highlightOnHome === 'true',
                   };
                   const savedId = editingApplication
-                    ? await sendContent('/api/applications', 'PUT', { id: editingApplication.id, ...payload })
-                    : await sendContent('/api/applications', 'POST', payload);
+                    ? await sendContent('/api/applications', 'PUT', { id: editingApplication.id, ...payload }, isKo)
+                    : await sendContent('/api/applications', 'POST', payload, isKo);
                   revealApplication(await applications.reload(), savedId);
                   goTo('applications');
                   flashRow(savedId, labels.saved);

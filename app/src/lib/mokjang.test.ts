@@ -17,6 +17,7 @@ import {
   partOfDay,
   pickText,
   sortMokjangs,
+  suggestMokjangSlug,
   tileMeeting,
 } from './mokjang';
 
@@ -116,6 +117,20 @@ test('accepts only a safe address name from the query', () => {
   assert.strictEqual(parseMokjangSlug(['lima', 'other']), 'lima');
   assert.strictEqual(parseMokjangSlug('../x'), '');
   assert.strictEqual(parseMokjangSlug(undefined), '');
+});
+
+test('an explicit address name wins and is lowercased', () => {
+  assert.strictEqual(suggestMokjangSlug(' ChiangMai ', 'Lima'), 'chiangmai');
+});
+
+test('builds the address name from the English name like the API does', () => {
+  assert.strictEqual(suggestMokjangSlug('', 'Chiang Mai'), 'chiang-mai');
+  assert.strictEqual(suggestMokjangSlug('  ', ' -Chiang  Mai!- '), 'chiang-mai');
+});
+
+test('a Korean-only entry has no address name', () => {
+  assert.strictEqual(suggestMokjangSlug('', ''), '');
+  assert.strictEqual(suggestMokjangSlug('', '치앙마이'), '');
 });
 
 test('links the contact form to one house church', () => {

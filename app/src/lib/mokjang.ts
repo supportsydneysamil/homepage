@@ -119,6 +119,15 @@ export const parseMokjangSlug = (value: unknown) => {
   return slug.length <= 80 && SLUG_PATTERN.test(slug) ? slug : '';
 };
 
+// Same rule as validateMokjangInput in api/mokjang/index.js.
+export const suggestMokjangSlug = (slug: string, nameEn: string) =>
+  slug.trim().toLowerCase() ||
+  nameEn
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 export const contactPrefill = (name: string, lang: DisplayLanguage) =>
   lang === 'ko' ? `관심 있는 목장: ${name}\n\n` : `House church I am interested in: ${name}\n\n`;
 
