@@ -548,13 +548,17 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
           : 'Address name must be lowercase letters, numbers, and hyphens.'
       );
     }
-    const prepared = await Promise.all(files.map((file) => reencodePhoto(file))).catch(() => {
+    // One photo at a time, so several large phone photos are never decoded together.
+    const prepared: File[] = [];
+    try {
+      for (const file of files) prepared.push(await reencodePhoto(file));
+    } catch (error) {
       throw new Error(
         isKo
           ? '사진을 준비하지 못했습니다. 다른 사진으로 다시 시도해 주세요.'
           : 'Could not prepare the photo. Please try a different photo.'
       );
-    });
+    }
     const uploaded = await Promise.all(prepared.map((file) => uploadFile(file, 'mokjang')));
     const payload = mokjangPayloadFromForm(values, uploaded.map((item) => item.blobPath));
     const savedId = editingMokjang

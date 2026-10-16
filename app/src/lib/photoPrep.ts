@@ -8,10 +8,18 @@ export const fitWithin = (width: number, height: number, maxEdge: number): { wid
   };
 };
 
+// Older browsers reject the option with a TypeError; newer ones already apply
+// the photo's orientation by default.
+const decodePhoto = (file: File) =>
+  createImageBitmap(file, { imageOrientation: 'from-image' }).catch((error: unknown) => {
+    if (error instanceof TypeError) return createImageBitmap(file);
+    throw error;
+  });
+
 // Drawing through a canvas keeps only the pixels, so EXIF data such as the GPS
 // position of a member's home never reaches the public download.
 export const reencodePhoto = async (file: File, maxEdge = 1600, quality = 0.85): Promise<File> => {
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const bitmap = await decodePhoto(file);
   try {
     const { width, height } = fitWithin(bitmap.width, bitmap.height, maxEdge);
     const canvas = document.createElement('canvas');
