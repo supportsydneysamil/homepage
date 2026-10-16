@@ -64,6 +64,7 @@ import {
   type ApiSermon,
 } from '../../lib/contentApi';
 import { uploadFile } from '../../lib/uploadFile';
+import { reencodePhoto } from '../../lib/photoPrep';
 
 // Layout effects must not run while the page is prerendered for the export.
 const useSettleEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
@@ -528,7 +529,9 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   };
 
   const onSaveMokjang = async (values: Record<string, string>, files: File[]) => {
-    const uploaded = await Promise.all(files.map((file) => uploadFile(file, 'mokjang')));
+    const uploaded = await Promise.all(
+      files.map(async (file) => uploadFile(await reencodePhoto(file), 'mokjang'))
+    );
     const payload = mokjangPayloadFromForm(values, uploaded.map((item) => item.blobPath));
     const savedId = editingMokjang
       ? await sendContent('/api/mokjang', 'PUT', { id: editingMokjang.id, ...payload })
