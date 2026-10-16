@@ -50,3 +50,11 @@ test('the analytics beacon appears only when a token was set at build time', () 
   assert.strictEqual(home.includes('static.cloudflareinsights.com/beacon.min.js'), Boolean(token));
   if (token) assert.ok(home.includes(`data-cf-beacon="{&quot;token&quot;:&quot;${token}&quot;}"`));
 });
+
+test('the house church pages export with their own Korean titles', () => {
+  const page = read('mokjang.html');
+  assert.match(page, /<title[^>]*>목장 \| 시드니 삼일교회<\/title>/);
+  assert.ok(page.includes('집에서 만나는 작은 교회'));
+  assert.ok(page.includes('id="mokjang-list"'));
+  assert.match(read('mokjang/detail.html'), /<title[^>]*>목장 \| 시드니 삼일교회<\/title>/);
+});

@@ -25,6 +25,7 @@ test('the sitemap lists every public page and nothing else', () => {
     'https://sydneysamil.org/',
     'https://sydneysamil.org/about',
     'https://sydneysamil.org/worship',
+    'https://sydneysamil.org/mokjang',
     'https://sydneysamil.org/events',
     'https://sydneysamil.org/sermons',
     'https://sydneysamil.org/resources',

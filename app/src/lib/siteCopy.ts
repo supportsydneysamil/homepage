@@ -13,6 +13,17 @@ export type CopyValue = {
   body: LocalizedText;
 };
 
+export type CopyStep = {
+  time: LocalizedText;
+  title: LocalizedText;
+  body: LocalizedText;
+};
+
+export type CopyQuestion = {
+  question: LocalizedText;
+  answer: LocalizedText;
+};
+
 export type SiteCopy = {
   home: {
     hero: {
@@ -105,6 +116,46 @@ export type SiteCopy = {
     timesIntro: LocalizedText;
     locationTitle: LocalizedText;
   };
+  mokjang: {
+    hero: {
+      kicker: LocalizedText;
+      title: LocalizedText;
+      lead: LocalizedText;
+      ctaConnect: LocalizedText;
+      ctaBrowse: LocalizedText;
+    };
+    evening: {
+      kicker: LocalizedText;
+      title: LocalizedText;
+      steps: CopyStep[];
+    };
+    welcome: {
+      kicker: LocalizedText;
+      title: LocalizedText;
+      body: LocalizedText;
+    };
+    list: {
+      kicker: LocalizedText;
+      title: LocalizedText;
+      intro: LocalizedText;
+      empty: LocalizedText;
+    };
+    faq: {
+      kicker: LocalizedText;
+      items: CopyQuestion[];
+    };
+    study: {
+      kicker: LocalizedText;
+      title: LocalizedText;
+      items: CopyValue[];
+    };
+    cta: {
+      kicker: LocalizedText;
+      title: LocalizedText;
+      body: LocalizedText;
+      button: LocalizedText;
+    };
+  };
   contact: {
     eyebrow: LocalizedText;
     title: LocalizedText;
@@ -119,6 +170,7 @@ export type SiteCopy = {
     explore: LocalizedText;
     about: LocalizedText;
     worship: LocalizedText;
+    mokjang: LocalizedText;
     sermons: LocalizedText;
     meetUs: LocalizedText;
   };
@@ -156,6 +208,104 @@ const parseLinks = (input: unknown, fallback: CopyLink[]): CopyLink[] => {
     };
   });
 };
+
+// Unlike parseLocalized, an empty saved string stays empty so an editor can
+// clear an optional item to hide it.
+const parseOptionalLocalized = (value: unknown, fallback: LocalizedText): LocalizedText => {
+  const row = asRecord(value);
+  if (!row) return fallback;
+  const keep = (input: unknown, base: string) => (typeof input === 'string' ? input.trim().slice(0, 400) : base);
+  return { ko: keep(row.ko, fallback.ko), en: keep(row.en, fallback.en) };
+};
+
+const parseSteps = (input: unknown, fallback: CopyStep[]): CopyStep[] => {
+  const rows = Array.isArray(input) ? input : [];
+  return fallback.map((item, index) => {
+    const row = asRecord(rows[index]);
+    return {
+      time: textAt(row, 'time', item.time),
+      title: textAt(row, 'title', item.title),
+      body: textAt(row, 'body', item.body),
+    };
+  });
+};
+
+const parseQuestions = (input: unknown, fallback: CopyQuestion[]): CopyQuestion[] => {
+  const rows = Array.isArray(input) ? input : [];
+  return fallback.map((item, index) => {
+    const row = asRecord(rows[index]);
+    return {
+      question: parseOptionalLocalized(row?.question, item.question),
+      answer: parseOptionalLocalized(row?.answer, item.answer),
+    };
+  });
+};
+
+const parseOptionalValues = (input: unknown, fallback: CopyValue[]): CopyValue[] => {
+  const rows = Array.isArray(input) ? input : [];
+  return fallback.map((item, index) => {
+    const row = asRecord(rows[index]);
+    return {
+      title: parseOptionalLocalized(row?.title, item.title),
+      body: parseOptionalLocalized(row?.body, item.body),
+    };
+  });
+};
+
+const parseMokjangCopy = (input: unknown, fallback: SiteCopy['mokjang']): SiteCopy['mokjang'] => {
+  const row = asRecord(input);
+  const hero = asRecord(row?.hero);
+  const evening = asRecord(row?.evening);
+  const welcome = asRecord(row?.welcome);
+  const list = asRecord(row?.list);
+  const faq = asRecord(row?.faq);
+  const study = asRecord(row?.study);
+  const cta = asRecord(row?.cta);
+  return {
+    hero: {
+      kicker: textAt(hero, 'kicker', fallback.hero.kicker),
+      title: textAt(hero, 'title', fallback.hero.title),
+      lead: textAt(hero, 'lead', fallback.hero.lead),
+      ctaConnect: textAt(hero, 'ctaConnect', fallback.hero.ctaConnect),
+      ctaBrowse: textAt(hero, 'ctaBrowse', fallback.hero.ctaBrowse),
+    },
+    evening: {
+      kicker: textAt(evening, 'kicker', fallback.evening.kicker),
+      title: textAt(evening, 'title', fallback.evening.title),
+      steps: parseSteps(evening?.steps, fallback.evening.steps),
+    },
+    welcome: {
+      kicker: textAt(welcome, 'kicker', fallback.welcome.kicker),
+      title: textAt(welcome, 'title', fallback.welcome.title),
+      body: textAt(welcome, 'body', fallback.welcome.body),
+    },
+    list: {
+      kicker: textAt(list, 'kicker', fallback.list.kicker),
+      title: textAt(list, 'title', fallback.list.title),
+      intro: textAt(list, 'intro', fallback.list.intro),
+      empty: textAt(list, 'empty', fallback.list.empty),
+    },
+    faq: {
+      kicker: textAt(faq, 'kicker', fallback.faq.kicker),
+      items: parseQuestions(faq?.items, fallback.faq.items),
+    },
+    study: {
+      kicker: textAt(study, 'kicker', fallback.study.kicker),
+      title: textAt(study, 'title', fallback.study.title),
+      items: parseOptionalValues(study?.items, fallback.study.items),
+    },
+    cta: {
+      kicker: textAt(cta, 'kicker', fallback.cta.kicker),
+      title: textAt(cta, 'title', fallback.cta.title),
+      body: textAt(cta, 'body', fallback.cta.body),
+      button: textAt(cta, 'button', fallback.cta.button),
+    },
+  };
+};
+
+export const visibleQuestions = (items: CopyQuestion[]) => items.filter((item) => item.question.ko.trim());
+
+export const visibleStudies = (items: CopyValue[]) => items.filter((item) => item.title.ko.trim());
 
 export const DEFAULT_SITE_COPY: SiteCopy = {
   home: {
@@ -279,11 +429,11 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
         {
           title: { ko: '목장과 연결되고 싶나요?', en: 'Looking for community?' },
           description: {
-            ko: '삶을 나누며 함께 성장할 수 있는 공동체를 안내해 드립니다.',
-            en: 'We will help you find a community where you can share life and grow.',
+            ko: '목장이 어떤 곳인지 살펴보고, 가까운 목장을 찾아보세요.',
+            en: 'See what a house church is like and find one near you.',
           },
-          label: { ko: '연결 요청', en: 'Get connected' },
-          href: '/contact?topic=community',
+          label: { ko: '목장 알아보기', en: 'Explore house churches' },
+          href: '/mokjang',
         },
         {
           title: { ko: '함께 기도할까요?', en: 'Can we pray with you?' },
@@ -369,6 +519,139 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     timesIntro: { ko: '편안한 복장으로 부담 없이 오세요.', en: 'Come as you are. You will be warmly welcomed.' },
     locationTitle: { ko: '오시는 곳', en: 'Where we meet' },
   },
+  mokjang: {
+    hero: {
+      kicker: { ko: 'House Church · 목장', en: 'House Church' },
+      title: { ko: '한 주에 한 번,\n집에서 만나는 작은 교회', en: 'A small church\nthat meets at home' },
+      lead: {
+        ko: '6~12명이 가정에 모여 밥을 먹고, 한 주의 삶을 나누고, 서로를 위해 기도합니다. 시드니 삼일교회는 목장으로 이루어진 가정교회입니다.',
+        en: 'Each week, six to twelve people gather in a home to share a meal, talk about their week, and pray for one another. Sydney Samil Church is a house church made up of these gatherings.',
+      },
+      ctaConnect: { ko: '목장 연결 요청', en: 'Ask to join a house church' },
+      ctaBrowse: { ko: '목장 둘러보기', en: 'Browse house churches' },
+    },
+    evening: {
+      kicker: { ko: '목장의 한 저녁', en: 'An evening together' },
+      title: { ko: '이렇게 모여요', en: 'What a gathering looks like' },
+      steps: [
+        {
+          time: { ko: '7:00', en: '7:00' },
+          title: { ko: '함께 식사', en: 'Dinner together' },
+          body: { ko: '돌아가며 준비하는 집밥', en: 'A home-cooked meal, with hosts taking turns' },
+        },
+        {
+          time: { ko: '8:00', en: '8:00' },
+          title: { ko: '삶 나눔', en: 'Sharing life' },
+          body: {
+            ko: '한 주 동안 감사했던 일과 힘들었던 일',
+            en: 'What we were thankful for and what was hard this week',
+          },
+        },
+        {
+          time: { ko: '8:40', en: '8:40' },
+          title: { ko: '짧은 말씀', en: 'A short Bible time' },
+          body: { ko: '주일 설교를 함께 되새기기', en: 'Reflecting on Sunday’s message together' },
+        },
+        {
+          time: { ko: '9:00', en: '9:00' },
+          title: { ko: '서로를 위한 기도', en: 'Praying for each other' },
+          body: { ko: '기도 제목을 나누고 함께 기도', en: 'Sharing prayer requests and praying together' },
+        },
+      ],
+    },
+    welcome: {
+      kicker: { ko: '누구나 환영해요', en: 'Everyone is welcome' },
+      title: {
+        ko: '아직 신앙이 없어도, 교회가 처음이어도 괜찮아요.',
+        en: 'You do not need to have faith figured out, or to have been to church before.',
+      },
+      body: {
+        ko: '목장은 평가받지 않고 있는 모습 그대로 환영받는 밥상 공동체입니다. 아직 예수님을 모르는 분도 많이 함께하고 계세요.',
+        en: 'A house church is a table where you are welcomed as you are, without judgement. Many people who are still exploring faith are part of one.',
+      },
+    },
+    list: {
+      kicker: { ko: '우리 목장들', en: 'Our house churches' },
+      title: { ko: '가까운 목장을 둘러보세요', en: 'Find one near you' },
+      intro: {
+        ko: '목장을 누르면 모임 시간, 대상, 사용 언어를 자세히 볼 수 있어요.',
+        en: 'Select a house church to see when it meets, who it is for, and its language.',
+      },
+      empty: {
+        ko: '목장 소개를 준비하고 있어요. 연결 요청을 남겨 주시면 안내해 드릴게요.',
+        en: 'House church profiles are on the way. Leave a request and we will connect you.',
+      },
+    },
+    faq: {
+      kicker: { ko: '자주 묻는 질문', en: 'Common questions' },
+      items: [
+        {
+          question: { ko: '음식을 가져가야 하나요?', en: 'Do I need to bring food?' },
+          answer: {
+            ko: '처음에는 빈손으로 오셔도 됩니다. 식사는 목장 식구들이 돌아가며 준비해요.',
+            en: 'Not on your first visit. Members take turns preparing the meal.',
+          },
+        },
+        {
+          question: { ko: '아이와 함께 가도 되나요?', en: 'Can I bring my children?' },
+          answer: {
+            ko: '네. 아이와 함께 오기 좋은 목장은 목장 정보에 표시해 두었어요.',
+            en: 'Yes. House churches that suit families with children are marked in their details.',
+          },
+        },
+        {
+          question: { ko: '믿지 않는데 가도 될까요?', en: 'Can I come if I am not a Christian?' },
+          answer: {
+            ko: '물론입니다. 신앙을 알아 가는 중인 분들도 함께하고, 아무것도 강요하지 않아요.',
+            en: 'Of course. People who are still exploring faith are part of our house churches, and nothing is forced on anyone.',
+          },
+        },
+        {
+          question: { ko: '목장은 어떻게 정해지나요?', en: 'How is a house church chosen for me?' },
+          answer: {
+            ko: '연결 요청을 남겨 주시면 사는 지역과 편한 요일, 가족 상황을 듣고 맞는 목장을 안내해 드려요. 몇 번 참석해 보고 정하셔도 괜찮아요.',
+            en: 'Leave a request and we will ask about your area, the days that suit you, and your family, then suggest one. You are welcome to visit a few times before deciding.',
+          },
+        },
+        {
+          question: { ko: '꼭 매주 가야 하나요?', en: 'Do I have to go every week?' },
+          answer: {
+            ko: '목장은 매주 모이지만, 형편에 맞게 오시면 됩니다.',
+            en: 'House churches meet weekly, but come as your schedule allows.',
+          },
+        },
+      ],
+    },
+    study: {
+      kicker: { ko: '삶공부', en: 'Life classes' },
+      title: { ko: '목장과 함께 배우는 삶공부', en: 'Growing through life classes' },
+      items: [
+        {
+          title: { ko: '생명의 삶', en: 'Life Bible study' },
+          body: {
+            ko: '주일 오후 2:30 · 신앙의 기초를 배우는 첫 과정',
+            en: 'Sunday 2:30 PM · The first course on the foundations of faith',
+          },
+        },
+        {
+          title: { ko: '그 밖의 삶공부', en: 'More life classes' },
+          body: {
+            ko: '학기마다 열려요. 일정은 행사와 소식에서 안내합니다.',
+            en: 'New classes open each term. Watch Events for dates.',
+          },
+        },
+      ],
+    },
+    cta: {
+      kicker: { ko: '연결 요청', en: 'Get connected' },
+      title: { ko: '어느 목장이 맞을지 모르겠다면', en: 'Not sure which one fits?' },
+      body: {
+        ko: '사는 지역과 편한 요일을 알려 주시면 맞는 목장을 안내해 드려요.',
+        en: 'Tell us your area and which days suit you, and we will suggest a house church.',
+      },
+      button: { ko: '연결 요청 남기기', en: 'Ask to be connected' },
+    },
+  },
   contact: {
     eyebrow: { ko: '연락하기', en: 'Start a conversation' },
     title: { ko: '무엇이든 편하게 물어보세요', en: 'We would love to hear from you' },
@@ -389,6 +672,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     explore: { ko: '둘러보기', en: 'Explore' },
     about: { ko: '교회 소개', en: 'About' },
     worship: { ko: '예배 안내', en: 'Worship' },
+    mokjang: { ko: '목장', en: 'House Church' },
     sermons: { ko: '설교', en: 'Sermons' },
     meetUs: { ko: '이번 주일에 만나요', en: 'Meet us this Sunday' },
   },
@@ -520,6 +804,7 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
       timesIntro: textAt(worship, 'timesIntro', DEFAULT_SITE_COPY.worship.timesIntro),
       locationTitle: textAt(worship, 'locationTitle', DEFAULT_SITE_COPY.worship.locationTitle),
     },
+    mokjang: parseMokjangCopy(row.mokjang, DEFAULT_SITE_COPY.mokjang),
     contact: {
       eyebrow: textAt(contact, 'eyebrow', DEFAULT_SITE_COPY.contact.eyebrow),
       title: textAt(contact, 'title', DEFAULT_SITE_COPY.contact.title),
@@ -534,6 +819,7 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
       explore: textAt(footer, 'explore', DEFAULT_SITE_COPY.footer.explore),
       about: textAt(footer, 'about', DEFAULT_SITE_COPY.footer.about),
       worship: textAt(footer, 'worship', DEFAULT_SITE_COPY.footer.worship),
+      mokjang: textAt(footer, 'mokjang', DEFAULT_SITE_COPY.footer.mokjang),
       sermons: textAt(footer, 'sermons', DEFAULT_SITE_COPY.footer.sermons),
       meetUs: textAt(footer, 'meetUs', DEFAULT_SITE_COPY.footer.meetUs),
     },
@@ -541,3 +827,5 @@ export const parseSiteCopy = (input: unknown): SiteCopy => {
 };
 
 export const localize = (text: LocalizedText, lang: 'ko' | 'en') => text[lang];
+
+export const localizeOr = (text: LocalizedText, lang: 'ko' | 'en') => text[lang].trim() || text.ko;

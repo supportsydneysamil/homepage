@@ -53,6 +53,31 @@ export type ApiApplication = {
   highlightOnHome: boolean;
 };
 
+export type ApiMokjang = {
+  id: string;
+  slug: string;
+  nameKo: string;
+  nameEn: string;
+  taglineKo: string;
+  taglineEn: string;
+  suburb: string;
+  meetingDay: string;
+  meetingTime: string;
+  audience: string;
+  language: string;
+  kidsWelcome: boolean;
+  missionKo: string;
+  missionEn: string;
+  storyKo: string;
+  storyEn: string;
+  published: boolean;
+  coverImage: string;
+  images: string[];
+  // Present only when the signed-in visitor holds the member role.
+  shepherdName?: string;
+  partnerName?: string;
+};
+
 const asArray = (payload: unknown, key: string): unknown[] => {
   const value = (payload as Record<string, unknown> | null)?.[key];
   return Array.isArray(value) ? value : [];
@@ -135,6 +160,39 @@ export const parseApplications = (payload: unknown): ApiApplication[] =>
     })
     .filter((item) => isMicrosoftFormUrl(item.formUrl));
 
+const isDownloadUrl = (value: string) => value.startsWith('/api/files/download/');
+
+export const parseMokjangs = (payload: unknown): ApiMokjang[] =>
+  asArray(payload, 'mokjangs').map((item) => {
+    const row = item as Record<string, unknown>;
+    const text = (key: string) => String(row[key] ?? '');
+    const coverImage = text('coverImage');
+    const mokjang: ApiMokjang = {
+      id: text('id'),
+      slug: text('slug'),
+      nameKo: text('nameKo'),
+      nameEn: text('nameEn'),
+      taglineKo: text('taglineKo'),
+      taglineEn: text('taglineEn'),
+      suburb: text('suburb'),
+      meetingDay: text('meetingDay'),
+      meetingTime: text('meetingTime'),
+      audience: text('audience'),
+      language: text('language'),
+      kidsWelcome: row.kidsWelcome === true,
+      missionKo: text('missionKo'),
+      missionEn: text('missionEn'),
+      storyKo: text('storyKo'),
+      storyEn: text('storyEn'),
+      published: parseFlag(row.published, true),
+      coverImage: isDownloadUrl(coverImage) ? coverImage : '',
+      images: Array.isArray(row.images) ? row.images.map(String).filter(isDownloadUrl) : [],
+    };
+    if (typeof row.shepherdName === 'string') mokjang.shepherdName = row.shepherdName;
+    if (typeof row.partnerName === 'string') mokjang.partnerName = row.partnerName;
+    return mokjang;
+  });
+
 const getJson = async (url: string): Promise<unknown> => {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) {
@@ -159,6 +217,8 @@ export const fetchResources = async (id?: string): Promise<ApiResource[]> =>
   parseResources(await getJson(contentUrl('/api/resources', id ? { id } : undefined)));
 export const fetchApplications = async (id?: string): Promise<ApiApplication[]> =>
   parseApplications(await getJson(contentUrl('/api/applications', id ? { id } : undefined)));
+export const fetchMokjangs = async (lookup?: { id?: string; slug?: string }): Promise<ApiMokjang[]> =>
+  parseMokjangs(await getJson(contentUrl('/api/mokjang', lookup)));
 
 export const fetchEvent = async (lookup: { id?: string; slug?: string }): Promise<ApiEvent | null> =>
   (await fetchEvents(lookup))[0] ?? null;
@@ -168,6 +228,8 @@ export const fetchResource = async (id: string): Promise<ApiResource | null> =>
   (await fetchResources(id))[0] ?? null;
 export const fetchApplication = async (id: string): Promise<ApiApplication | null> =>
   (await fetchApplications(id))[0] ?? null;
+export const fetchMokjang = async (lookup: { id?: string; slug?: string }): Promise<ApiMokjang | null> =>
+  (await fetchMokjangs(lookup))[0] ?? null;
 
 export const useContent = <T,>(loader: () => Promise<T[]>, enabled = true) => {
   const [items, setItems] = useState<T[]>([]);

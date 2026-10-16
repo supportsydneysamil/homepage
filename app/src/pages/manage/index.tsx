@@ -6,6 +6,8 @@ import Pager from '../../components/Pager';
 import ContentForm, { type FormField } from '../../components/manage/ContentForm';
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
+import MokjangManager from '../../components/manage/MokjangManager';
+import { mokjangPayloadFromForm, parseMokjangSlug, sortMokjangs, suggestMokjangSlug } from '../../lib/mokjang';
 import { useLanguage } from '../../lib/LanguageContext';
 import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
@@ -18,6 +20,7 @@ import {
   MANAGE_PAGE_SIZE,
   eventStatusOf,
   filterEvents,
+  filterMokjangs,
   filterSermons,
   sermonYears,
   viewShowing,
@@ -46,6 +49,8 @@ import {
   fetchApplications,
   fetchEvent,
   fetchEvents,
+  fetchMokjang,
+  fetchMokjangs,
   fetchResource,
   fetchResources,
   fetchSermon,
@@ -54,16 +59,18 @@ import {
   useLookup,
   type ApiApplication,
   type ApiEvent,
+  type ApiMokjang,
   type ApiResource,
   type ApiSermon,
 } from '../../lib/contentApi';
 import { uploadFile } from '../../lib/uploadFile';
+import { reencodePhoto } from '../../lib/photoPrep';
 
 // Layout effects must not run while the page is prerendered for the export.
 const useSettleEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 // Every write returns the saved row, so the caller can highlight it in the list.
-const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: unknown) => {
+const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: unknown, isKo: boolean) => {
   const res = await fetch(endpoint, {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -72,22 +79,23 @@ const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: un
   });
   const body = (await res.json().catch(() => ({}))) as Record<string, { id?: string } | undefined> & {
     error?: string;
+    errorKo?: string;
   };
   if (!res.ok) {
-    throw new Error(body.error || `Request failed (${res.status})`);
+    throw new Error((isKo && body.errorKo) || body.error || `Request failed (${res.status})`);
   }
-  const saved = body.resource || body.sermon || body.event || body.application;
+  const saved = body.resource || body.sermon || body.event || body.application || body.mokjang;
   return saved && saved.id ? saved.id : null;
 };
 
-const deleteContent = async (endpoint: string, id: string) => {
+const deleteContent = async (endpoint: string, id: string, isKo: boolean) => {
   const res = await fetch(`${endpoint}?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
     credentials: 'include',
   });
   if (!res.ok) {
-    const detail = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(detail.error || `Request failed (${res.status})`);
+    const detail = (await res.json().catch(() => ({}))) as { error?: string; errorKo?: string };
+    throw new Error((isKo && detail.errorKo) || detail.error || `Request failed (${res.status})`);
   }
 };
 
@@ -105,10 +113,12 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const sermons = useContent<ApiSermon>(fetchSermons, tab === 'sermons');
   const events = useContent<ApiEvent>(fetchEvents, tab === 'events');
   const applications = useContent<ApiApplication>(fetchApplications, tab === 'applications');
+  const mokjangs = useContent<ApiMokjang>(fetchMokjangs, tab === 'mokjang');
   const editingResourceLookup = useLookup(tab === 'resources' ? editId : null, fetchResource);
   const editingSermonLookup = useLookup(tab === 'sermons' ? editId : null, fetchSermon);
   const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
   const editingApplicationLookup = useLookup(tab === 'applications' ? editId : null, fetchApplication);
+  const editingMokjangLookup = useLookup(tab === 'mokjang' ? editId : null, (id) => fetchMokjang({ id }));
   // The row the open editor is actually showing. It lags the link while the
   // lookup runs, so the form is on the page only once this settles.
   const editingItem =
@@ -118,7 +128,9 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
         ? editingSermonLookup.item
         : tab === 'events'
           ? editingEventLookup.item
-          : editingApplicationLookup.item;
+          : tab === 'mokjang'
+            ? editingMokjangLookup.item
+            : editingApplicationLookup.item;
   const openEditorId = editId ? editingItem?.id ?? null : null;
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -187,6 +199,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
     resources: { filter: 'all', search: '', page: 1 },
     sermons: { filter: 'all', search: '', page: 1 },
     events: { filter: 'all', search: '', page: 1 },
+    mokjang: { filter: 'all', search: '', page: 1 },
     applications: { filter: 'all', search: '', page: 1 },
   });
   const setView = (changes: Partial<ManageView>) =>
@@ -224,6 +237,14 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
     const matched = filterApplications(fresh, current.filter as ApplicationCategory | 'all', current.search);
     reveal('applications', viewShowing(savedId, fresh, matched, current, MANAGE_PAGE_SIZE));
   };
+
+  const revealMokjang = (fresh: ApiMokjang[], savedId: string | null) => {
+    if (!savedId) return;
+    const current = views.mokjang;
+    const sorted = sortMokjangs(fresh);
+    const matched = filterMokjangs(sorted, current.filter, current.search);
+    reveal('mokjang', viewShowing(savedId, sorted, matched, current, MANAGE_PAGE_SIZE));
+  };
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState<string>(RESOURCE_CATEGORIES[0].id);
   const [uploadVisibility, setUploadVisibility] = useState<string>('member');
@@ -246,6 +267,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
         resources: isKo ? '자료실' : 'Resources',
         sermons: isKo ? '설교' : 'Sermons',
         events: isKo ? '이벤트' : 'Events',
+        mokjang: isKo ? '목장' : 'House churches',
         applications: isKo ? '신청' : 'Applications',
       } as Record<ManageTab, string>,
       edit: isKo ? '편집' : 'Edit',
@@ -404,6 +426,8 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const editingEvent = editingEventLookup.item;
   const editingApplication = editingApplicationLookup.item;
   const editingPhotos = withoutPendingImages(editingEvent?.images, pendingRemovedPhotos);
+  const editingMokjang = editingMokjangLookup.item;
+  const editingMokjangPhotos = withoutPendingImages(editingMokjang?.images, pendingRemovedPhotos);
 
   const today = todayStamp();
 
@@ -466,13 +490,18 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
     setStatus(null);
     try {
       const uploaded = await uploadFile(uploadFileHandle, 'resources');
-      const savedId = await sendContent('/api/resources', 'POST', {
-        title: uploadTitle.trim(),
-        category: uploadCategory,
-        visibility: uploadVisibility,
-        resourceDate: uploadDate,
-        ...uploaded,
-      });
+      const savedId = await sendContent(
+        '/api/resources',
+        'POST',
+        {
+          title: uploadTitle.trim(),
+          category: uploadCategory,
+          visibility: uploadVisibility,
+          resourceDate: uploadDate,
+          ...uploaded,
+        },
+        isKo
+      );
       setUploadTitle('');
       setUploadDate('');
       setUploadFileHandle(null);
@@ -488,7 +517,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const onDelete = async (endpoint: string, id: string, reload: () => Promise<unknown>) => {
     setPendingDeleteId(null);
     try {
-      await deleteContent(endpoint, id);
+      await deleteContent(endpoint, id, isKo);
       await reload();
       if (editId === id) {
         goTo(tab);
@@ -505,6 +534,44 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
     if (status?.scope === 'gallery') setStatus(null);
   };
 
+  const onSaveMokjang = async (values: Record<string, string>, files: File[]) => {
+    const slug = suggestMokjangSlug(values.slug ?? '', values.nameEn ?? '');
+    if (!slug) {
+      throw new Error(
+        isKo ? '주소 이름을 영어 소문자로 입력해 주세요.' : 'Enter an address name in lowercase English letters.'
+      );
+    }
+    if (!parseMokjangSlug(slug)) {
+      throw new Error(
+        isKo
+          ? '주소 이름은 영어 소문자, 숫자, 하이픈만 쓸 수 있습니다.'
+          : 'Address name must be lowercase letters, numbers, and hyphens.'
+      );
+    }
+    // One photo at a time, so several large phone photos are never decoded together.
+    const prepared: File[] = [];
+    try {
+      for (const file of files) prepared.push(await reencodePhoto(file));
+    } catch (error) {
+      throw new Error(
+        isKo
+          ? '사진을 준비하지 못했습니다. 다른 사진으로 다시 시도해 주세요.'
+          : 'Could not prepare the photo. Please try a different photo.'
+      );
+    }
+    const uploaded = await Promise.all(prepared.map((file) => uploadFile(file, 'mokjang')));
+    const payload = mokjangPayloadFromForm(values, uploaded.map((item) => item.blobPath));
+    const savedId = editingMokjang
+      ? await sendContent('/api/mokjang', 'PUT', { id: editingMokjang.id, ...payload }, isKo)
+      : await sendContent('/api/mokjang', 'POST', payload, isKo);
+    const removedIds = eventImageIdsFromUrls(pendingRemovedPhotos);
+    await Promise.all(removedIds.map((id) => deleteContent('/api/mokjang/images', id, isKo)));
+    setPendingRemovedPhotos([]);
+    revealMokjang(await mokjangs.reload(), savedId);
+    goTo('mokjang');
+    flashRow(savedId, labels.saved);
+  };
+
   return (
     <article className="site-page manage-page">
       <PageHero
@@ -512,8 +579,8 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
         title={isKo ? '자료 관리' : 'Content management'}
         description={
           isKo
-            ? '주보, 설교, 이벤트와 온라인 신청을 한곳에서 등록하고 수정합니다. 파일은 최대 25MB까지 올릴 수 있습니다.'
-            : 'Publish bulletins, sermons, events, and online applications in one place. Files may be up to 25 MB.'
+            ? '주보, 설교, 이벤트, 목장과 온라인 신청을 한곳에서 등록하고 수정합니다. 파일은 최대 25MB까지 올릴 수 있습니다.'
+            : 'Publish bulletins, sermons, events, house churches, and online applications in one place. Files may be up to 25 MB.'
         }
       />
 
@@ -577,17 +644,22 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
                 onSubmit={async (values, files) => {
                   const [file] = files;
                   const replacement = file ? await uploadFile(file, 'resources') : null;
-                  const savedId = await sendContent('/api/resources', 'PUT', {
-                    id: editingResource.id,
-                    ...values,
-                    ...(replacement
-                      ? {
-                          blobPath: replacement.blobPath,
-                          contentType: replacement.contentType,
-                          sizeBytes: replacement.sizeBytes,
-                        }
-                      : {}),
-                  });
+                  const savedId = await sendContent(
+                    '/api/resources',
+                    'PUT',
+                    {
+                      id: editingResource.id,
+                      ...values,
+                      ...(replacement
+                        ? {
+                            blobPath: replacement.blobPath,
+                            contentType: replacement.contentType,
+                            sizeBytes: replacement.sizeBytes,
+                          }
+                        : {}),
+                    },
+                    isKo
+                  );
                   revealResource(await resources.reload(), savedId);
                   goTo('resources');
                   flashRow(savedId, labels.saved);
@@ -805,8 +877,8 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
                   }
                   const payload = { ...values, ...media };
                   const savedId = editingSermon
-                    ? await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload })
-                    : await sendContent('/api/sermons', 'POST', payload);
+                    ? await sendContent('/api/sermons', 'PUT', { id: editingSermon.id, ...payload }, isKo)
+                    : await sendContent('/api/sermons', 'POST', payload, isKo);
                   revealSermon(await sermons.reload(), savedId);
                   goTo('sermons');
                   flashRow(savedId, labels.saved);
@@ -1005,10 +1077,10 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
                   imageBlobPaths,
                 };
                 const savedId = editingEvent
-                  ? await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload })
-                  : await sendContent('/api/events', 'POST', payload);
+                  ? await sendContent('/api/events', 'PUT', { id: editingEvent.id, ...payload }, isKo)
+                  : await sendContent('/api/events', 'POST', payload, isKo);
                 const removedIds = eventImageIdsFromUrls(pendingRemovedPhotos);
-                await Promise.all(removedIds.map((id) => deleteContent('/api/events/images', id)));
+                await Promise.all(removedIds.map((id) => deleteContent('/api/events/images', id, isKo)));
                 setPendingRemovedPhotos([]);
                 revealEvent(await events.reload(), savedId);
                 goTo('events');
@@ -1079,6 +1151,35 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
             onChange={(page) => setView({ page })}
           />
         </section>
+      ) : null}
+
+      {tab === 'mokjang' ? (
+        <MokjangManager
+          lang={lang}
+          items={mokjangs.items}
+          editing={editingMokjang}
+          showEditor={!((editId && editingMokjangLookup.isLoading) || !(editId || isAdding))}
+          photos={editingMokjangPhotos}
+          pendingRemovedCount={pendingRemovedPhotos.length}
+          view={views.mokjang}
+          editId={editId}
+          flashId={flashId}
+          pendingDeleteId={pendingDeleteId}
+          status={status}
+          labels={labels}
+          onAdd={openAdd}
+          onEdit={(id) => goTo('mokjang', id)}
+          onCancel={() => {
+            setPendingRemovedPhotos([]);
+            goTo('mokjang');
+          }}
+          onSubmit={onSaveMokjang}
+          onViewChange={setView}
+          onRequestDelete={setPendingDeleteId}
+          onConfirmDelete={(id) => onDelete('/api/mokjang', id, mokjangs.reload)}
+          onCancelDelete={() => setPendingDeleteId(null)}
+          onRemovePhoto={onRemovePhoto}
+        />
       ) : null}
 
       {tab === 'applications' ? (
@@ -1181,8 +1282,8 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
                     highlightOnHome: values.highlightOnHome === 'true',
                   };
                   const savedId = editingApplication
-                    ? await sendContent('/api/applications', 'PUT', { id: editingApplication.id, ...payload })
-                    : await sendContent('/api/applications', 'POST', payload);
+                    ? await sendContent('/api/applications', 'PUT', { id: editingApplication.id, ...payload }, isKo)
+                    : await sendContent('/api/applications', 'POST', payload, isKo);
                   revealApplication(await applications.reload(), savedId);
                   goTo('applications');
                   flashRow(savedId, labels.saved);

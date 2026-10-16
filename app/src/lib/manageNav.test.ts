@@ -41,9 +41,14 @@ test('escapes an id that would otherwise break the query string', () => {
 });
 
 test('exposes content tabs including online applications', () => {
-  assert.deepStrictEqual(MANAGE_TABS, ['resources', 'sermons', 'events', 'applications']);
+  assert.deepStrictEqual(MANAGE_TABS, ['resources', 'sermons', 'events', 'mokjang', 'applications']);
 });
 
 test('site settings is a separate page, not a content tab', () => {
   assert.strictEqual(parseManageQuery({ tab: 'settings' }).tab, 'resources');
+});
+
+test('reads the house church tab', () => {
+  assert.strictEqual(parseManageQuery({ tab: 'mokjang' }).tab, 'mokjang');
+  assert.ok(MANAGE_TABS.includes('mokjang'));
 });

@@ -100,3 +100,11 @@ test('an event photo is signed without a download name', async () => {
   });
   assert.deepStrictEqual(calls, [['events/a.jpg', undefined]]);
 });
+
+test('house church photos are looked up as public files', () => {
+  const { FILE_LOOKUP_SQL } = require('./index');
+  assert.match(
+    FILE_LOOKUP_SQL,
+    /SELECT BlobPath, 'public' AS Visibility, CAST\(NULL AS nvarchar\(150\)\) AS ContentType FROM dbo\.MokjangImages WHERE Id = @id/
+  );
+});

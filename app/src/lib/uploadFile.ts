@@ -22,17 +22,18 @@ export const ALLOWED_MEDIA_CONTENT_TYPES = [
 
 const ALLOWED_SITE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-export type UploadFolder = 'resources' | 'sermons' | 'events' | 'media' | 'site';
+export type UploadFolder = 'resources' | 'sermons' | 'events' | 'mokjang' | 'media' | 'site';
+
+const IMAGE_ONLY_FOLDERS: UploadFolder[] = ['site', 'mokjang'];
 
 export const validateFileForUpload = (
   file: { size: number; type: string },
   folder: UploadFolder = 'resources'
 ): string | null => {
   const isMedia = folder === 'media';
-  const isSite = folder === 'site';
   const allowed = isMedia
     ? ALLOWED_MEDIA_CONTENT_TYPES
-    : isSite
+    : IMAGE_ONLY_FOLDERS.includes(folder)
       ? ALLOWED_SITE_CONTENT_TYPES
       : ALLOWED_CONTENT_TYPES;
   const maxBytes = isMedia ? MAX_MEDIA_BYTES : MAX_UPLOAD_BYTES;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { DEFAULT_SITE_COPY, parseSiteCopy, welcomeFormUrl } from './siteCopy';
+import { DEFAULT_SITE_COPY, localizeOr, parseSiteCopy, visibleQuestions, visibleStudies, welcomeFormUrl } from './siteCopy';
 
 test('missing site copy returns the current homepage and page text', () => {
   const copy = parseSiteCopy(undefined);
@@ -8,7 +8,7 @@ test('missing site copy returns the current homepage and page text', () => {
   assert.strictEqual(copy.about.values.length, 3);
   assert.deepStrictEqual(
     copy.home.nextSteps.items.map((item) => item.href),
-    ['/contact?topic=community', '/contact?topic=prayer', '/contact']
+    ['/mokjang', '/contact?topic=prayer', '/contact']
   );
 });
 
@@ -26,7 +26,7 @@ test('saved next steps match cards by link, so a retired card drops out', () => 
       nextSteps: {
         items: [
           { title: { ko: '처음 방문하시나요?', en: 'Visit?' }, href: '/contact?topic=visit' },
-          { title: { ko: '목장 찾기', en: 'Find a group' }, href: '/contact?topic=community' },
+          { title: { ko: '목장 찾기', en: 'Find a group' }, href: '/mokjang' },
           { title: { ko: '기도', en: 'Prayer' }, href: '/contact?topic=prayer' },
         ],
       },
@@ -103,4 +103,77 @@ test('edited newcomer copy keeps the untouched defaults', () => {
   const copy = parseSiteCopy({ home: { welcome: { title: { ko: '환영합니다', en: 'Welcome' } } } });
   assert.strictEqual(copy.home.welcome.title.ko, '환영합니다');
   assert.strictEqual(copy.home.welcome.intro.en, DEFAULT_SITE_COPY.home.welcome.intro.en);
+});
+
+test('the first next step opens the house church page', () => {
+  const [community] = parseSiteCopy(undefined).home.nextSteps.items;
+  assert.strictEqual(community.href, '/mokjang');
+  assert.strictEqual(community.label.ko, '목장 알아보기');
+  assert.strictEqual(community.description.en, 'See what a house church is like and find one near you.');
+});
+
+test('copy saved under the old community link falls back to the new card', () => {
+  const copy = parseSiteCopy({
+    home: {
+      nextSteps: {
+        items: [
+          {
+            title: { ko: '목장 찾기', en: 'Find a group' },
+            label: { ko: '연결 요청', en: 'Get connected' },
+            href: '/contact?topic=community',
+          },
+        ],
+      },
+    },
+  });
+  assert.deepStrictEqual(copy.home.nextSteps.items[0], DEFAULT_SITE_COPY.home.nextSteps.items[0]);
+});
+
+test('house church copy defaults fill every section', () => {
+  const { mokjang, footer } = parseSiteCopy({});
+  assert.strictEqual(mokjang.hero.ctaConnect.ko, '목장 연결 요청');
+  assert.strictEqual(mokjang.evening.steps.length, 4);
+  assert.strictEqual(mokjang.evening.steps[1].title.ko, '삶 나눔');
+  assert.strictEqual(mokjang.faq.items.length, 5);
+  assert.strictEqual(mokjang.study.items.length, 2);
+  assert.strictEqual(mokjang.cta.button.en, 'Ask to be connected');
+  assert.deepStrictEqual(footer.mokjang, { ko: '목장', en: 'House Church' });
+});
+
+test('a cleared question stays cleared and drops off the page', () => {
+  const items = DEFAULT_SITE_COPY.mokjang.faq.items.map((item, index) =>
+    index === 1 ? { question: { ko: '', en: '' }, answer: { ko: '', en: '' } } : item
+  );
+  const copy = parseSiteCopy({ mokjang: { faq: { items } } });
+  assert.strictEqual(copy.mokjang.faq.items[1].question.ko, '');
+  assert.strictEqual(visibleQuestions(copy.mokjang.faq.items).length, 4);
+});
+
+test('a question that was never saved falls back to the default text', () => {
+  const copy = parseSiteCopy({ mokjang: { faq: { items: [{ question: { ko: '새 질문', en: 'New question' } }] } } });
+  assert.strictEqual(copy.mokjang.faq.items[0].question.ko, '새 질문');
+  assert.strictEqual(copy.mokjang.faq.items[0].answer.ko, DEFAULT_SITE_COPY.mokjang.faq.items[0].answer.ko);
+  assert.strictEqual(copy.mokjang.faq.items[1].question.ko, DEFAULT_SITE_COPY.mokjang.faq.items[1].question.ko);
+});
+
+test('a cleared life class card drops off the page', () => {
+  const items = [{ title: { ko: '', en: '' }, body: { ko: '', en: '' } }, DEFAULT_SITE_COPY.mokjang.study.items[1]];
+  const copy = parseSiteCopy({ mokjang: { study: { items } } });
+  assert.deepStrictEqual(
+    visibleStudies(copy.mokjang.study.items).map((item) => item.title.ko),
+    ['그 밖의 삶공부']
+  );
+});
+
+test('editing one house church field keeps the rest', () => {
+  const copy = parseSiteCopy({ mokjang: { hero: { title: { ko: '새 제목', en: 'New title' } } } });
+  assert.strictEqual(copy.mokjang.hero.title.ko, '새 제목');
+  assert.strictEqual(copy.mokjang.hero.lead.ko, DEFAULT_SITE_COPY.mokjang.hero.lead.ko);
+  assert.deepStrictEqual(copy.mokjang.evening.steps, DEFAULT_SITE_COPY.mokjang.evening.steps);
+});
+
+test('English copy falls back to Korean when left empty', () => {
+  assert.strictEqual(localizeOr({ ko: '질문', en: ' ' }, 'en'), '질문');
+  assert.strictEqual(localizeOr({ ko: '질문', en: 'Question' }, 'en'), 'Question');
+  assert.strictEqual(localizeOr({ ko: '질문', en: 'Question' }, 'ko'), '질문');
 });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { parseEvents, parseSermons, parseResources, parseApplications, contentUrl } from './contentApi';
+import { parseEvents, parseSermons, parseResources, parseApplications, parseMokjangs, contentUrl } from './contentApi';
 
 test('parses an events payload', () => {
   const events = parseEvents({
@@ -167,4 +167,44 @@ test('drops resource entries that point at raw storage', () => {
     ],
   });
   assert.deepStrictEqual(resources, []);
+});
+
+test('parses a house church payload and keeps only proxied photos', () => {
+  const [mokjang] = parseMokjangs({
+    mokjangs: [
+      {
+        id: 'm1',
+        slug: 'chiangmai',
+        nameKo: '치앙마이 목장',
+        suburb: 'Epping',
+        meetingDay: 'fri',
+        meetingTime: '19:00',
+        audience: 'family',
+        language: 'ko',
+        kidsWelcome: true,
+        published: true,
+        coverImage: '/api/files/download/a',
+        images: ['/api/files/download/a', 'https://evil.test/b.jpg'],
+      },
+    ],
+  });
+  assert.strictEqual(mokjang.nameKo, '치앙마이 목장');
+  assert.strictEqual(mokjang.nameEn, '');
+  assert.strictEqual(mokjang.kidsWelcome, true);
+  assert.strictEqual(mokjang.coverImage, '/api/files/download/a');
+  assert.deepStrictEqual(mokjang.images, ['/api/files/download/a']);
+  assert.strictEqual('shepherdName' in mokjang, false);
+});
+
+test('keeps shepherd names only when the API sends them', () => {
+  const [mokjang] = parseMokjangs({
+    mokjangs: [{ id: 'm1', slug: 'a', nameKo: '가', shepherdName: '김목자', partnerName: '' }],
+  });
+  assert.strictEqual(mokjang.shepherdName, '김목자');
+  assert.strictEqual(mokjang.partnerName, '');
+  assert.strictEqual(mokjang.coverImage, '');
+});
+
+test('a single house church url carries the slug', () => {
+  assert.strictEqual(contentUrl('/api/mokjang', { slug: 'chiangmai' }), '/api/mokjang?slug=chiangmai');
 });
