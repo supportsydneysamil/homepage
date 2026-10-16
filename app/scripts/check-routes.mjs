@@ -103,10 +103,8 @@ test('every role-scoped route appears before the catch-all', () => {
     '/api/mokjang/images',
   ];
   for (const route of scoped) {
-    assert.ok(
-      routes.findIndex((entry) => entry.route === route) < catchAllIndex,
-      `${route} must precede /api/*`
-    );
+    const index = routes.findIndex((entry) => entry.route === route);
+    assert.ok(index >= 0 && index < catchAllIndex, `${route} must precede /api/*`);
   }
 });
 

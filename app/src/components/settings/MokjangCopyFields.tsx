@@ -177,7 +177,7 @@ const MokjangCopyFields = ({
 
       <CopySection
         title={isKo ? '자주 묻는 질문' : 'Common questions'}
-        description={isKo ? '질문을 비워 두면 그 칸은 페이지에 나오지 않습니다.' : 'Clear a question to hide it.'}
+        description={isKo ? '질문을 비워 두면 그 칸은 페이지에 나오지 않습니다.' : 'Clear the Korean question to hide it.'}
         count={1 + value.faq.items.length * 2}
       >
         <FieldGroup title={supporting}>

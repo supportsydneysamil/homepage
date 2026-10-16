@@ -4552,6 +4552,10 @@ body {
   white-space: pre-line;
 }
 
+#mokjang-list {
+  scroll-margin-top: 6rem;
+}
+
 .mokjang-section {
   margin-top: clamp(3rem, 7vw, 5.5rem);
 }
