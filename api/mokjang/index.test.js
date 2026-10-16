@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const handler = require('./index');
 const {
   validateMokjangInput,
   mapMokjang,
@@ -7,7 +8,7 @@ const {
   isMokjangVisible,
   lookupFromQuery,
   isDuplicateKeyError,
-} = require('./index');
+} = handler;
 const { requireRole } = require('../shared/principal');
 
 const encode = (principal) => Buffer.from(JSON.stringify(principal), 'utf8').toString('base64');
@@ -185,4 +186,62 @@ test('recognises a duplicate address name from SQL Server', () => {
 test('a member cannot write house churches and an editor can', () => {
   assert.strictEqual(requireRole(requestFor(['member']), 'editor').error.status, 403);
   assert.strictEqual(requireRole(requestFor(['editor', 'member']), 'editor').error, undefined);
+});
+
+const contextOf = () => ({ res: null, log: Object.assign(() => {}, { error: () => {} }) });
+
+const getRequest = (roles, query = {}) => ({
+  method: 'GET',
+  query,
+  headers: roles ? requestFor(roles).headers : {},
+});
+
+const fakeReads = () => {
+  const calls = { list: [], single: [] };
+  return {
+    calls,
+    listMokjangRows: async (includeDrafts) => {
+      calls.list.push({ includeDrafts });
+      return [{ ...row, ShepherdName: '김목자', IsPublished: 1 }];
+    },
+    getReadableMokjang: async (lookup, includeDrafts, includeMembers) => {
+      calls.single.push({ lookup, includeDrafts, includeMembers });
+      return null;
+    },
+  };
+};
+
+test('a signed-out list leaves out shepherd names, hides drafts, and is not cached', async () => {
+  const context = contextOf();
+  const deps = fakeReads();
+  await handler(context, getRequest(null), deps);
+  assert.strictEqual(context.res.status, 200);
+  assert.strictEqual(context.res.headers['Cache-Control'], 'private, no-store');
+  const [listed] = context.res.body.mokjangs;
+  assert.strictEqual('shepherdName' in listed, false);
+  assert.strictEqual('partnerName' in listed, false);
+  assert.deepStrictEqual(deps.calls.list, [{ includeDrafts: false }]);
+});
+
+test('a member list includes shepherd names', async () => {
+  const context = contextOf();
+  await handler(context, getRequest(['authenticated', 'member']), fakeReads());
+  assert.strictEqual(context.res.body.mokjangs[0].shepherdName, '김목자');
+});
+
+test('an editor list includes drafts', async () => {
+  const deps = fakeReads();
+  await handler(contextOf(), getRequest(['authenticated', 'editor', 'member']), deps);
+  assert.deepStrictEqual(deps.calls.list, [{ includeDrafts: true }]);
+});
+
+test('a signed-out slug read asks for no drafts and no shepherd names', async () => {
+  const context = contextOf();
+  const deps = fakeReads();
+  await handler(context, getRequest(null, { slug: 'chiangmai' }), deps);
+  assert.deepStrictEqual(deps.calls.single, [
+    { lookup: { slug: 'chiangmai' }, includeDrafts: false, includeMembers: false },
+  ]);
+  assert.deepStrictEqual(context.res.body, { mokjangs: [] });
+  assert.strictEqual(context.res.headers['Cache-Control'], 'private, no-store');
 });

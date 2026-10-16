@@ -264,20 +264,31 @@ VALUES (
   }
 };
 
-module.exports = async function (context, req) {
+const defaultDeps = { listMokjangRows, getReadableMokjang };
+
+module.exports = async function (context, req, deps = defaultDeps) {
   try {
+    // Replies differ by who is signed in, so no shared cache may keep them.
     if (req.method === 'GET') {
       const principal = getClientPrincipal(req);
       const includeDrafts = Boolean(principal && principal.userRoles.includes(ROLES.EDITOR));
       const includeMembers = canSeeMembers(principal);
       const lookup = lookupFromQuery(req.query);
       if (lookup) {
-        const mokjang = await getReadableMokjang(lookup, includeDrafts, includeMembers);
-        context.res = { status: 200, body: { mokjangs: mokjang ? [mokjang] : [] } };
+        const mokjang = await deps.getReadableMokjang(lookup, includeDrafts, includeMembers);
+        context.res = {
+          status: 200,
+          headers: { 'Cache-Control': 'private, no-store' },
+          body: { mokjangs: mokjang ? [mokjang] : [] },
+        };
         return;
       }
-      const rows = await listMokjangRows(includeDrafts);
-      context.res = { status: 200, body: { mokjangs: rows.map((row) => mapMokjang(row, { includeMembers })) } };
+      const rows = await deps.listMokjangRows(includeDrafts);
+      context.res = {
+        status: 200,
+        headers: { 'Cache-Control': 'private, no-store' },
+        body: { mokjangs: rows.map((row) => mapMokjang(row, { includeMembers })) },
+      };
       return;
     }
 
@@ -325,7 +336,7 @@ module.exports = async function (context, req) {
       await addImages(pool, id, parsed.value.imageBlobPaths, actor);
       context.res = {
         status: req.method === 'POST' ? 201 : 200,
-        body: { mokjang: await getReadableMokjang({ id }, true, true) },
+        body: { mokjang: await getReadableMokjang({ id }, true, canSeeMembers(auth.principal)) },
       };
       return;
     }
