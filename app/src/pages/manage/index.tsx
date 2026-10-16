@@ -7,7 +7,7 @@ import ContentForm, { type FormField } from '../../components/manage/ContentForm
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
 import MokjangManager from '../../components/manage/MokjangManager';
-import { mokjangPayloadFromForm, sortMokjangs, suggestMokjangSlug } from '../../lib/mokjang';
+import { mokjangPayloadFromForm, parseMokjangSlug, sortMokjangs, suggestMokjangSlug } from '../../lib/mokjang';
 import { useLanguage } from '../../lib/LanguageContext';
 import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
@@ -535,14 +535,27 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   };
 
   const onSaveMokjang = async (values: Record<string, string>, files: File[]) => {
-    if (!suggestMokjangSlug(values.slug ?? '', values.nameEn ?? '')) {
+    const slug = suggestMokjangSlug(values.slug ?? '', values.nameEn ?? '');
+    if (!slug) {
       throw new Error(
         isKo ? '주소 이름을 영어 소문자로 입력해 주세요.' : 'Enter an address name in lowercase English letters.'
       );
     }
-    const uploaded = await Promise.all(
-      files.map(async (file) => uploadFile(await reencodePhoto(file), 'mokjang'))
-    );
+    if (!parseMokjangSlug(slug)) {
+      throw new Error(
+        isKo
+          ? '주소 이름은 영어 소문자, 숫자, 하이픈만 쓸 수 있습니다.'
+          : 'Address name must be lowercase letters, numbers, and hyphens.'
+      );
+    }
+    const prepared = await Promise.all(files.map((file) => reencodePhoto(file))).catch(() => {
+      throw new Error(
+        isKo
+          ? '사진을 준비하지 못했습니다. 다른 사진으로 다시 시도해 주세요.'
+          : 'Could not prepare the photo. Please try a different photo.'
+      );
+    });
+    const uploaded = await Promise.all(prepared.map((file) => uploadFile(file, 'mokjang')));
     const payload = mokjangPayloadFromForm(values, uploaded.map((item) => item.blobPath));
     const savedId = editingMokjang
       ? await sendContent('/api/mokjang', 'PUT', { id: editingMokjang.id, ...payload }, isKo)

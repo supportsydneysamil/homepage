@@ -19,6 +19,9 @@ export const reencodePhoto = async (file: File, maxEdge = 1600, quality = 0.85):
     canvas.height = height;
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas is unavailable.');
+    // JPEG has no transparency; without a fill, clear PNG areas turn black.
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
     context.drawImage(bitmap, 0, 0, width, height);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
     if (!blob) throw new Error('The photo could not be prepared.');
