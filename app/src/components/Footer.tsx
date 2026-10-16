@@ -40,6 +40,7 @@ const Footer = () => {
           <span>{localize(footer.explore, lang)}</span>
           <Link href="/about">{localize(footer.about, lang)}</Link>
           <Link href="/worship">{localize(footer.worship, lang)}</Link>
+          <Link href="/mokjang">{localize(footer.mokjang, lang)}</Link>
           <Link href="/sermons">{localize(footer.sermons, lang)}</Link>
         </div>
         {social.length ? (

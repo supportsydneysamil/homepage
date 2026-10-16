@@ -1,11 +1,13 @@
 import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
 import { useSiteSettings } from '../lib/ThemeContext';
 import { phoneHref } from '../lib/churchInfo';
 import { parseContactTopic, type ContactTopic, type PrayerShare } from '../lib/contact';
+import { fetchMokjang } from '../lib/contentApi';
+import { contactPrefill, mokjangName, parseMokjangSlug } from '../lib/mokjang';
 import type { PageMeta } from '../lib/pageMeta';
 import { localize } from '../lib/siteCopy';
 import { socialLinkList } from '../lib/social';
@@ -38,6 +40,24 @@ const Contact: NextPage & { meta?: PageMeta } = () => {
   const [share, setShare] = useState<PrayerShare>('staff');
   // Remounting the fields clears typed values while the topic stays in state and the status region stays mounted.
   const [formKey, setFormKey] = useState(0);
+  const messageRef = useRef<HTMLTextAreaElement | null>(null);
+  const mokjangSlug = router.isReady ? parseMokjangSlug(router.query.mokjang) : '';
+
+  // Only an empty box is filled, so a visitor's own words are never replaced.
+  useEffect(() => {
+    if (!mokjangSlug) return undefined;
+    let live = true;
+    fetchMokjang({ slug: mokjangSlug })
+      .then((mokjang) => {
+        const box = messageRef.current;
+        if (!live || !mokjang || !box || box.value) return;
+        box.value = contactPrefill(mokjangName(mokjang, lang), lang);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [mokjangSlug, lang]);
 
   useEffect(() => {
     if (router.isReady) setTopic(parseContactTopic(router.query.topic));
@@ -164,6 +184,7 @@ const Contact: NextPage & { meta?: PageMeta } = () => {
                 {topic === 'prayer' ? (isKo ? '기도 제목' : 'Prayer request') : isKo ? '메시지' : 'Message'}
               </span>
               <textarea
+                ref={messageRef}
                 name="message"
                 rows={6}
                 required
