@@ -2,10 +2,11 @@ import type { NextPage } from 'next';
 import PageHero from '../../components/PageHero';
 import SettingsWorkspace from '../../components/settings/SettingsWorkspace';
 import { useLanguage } from '../../lib/LanguageContext';
+import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
 
-const SiteSettingsPage: NextPage & { meta?: { title?: string; description?: string } } = () => {
+const SiteSettingsPage: NextPage & { meta?: PageMeta } = () => {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { isAdmin, isLoading: isRoleLoading } = useRoles();
   const { lang } = useLanguage();
@@ -51,8 +52,11 @@ const SiteSettingsPage: NextPage & { meta?: { title?: string; description?: stri
 };
 
 SiteSettingsPage.meta = {
-  title: 'Site settings',
-  description: 'Global website settings for administrators.',
+  title: { ko: '사이트 설정', en: 'Site settings' },
+  description: {
+    ko: '관리자를 위한 웹사이트 설정입니다.',
+    en: 'Global website settings for administrators.',
+  },
 };
 
 export default SiteSettingsPage;

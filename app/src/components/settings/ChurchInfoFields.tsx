@@ -6,6 +6,7 @@ import {
   type ChurchInfo,
   type ChurchService,
 } from '../../lib/churchInfo';
+import { MAX_SOCIAL_URL, SOCIAL_CHANNELS } from '../../lib/social';
 import BilingualField from './BilingualField';
 import SettingsPanel from './SettingsPanel';
 import TextField from './TextField';
@@ -155,6 +156,28 @@ const ChurchInfoFields = ({
             inputMode="email"
             maxLength={120}
           />
+        </div>
+      </SettingsPanel>
+
+      <SettingsPanel
+        title={isKo ? '소셜 채널' : 'Social channels'}
+        hint={isKo ? '비워 둔 채널은 사이트에 보이지 않습니다.' : 'Empty channels stay hidden.'}
+      >
+        <div className="settings-grid">
+          {SOCIAL_CHANNELS.map((channel) => (
+            <TextField
+              key={channel.id}
+              fieldPath={`social.${channel.id}`}
+              label={isKo ? channel.label.ko : channel.label.en}
+              value={value.social[channel.id]}
+              onChange={(url) => update({ social: { ...value.social, [channel.id]: url } })}
+              placeholder={channel.placeholder}
+              type="url"
+              inputMode="url"
+              maxLength={MAX_SOCIAL_URL}
+              full
+            />
+          ))}
         </div>
       </SettingsPanel>
 

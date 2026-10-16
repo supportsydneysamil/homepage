@@ -18,6 +18,38 @@ const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value || '');
 
 const limit = (value, max) => value.slice(0, max);
 
+const TOPICS = {
+  general: null,
+  community: { tag: '[목장 연결]', label: 'Find a community (목장 연결)' },
+  prayer: { tag: '[기도 요청]', label: 'Prayer request (기도 요청)' },
+};
+
+const SHARES = {
+  staff: 'Pastoral staff only (교역자만 보기)',
+  team: 'OK to share with the prayer team (중보기도팀 공유 가능)',
+};
+
+const known = (table, value, fallback) =>
+  Object.prototype.hasOwnProperty.call(table, value) ? value : fallback;
+
+const buildContactEmail = ({ name, email, phone, message, topic, share }) => {
+  const topicId = known(TOPICS, typeof topic === 'string' ? topic : '', 'general');
+  const details = TOPICS[topicId];
+  const subject = details ? `${details.tag} ${name}` : `Contact form: ${name}`;
+  const text = [
+    `Name: ${name}`,
+    `Email: ${email}`,
+    phone ? `Phone: ${phone}` : null,
+    details ? `Topic: ${details.label}` : null,
+    topicId === 'prayer' ? `Sharing: ${SHARES[known(SHARES, typeof share === 'string' ? share : '', 'staff')]}` : null,
+    '',
+    message,
+  ]
+    .filter((line) => line !== null)
+    .join('\n');
+  return { subject, text };
+};
+
 module.exports = async function (context, req) {
   if (req.method && req.method.toUpperCase() !== 'POST') {
     context.res = { status: 405, body: { error: 'Method not allowed.' } };
@@ -47,16 +79,14 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const subject = `Contact form: ${name}`;
-  const text = [
-    `Name: ${name}`,
-    `Email: ${email}`,
-    phone ? `Phone: ${phone}` : null,
-    '',
+  const { subject, text } = buildContactEmail({
+    name,
+    email,
+    phone,
     message,
-  ]
-    .filter((line) => line !== null)
-    .join('\n');
+    topic: body.topic,
+    share: body.share,
+  });
 
   try {
     const client = new EmailClient(connectionString);
@@ -86,3 +116,5 @@ module.exports = async function (context, req) {
     context.res = { status: 500, body: { error: 'Unable to reach email provider.' } };
   }
 };
+
+module.exports.buildContactEmail = buildContactEmail;

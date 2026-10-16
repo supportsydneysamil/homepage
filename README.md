@@ -189,6 +189,13 @@ The workflow runs weekly on `ubuntu-latest` and can be triggered manually.
 - Media assets are loaded from external URLs (e.g., Azure Blob Storage, YouTube).
 - Content can be updated by editing the JSON files under `src/content/`.
 
+## Analytics (Cloudflare Web Analytics)
+The production build adds the Cloudflare Web Analytics beacon when the GitHub repository variable `CF_BEACON_TOKEN` is set. The deploy workflow passes it as `NEXT_PUBLIC_CF_BEACON_TOKEN` on `main` only, so local development and the dev preview never report. The beacon sets no cookies.
+
+1) In Cloudflare, open Web Analytics, add the site `sydneysamil.org`, and copy the token from the JS snippet.
+2) In GitHub → Settings → Secrets and variables → Actions → Variables, add `CF_BEACON_TOKEN` with that token.
+3) Push to `main`. Visits appear in Cloudflare within a few minutes.
+
 ## Contact form (Azure Communication Services)
 The contact form posts to `/api/contact`. Azure Communication Services sends the message. The visitor email is used as Reply-To (ACS can only send from a verified MailFrom address). Configure these Static Web Apps environment variables:
 - `ACS_CONNECTION_STRING` (Communication Services connection string)

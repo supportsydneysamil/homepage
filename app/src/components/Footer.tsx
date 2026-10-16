@@ -3,12 +3,14 @@ import { useLanguage } from '../lib/LanguageContext';
 import { useSiteSettings } from '../lib/ThemeContext';
 import { phoneHref } from '../lib/churchInfo';
 import { localize } from '../lib/siteCopy';
+import { socialLinkList } from '../lib/social';
 import BrandMark from './BrandMark';
 
 const Footer = () => {
   const { lang } = useLanguage();
   const { logoImageUrl, churchInfo, siteCopy } = useSiteSettings();
   const footer = siteCopy.footer;
+  const social = socialLinkList(churchInfo.social);
 
   return (
     <footer className="footer">
@@ -20,7 +22,7 @@ const Footer = () => {
         </div>
       </div>
 
-      <div className="footer__details">
+      <div className={social.length ? 'footer__details footer__details--social' : 'footer__details'}>
         <div>
           <span>{localize(footer.findUs, lang)}</span>
           <p>
@@ -40,6 +42,16 @@ const Footer = () => {
           <Link href="/worship">{localize(footer.worship, lang)}</Link>
           <Link href="/sermons">{localize(footer.sermons, lang)}</Link>
         </div>
+        {social.length ? (
+          <div>
+            <span>{lang === 'ko' ? '소식 받기' : 'Follow us'}</span>
+            {social.map((link) => (
+              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer">
+                {localize(link.label, lang)}
+              </a>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="footer__bottom">

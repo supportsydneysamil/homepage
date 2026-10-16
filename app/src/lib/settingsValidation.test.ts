@@ -90,3 +90,25 @@ test('newcomer link message names Microsoft Forms', () => {
   assert.strictEqual(settingsValidationMessage(issue, true), 'Microsoft Forms 주소를 입력해 주세요.');
   assert.strictEqual(settingsValidationMessage(issue, false), 'Enter a Microsoft Forms link.');
 });
+
+test('social links may be empty but must match their service when set', () => {
+  const issues = validateChurchInfoDraft({
+    ...DEFAULT_CHURCH_INFO,
+    social: {
+      instagram: 'https://www.instagram.com/sydneysamil',
+      youtube: 'https://example.com/channel',
+      kakao: '',
+      facebook: 'http://www.facebook.com/sydneysamil',
+    },
+  });
+  assert.deepStrictEqual(issues, [
+    { tab: 'church', path: 'social.youtube', code: 'socialUrl' },
+    { tab: 'church', path: 'social.facebook', code: 'socialUrl' },
+  ]);
+});
+
+test('social link message asks for an https link', () => {
+  const issue = { tab: 'church' as const, path: 'social.youtube', code: 'socialUrl' as const };
+  assert.strictEqual(settingsValidationMessage(issue, true), '해당 서비스의 https 주소를 입력해 주세요.');
+  assert.strictEqual(settingsValidationMessage(issue, false), 'Enter an https link for this service.');
+});

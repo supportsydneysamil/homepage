@@ -2,11 +2,12 @@ import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { useLanguage } from '../lib/LanguageContext';
+import type { PageMeta } from '../lib/pageMeta';
 import { buildSettingsHref, parseSettingsQuery } from '../lib/settingsNav';
 
 // Site settings moved under the operations area. Keep this path working for
 // links and bookmarks made before the move.
-const SettingsPage: NextPage & { meta?: { title?: string; description?: string } } = () => {
+const SettingsPage: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const router = useRouter();
@@ -22,8 +23,11 @@ const SettingsPage: NextPage & { meta?: { title?: string; description?: string }
 };
 
 SettingsPage.meta = {
-  title: 'Site settings',
-  description: 'Global website settings for administrators.',
+  title: { ko: '사이트 설정', en: 'Site settings' },
+  description: {
+    ko: '관리자를 위한 웹사이트 설정입니다.',
+    en: 'Global website settings for administrators.',
+  },
 };
 
 export default SettingsPage;

@@ -115,7 +115,7 @@ body.theme-church {
   --body-glow-1: rgba(79, 139, 255, 0.2);
   --body-glow-2: rgba(242, 166, 90, 0.18);
   --body-glow-3: rgba(85, 145, 235, 0.14);
-  --home-bg: url('/church-bg.png');
+  --home-bg: url('/church-hero.jpg');
   --home-overlay-a: rgba(20, 36, 58, 0.5);
   --home-overlay-b: rgba(20, 36, 58, 0.35);
   --home-highlight-1: rgba(129, 218, 255, 0.2);
@@ -1425,7 +1425,7 @@ p {
 .theme-preview--church {
   background:
     linear-gradient(140deg, rgba(20, 36, 58, 0.38), rgba(20, 36, 58, 0.22)),
-    url('/church-bg.png');
+    url('/church-hero.jpg');
   background-size: cover;
   background-position: center;
 }
@@ -3145,7 +3145,7 @@ html:lang(ko) body,
   border-radius: 48% 48% 1.5rem 1.5rem;
   background:
     linear-gradient(rgba(23, 63, 58, 0.16), rgba(23, 63, 58, 0.16)),
-    url('/church-bg.png') center / cover;
+    url('/church-hero.jpg') center / cover;
   box-shadow: 0 28px 55px rgba(0, 0, 0, 0.2);
 }
 
@@ -4026,6 +4026,10 @@ body {
   border-block: 1px solid color-mix(in srgb, var(--site-canvas) 18%, transparent);
 }
 
+.footer__details--social {
+  grid-template-columns: 1.4fr 1fr 0.7fr 0.7fr;
+}
+
 .footer__details > div {
   display: flex;
   flex-direction: column;
@@ -4440,6 +4444,68 @@ body {
 
 .site-form textarea {
   resize: vertical;
+}
+
+.site-form fieldset {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.site-form legend {
+  margin-bottom: 0.45rem;
+  padding: 0;
+  color: var(--site-ink);
+  font-size: 0.85rem;
+  font-weight: 750;
+}
+
+.contact-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.site-form .contact-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  background: var(--site-canvas);
+  cursor: pointer;
+}
+
+.site-form .contact-choice input {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  accent-color: var(--site-accent);
+}
+
+.site-form .contact-choice:has(input:checked) {
+  border-color: var(--site-accent);
+  background: color-mix(in srgb, var(--site-accent) 10%, var(--site-canvas));
+}
+
+.site-form .contact-choice:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--site-accent) 16%, transparent);
+}
+
+.contact-form__fields {
+  display: contents;
+}
+
+.contact-form__hint {
+  color: var(--site-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .form-status {

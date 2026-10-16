@@ -1,10 +1,11 @@
 import type { NextPage } from 'next';
 import PageHero from '../components/PageHero';
 import { useLanguage } from '../lib/LanguageContext';
+import type { PageMeta } from '../lib/pageMeta';
 import { useSiteSettings } from '../lib/ThemeContext';
 import { localize } from '../lib/siteCopy';
 
-const About: NextPage & { meta?: { title?: string; description?: string } } = () => {
+const About: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
   const { siteCopy } = useSiteSettings();
   const about = siteCopy.about;
@@ -36,8 +37,11 @@ const About: NextPage & { meta?: { title?: string; description?: string } } = ()
 };
 
 About.meta = {
-  title: 'About',
-  description: 'Meet Sydney Samil Church and discover our story, vision, and mission.',
+  title: { ko: '소개', en: 'About' },
+  description: {
+    ko: '시드니 삼일교회의 이야기와 비전, 사명을 소개합니다. 펜넌트힐스의 한인교회로 예배와 가정교회 목장, 다음 세대를 세웁니다.',
+    en: 'Meet Sydney Samil Church and discover our story, vision, and mission.',
+  },
 };
 
 export default About;

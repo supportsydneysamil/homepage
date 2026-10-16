@@ -7,6 +7,7 @@ import ContentForm, { type FormField } from '../../components/manage/ContentForm
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
 import { useLanguage } from '../../lib/LanguageContext';
+import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
 import { fileNameFromUrl, formatDisplayDate } from '../../lib/presentation';
@@ -90,7 +91,7 @@ const deleteContent = async (endpoint: string, id: string) => {
   }
 };
 
-const ManagePage: NextPage & { meta?: { title?: string; description?: string } } = () => {
+const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { isEditor, isLoading: isRoleLoading } = useRoles();
   const { lang } = useLanguage();
@@ -1257,8 +1258,11 @@ const ManagePage: NextPage & { meta?: { title?: string; description?: string } }
 };
 
 ManagePage.meta = {
-  title: 'Content management',
-  description: 'Content management for Sydney Samil Church editors.',
+  title: { ko: '자료 관리', en: 'Content management' },
+  description: {
+    ko: '시드니 삼일교회 편집자를 위한 자료 관리입니다.',
+    en: 'Content management for Sydney Samil Church editors.',
+  },
 };
 
 export default ManagePage;
