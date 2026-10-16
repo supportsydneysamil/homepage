@@ -5692,6 +5692,22 @@ body {
   font-weight: 750;
 }
 
+.manage-form__section {
+  margin: 0.6rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--site-line);
+  color: var(--site-accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.manage-form__section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .manage-form__field input,
 .manage-form__field textarea,
 .manage-form__field select {

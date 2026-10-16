@@ -1,4 +1,4 @@
-import type { ApiEvent, ApiSermon } from './contentApi';
+import type { ApiEvent, ApiMokjang, ApiSermon } from './contentApi';
 
 export const MANAGE_PAGE_SIZE = 20;
 
@@ -56,4 +56,11 @@ export const filterEvents = (events: ApiEvent[], status: string, search: string,
   events.filter((event) => {
     if (status !== 'all' && eventStatusOf(event, today) !== status) return false;
     return matches([event.title, event.location], search);
+  });
+
+export const filterMokjangs = (items: ApiMokjang[], status: string, search: string) =>
+  items.filter((item) => {
+    if (status === 'published' && !item.published) return false;
+    if (status === 'draft' && item.published) return false;
+    return matches([item.nameKo, item.nameEn, item.suburb], search);
   });

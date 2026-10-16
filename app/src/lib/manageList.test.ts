@@ -4,11 +4,12 @@ import {
   MANAGE_PAGE_SIZE,
   eventStatusOf,
   filterEvents,
+  filterMokjangs,
   filterSermons,
   sermonYears,
   viewShowing,
 } from './manageList';
-import type { ApiEvent, ApiSermon } from './contentApi';
+import type { ApiEvent, ApiMokjang, ApiSermon } from './contentApi';
 
 const sermon = (values: Partial<ApiSermon>): ApiSermon => ({
   id: '1',
@@ -168,4 +169,39 @@ test('searches an event by title', () => {
     filterEvents(events, 'all', 'retreat', '2026-09-19').map((item) => item.id),
     ['1']
   );
+});
+
+const mokjangRow = (overrides: Partial<ApiMokjang>): ApiMokjang => ({
+  id: 'm',
+  slug: 'm',
+  nameKo: '목장',
+  nameEn: '',
+  taglineKo: '',
+  taglineEn: '',
+  suburb: 'Epping',
+  meetingDay: 'fri',
+  meetingTime: '19:00',
+  audience: 'all',
+  language: 'ko',
+  kidsWelcome: false,
+  missionKo: '',
+  missionEn: '',
+  storyKo: '',
+  storyEn: '',
+  published: true,
+  coverImage: '',
+  images: [],
+  ...overrides,
+});
+
+test('filters house churches by status and searches name or suburb', () => {
+  const items = [
+    mokjangRow({ id: 'a', nameKo: '치앙마이 목장', nameEn: 'Chiang Mai', suburb: 'Epping' }),
+    mokjangRow({ id: 'b', nameKo: '나이로비 목장', suburb: 'Hornsby', published: false }),
+  ];
+  assert.deepStrictEqual(filterMokjangs(items, 'all', '').map((item) => item.id), ['a', 'b']);
+  assert.deepStrictEqual(filterMokjangs(items, 'published', '').map((item) => item.id), ['a']);
+  assert.deepStrictEqual(filterMokjangs(items, 'draft', '').map((item) => item.id), ['b']);
+  assert.deepStrictEqual(filterMokjangs(items, 'all', 'hornsby').map((item) => item.id), ['b']);
+  assert.deepStrictEqual(filterMokjangs(items, 'all', 'chiang').map((item) => item.id), ['a']);
 });

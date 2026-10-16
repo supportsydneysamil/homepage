@@ -6,6 +6,8 @@ import Pager from '../../components/Pager';
 import ContentForm, { type FormField } from '../../components/manage/ContentForm';
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
+import MokjangManager from '../../components/manage/MokjangManager';
+import { mokjangPayloadFromForm, sortMokjangs } from '../../lib/mokjang';
 import { useLanguage } from '../../lib/LanguageContext';
 import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
@@ -18,6 +20,7 @@ import {
   MANAGE_PAGE_SIZE,
   eventStatusOf,
   filterEvents,
+  filterMokjangs,
   filterSermons,
   sermonYears,
   viewShowing,
@@ -46,6 +49,8 @@ import {
   fetchApplications,
   fetchEvent,
   fetchEvents,
+  fetchMokjang,
+  fetchMokjangs,
   fetchResource,
   fetchResources,
   fetchSermon,
@@ -54,6 +59,7 @@ import {
   useLookup,
   type ApiApplication,
   type ApiEvent,
+  type ApiMokjang,
   type ApiResource,
   type ApiSermon,
 } from '../../lib/contentApi';
@@ -76,7 +82,7 @@ const sendContent = async (endpoint: string, method: 'POST' | 'PUT', payload: un
   if (!res.ok) {
     throw new Error(body.error || `Request failed (${res.status})`);
   }
-  const saved = body.resource || body.sermon || body.event || body.application;
+  const saved = body.resource || body.sermon || body.event || body.application || body.mokjang;
   return saved && saved.id ? saved.id : null;
 };
 
@@ -105,10 +111,12 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const sermons = useContent<ApiSermon>(fetchSermons, tab === 'sermons');
   const events = useContent<ApiEvent>(fetchEvents, tab === 'events');
   const applications = useContent<ApiApplication>(fetchApplications, tab === 'applications');
+  const mokjangs = useContent<ApiMokjang>(fetchMokjangs, tab === 'mokjang');
   const editingResourceLookup = useLookup(tab === 'resources' ? editId : null, fetchResource);
   const editingSermonLookup = useLookup(tab === 'sermons' ? editId : null, fetchSermon);
   const editingEventLookup = useLookup(tab === 'events' ? editId : null, (id) => fetchEvent({ id }));
   const editingApplicationLookup = useLookup(tab === 'applications' ? editId : null, fetchApplication);
+  const editingMokjangLookup = useLookup(tab === 'mokjang' ? editId : null, (id) => fetchMokjang({ id }));
   // The row the open editor is actually showing. It lags the link while the
   // lookup runs, so the form is on the page only once this settles.
   const editingItem =
@@ -118,7 +126,9 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
         ? editingSermonLookup.item
         : tab === 'events'
           ? editingEventLookup.item
-          : editingApplicationLookup.item;
+          : tab === 'mokjang'
+            ? editingMokjangLookup.item
+            : editingApplicationLookup.item;
   const openEditorId = editId ? editingItem?.id ?? null : null;
 
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -187,6 +197,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
     resources: { filter: 'all', search: '', page: 1 },
     sermons: { filter: 'all', search: '', page: 1 },
     events: { filter: 'all', search: '', page: 1 },
+    mokjang: { filter: 'all', search: '', page: 1 },
     applications: { filter: 'all', search: '', page: 1 },
   });
   const setView = (changes: Partial<ManageView>) =>
@@ -224,6 +235,14 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
     const matched = filterApplications(fresh, current.filter as ApplicationCategory | 'all', current.search);
     reveal('applications', viewShowing(savedId, fresh, matched, current, MANAGE_PAGE_SIZE));
   };
+
+  const revealMokjang = (fresh: ApiMokjang[], savedId: string | null) => {
+    if (!savedId) return;
+    const current = views.mokjang;
+    const sorted = sortMokjangs(fresh);
+    const matched = filterMokjangs(sorted, current.filter, current.search);
+    reveal('mokjang', viewShowing(savedId, sorted, matched, current, MANAGE_PAGE_SIZE));
+  };
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState<string>(RESOURCE_CATEGORIES[0].id);
   const [uploadVisibility, setUploadVisibility] = useState<string>('member');
@@ -246,6 +265,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
         resources: isKo ? '자료실' : 'Resources',
         sermons: isKo ? '설교' : 'Sermons',
         events: isKo ? '이벤트' : 'Events',
+        mokjang: isKo ? '목장' : 'House churches',
         applications: isKo ? '신청' : 'Applications',
       } as Record<ManageTab, string>,
       edit: isKo ? '편집' : 'Edit',
@@ -404,6 +424,8 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const editingEvent = editingEventLookup.item;
   const editingApplication = editingApplicationLookup.item;
   const editingPhotos = withoutPendingImages(editingEvent?.images, pendingRemovedPhotos);
+  const editingMokjang = editingMokjangLookup.item;
+  const editingMokjangPhotos = withoutPendingImages(editingMokjang?.images, pendingRemovedPhotos);
 
   const today = todayStamp();
 
@@ -505,6 +527,20 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
     if (status?.scope === 'gallery') setStatus(null);
   };
 
+  const onSaveMokjang = async (values: Record<string, string>, files: File[]) => {
+    const uploaded = await Promise.all(files.map((file) => uploadFile(file, 'mokjang')));
+    const payload = mokjangPayloadFromForm(values, uploaded.map((item) => item.blobPath));
+    const savedId = editingMokjang
+      ? await sendContent('/api/mokjang', 'PUT', { id: editingMokjang.id, ...payload })
+      : await sendContent('/api/mokjang', 'POST', payload);
+    const removedIds = eventImageIdsFromUrls(pendingRemovedPhotos);
+    await Promise.all(removedIds.map((id) => deleteContent('/api/mokjang/images', id)));
+    setPendingRemovedPhotos([]);
+    revealMokjang(await mokjangs.reload(), savedId);
+    goTo('mokjang');
+    flashRow(savedId, labels.saved);
+  };
+
   return (
     <article className="site-page manage-page">
       <PageHero
@@ -512,8 +548,8 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
         title={isKo ? '자료 관리' : 'Content management'}
         description={
           isKo
-            ? '주보, 설교, 이벤트와 온라인 신청을 한곳에서 등록하고 수정합니다. 파일은 최대 25MB까지 올릴 수 있습니다.'
-            : 'Publish bulletins, sermons, events, and online applications in one place. Files may be up to 25 MB.'
+            ? '주보, 설교, 이벤트, 목장과 온라인 신청을 한곳에서 등록하고 수정합니다. 파일은 최대 25MB까지 올릴 수 있습니다.'
+            : 'Publish bulletins, sermons, events, house churches, and online applications in one place. Files may be up to 25 MB.'
         }
       />
 
@@ -1079,6 +1115,35 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
             onChange={(page) => setView({ page })}
           />
         </section>
+      ) : null}
+
+      {tab === 'mokjang' ? (
+        <MokjangManager
+          lang={lang}
+          items={mokjangs.items}
+          editing={editingMokjang}
+          showEditor={!((editId && editingMokjangLookup.isLoading) || !(editId || isAdding))}
+          photos={editingMokjangPhotos}
+          pendingRemovedCount={pendingRemovedPhotos.length}
+          view={views.mokjang}
+          editId={editId}
+          flashId={flashId}
+          pendingDeleteId={pendingDeleteId}
+          status={status}
+          labels={labels}
+          onAdd={openAdd}
+          onEdit={(id) => goTo('mokjang', id)}
+          onCancel={() => {
+            setPendingRemovedPhotos([]);
+            goTo('mokjang');
+          }}
+          onSubmit={onSaveMokjang}
+          onViewChange={setView}
+          onRequestDelete={setPendingDeleteId}
+          onConfirmDelete={(id) => onDelete('/api/mokjang', id, mokjangs.reload)}
+          onCancelDelete={() => setPendingDeleteId(null)}
+          onRemovePhoto={onRemovePhoto}
+        />
       ) : null}
 
       {tab === 'applications' ? (

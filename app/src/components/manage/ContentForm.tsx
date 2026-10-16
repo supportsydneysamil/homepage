@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 export type FormField = {
   name: string;
@@ -8,6 +8,7 @@ export type FormField = {
   readOnly?: boolean;
   options?: { value: string; label: string }[];
   hint?: string;
+  section?: string;
 };
 
 export type FileField = {
@@ -75,48 +76,51 @@ const ContentForm = ({
   return (
     <form className="manage-form" onSubmit={handleSubmit}>
       {fields.map((field) => (
-        <div className="manage-form__field" key={field.name}>
-          <label htmlFor={`field-${field.name}`}>{field.label}</label>
-          {field.type === 'select' ? (
-            <select
-              id={`field-${field.name}`}
-              value={values[field.name] ?? field.options?.[0]?.value ?? ''}
-              onChange={(changeEvent) =>
-                setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
-              }
-              required={field.required}
-            >
-              {(field.options ?? []).map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          ) : field.type === 'textarea' ? (
-            <textarea
-              id={`field-${field.name}`}
-              value={values[field.name] ?? ''}
-              onChange={(changeEvent) =>
-                setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
-              }
-              required={field.required}
-              readOnly={field.readOnly}
-              rows={3}
-            />
-          ) : (
-            <input
-              id={`field-${field.name}`}
-              type={field.type}
-              value={values[field.name] ?? ''}
-              onChange={(changeEvent) =>
-                setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
-              }
-              required={field.required}
-              readOnly={field.readOnly}
-            />
-          )}
-          {field.hint ? <span className="muted">{field.hint}</span> : null}
-        </div>
+        <Fragment key={field.name}>
+          {field.section ? <p className="manage-form__section">{field.section}</p> : null}
+          <div className="manage-form__field">
+            <label htmlFor={`field-${field.name}`}>{field.label}</label>
+            {field.type === 'select' ? (
+              <select
+                id={`field-${field.name}`}
+                value={values[field.name] ?? field.options?.[0]?.value ?? ''}
+                onChange={(changeEvent) =>
+                  setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
+                }
+                required={field.required}
+              >
+                {(field.options ?? []).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : field.type === 'textarea' ? (
+              <textarea
+                id={`field-${field.name}`}
+                value={values[field.name] ?? ''}
+                onChange={(changeEvent) =>
+                  setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
+                }
+                required={field.required}
+                readOnly={field.readOnly}
+                rows={3}
+              />
+            ) : (
+              <input
+                id={`field-${field.name}`}
+                type={field.type}
+                value={values[field.name] ?? ''}
+                onChange={(changeEvent) =>
+                  setValues((previous) => ({ ...previous, [field.name]: changeEvent.target.value }))
+                }
+                required={field.required}
+                readOnly={field.readOnly}
+              />
+            )}
+            {field.hint ? <span className="muted">{field.hint}</span> : null}
+          </div>
+        </Fragment>
       ))}
 
       {fileField ? (
