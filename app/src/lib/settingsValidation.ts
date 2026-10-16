@@ -108,6 +108,14 @@ export const validateChurchInfoDraft = (
   );
 };
 
+// An editor clears a question or class card to hide it from the page.
+const OPTIONAL_COPY_PATHS = new Set([
+  'mokjang.faq.items[].question',
+  'mokjang.faq.items[].answer',
+  'mokjang.study.items[].title',
+  'mokjang.study.items[].body',
+]);
+
 const collectLocalizedIssues = (
   input: unknown,
   path: string,
@@ -116,12 +124,11 @@ const collectLocalizedIssues = (
   if (!input || typeof input !== 'object') return;
   const row = input as Record<string, unknown>;
   if (typeof row.ko === 'string' && typeof row.en === 'string') {
-    addLocalizedIssue(
-      issues,
-      'copy',
-      path,
-      { ko: row.ko, en: row.en }
-    );
+    if (!OPTIONAL_COPY_PATHS.has(path)) {
+      addLocalizedIssue(issues, 'copy', path, { ko: row.ko, en: row.en });
+    } else if (tooLong(row.ko, 400) || tooLong(row.en, 400)) {
+      issues.push({ tab: 'copy', path, code: 'tooLong' });
+    }
     return;
   }
   if (Array.isArray(input)) {

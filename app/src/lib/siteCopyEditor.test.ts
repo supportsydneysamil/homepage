@@ -105,3 +105,10 @@ test('field validation marks bilingual inputs and explains the problem', () => {
   assert.strictEqual((html.match(/aria-invalid="true"/g) || []).length, 2);
   assert.match(html, /필수 값을 입력해 주세요/);
 });
+
+test('house church section explains how to hide a question or class', () => {
+  const html = editorHtml();
+  assert.match(html, /질문을 비워 두면 그 칸은 페이지에 나오지 않습니다/);
+  assert.match(html, /data-field-path="mokjang\.faq\.items\[\]\.question"/);
+  assert.match(html, /data-field-path="footer\.mokjang"/);
+});

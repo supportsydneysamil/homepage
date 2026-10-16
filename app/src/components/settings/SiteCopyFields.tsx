@@ -2,6 +2,7 @@ import type { SiteCopy } from '../../lib/siteCopy';
 import BilingualField from './BilingualField';
 import { CopySection, FieldGroup, PageAccordion } from './SiteCopyEditorParts';
 import HomeCopyFields from './HomeCopyFields';
+import MokjangCopyFields from './MokjangCopyFields';
 import type { PhotoSlot } from './SitePhotoField';
 
 const replaceAt = <T,>(items: T[], index: number, patch: Partial<T>) =>
@@ -220,6 +221,23 @@ const SiteCopyFields = ({
       </PageAccordion>
 
       <PageAccordion
+        title={isKo ? '목장' : 'House Church'}
+        meta={isKo ? '첫 화면 · 한 저녁 · 질문 · 삶공부 · 연결 요청' : 'Hero, evening, questions, classes, connection'}
+        count={
+          21 +
+          value.mokjang.evening.steps.length * 3 +
+          value.mokjang.faq.items.length * 2 +
+          value.mokjang.study.items.length * 2
+        }
+      >
+        <MokjangCopyFields
+          value={value.mokjang}
+          onChange={(mokjang) => onChange({ ...value, mokjang })}
+          isKo={isKo}
+        />
+      </PageAccordion>
+
+      <PageAccordion
         title={isKo ? '문의' : 'Contact'}
         meta={isKo ? '페이지 머리말 · 연락처 안내' : 'Page header and contact details'}
         count={5}
@@ -272,7 +290,7 @@ const SiteCopyFields = ({
       <PageAccordion
         title={isKo ? '푸터' : 'Footer'}
         meta={isKo ? '소개 문구 · 열 제목 · 메뉴명' : 'Tagline, column headings, and menu labels'}
-        count={8}
+        count={9}
       >
         <CopySection title={isKo ? '소개 문구' : 'Tagline'} count={1} open>
           <FieldGroup title={primary}>
@@ -309,7 +327,7 @@ const SiteCopyFields = ({
           </FieldGroup>
         </CopySection>
 
-        <CopySection title={isKo ? '메뉴명' : 'Menu labels'} count={4}>
+        <CopySection title={isKo ? '메뉴명' : 'Menu labels'} count={5}>
           <FieldGroup title={supporting}>
             <BilingualField
               fieldPath="footer.about"
@@ -322,6 +340,12 @@ const SiteCopyFields = ({
               label={isKo ? '예배' : 'Worship'}
               value={value.footer.worship}
               onChange={(worship) => setFooter({ worship })}
+            />
+            <BilingualField
+              fieldPath="footer.mokjang"
+              label={isKo ? '목장' : 'House Church'}
+              value={value.footer.mokjang}
+              onChange={(mokjang) => setFooter({ mokjang })}
             />
             <BilingualField
               fieldPath="footer.sermons"

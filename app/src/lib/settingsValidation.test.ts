@@ -112,3 +112,28 @@ test('social link message asks for an https link', () => {
   assert.strictEqual(settingsValidationMessage(issue, true), '해당 서비스의 https 주소를 입력해 주세요.');
   assert.strictEqual(settingsValidationMessage(issue, false), 'Enter an https link for this service.');
 });
+
+test('cleared house church questions and life class cards do not block saving', () => {
+  const copy = structuredClone(DEFAULT_SITE_COPY);
+  copy.mokjang.faq.items[4] = { question: { ko: '', en: '' }, answer: { ko: '', en: '' } };
+  copy.mokjang.study.items[1] = { title: { ko: '', en: '' }, body: { ko: '', en: '' } };
+  assert.deepStrictEqual(validateSiteCopyDraft(copy), []);
+});
+
+test('a house church question still has a length limit', () => {
+  const copy = structuredClone(DEFAULT_SITE_COPY);
+  copy.mokjang.faq.items[0] = { question: { ko: '가'.repeat(401), en: 'Q' }, answer: { ko: '', en: '' } };
+  assert.deepStrictEqual(
+    validateSiteCopyDraft(copy).map((issue) => [issue.path, issue.code]),
+    [['mokjang.faq.items[].question', 'tooLong']]
+  );
+});
+
+test('the rest of the house church copy is still required', () => {
+  const copy = structuredClone(DEFAULT_SITE_COPY);
+  copy.mokjang.hero.title = { ko: '', en: 'A small church' };
+  assert.deepStrictEqual(
+    validateSiteCopyDraft(copy).map((issue) => [issue.path, issue.code]),
+    [['mokjang.hero.title', 'required']]
+  );
+});
