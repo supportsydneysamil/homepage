@@ -3,21 +3,22 @@ const { getClientPrincipal } = require('../shared/principal');
 const { canSee, DEFAULT_VISIBILITY } = require('../shared/library');
 const { createReadSas, displayFileName, readDisposition } = require('../shared/blob');
 
-// Event photos are shown on the public events pages, so they are public.
+// Event and house church photos are shown on public pages, so they are public.
 // Sermon attachments have no visibility column and stay at the member level.
-const lookupFile = async (id) =>
-  withSchema(async () => {
-    const pool = await getPool();
-    const result = await pool
-      .request()
-      .input('id', sql.UniqueIdentifier, id)
-      .query(`
+const FILE_LOOKUP_SQL = `
 SELECT BlobPath, Visibility, ContentType FROM dbo.Resources WHERE Id = @id
 UNION ALL
 SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.SermonFiles WHERE Id = @id
 UNION ALL
-SELECT BlobPath, 'public' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.EventImages WHERE Id = @id;
-`);
+SELECT BlobPath, 'public' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.EventImages WHERE Id = @id
+UNION ALL
+SELECT BlobPath, 'public' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.MokjangImages WHERE Id = @id;
+`;
+
+const lookupFile = async (id) =>
+  withSchema(async () => {
+    const pool = await getPool();
+    const result = await pool.request().input('id', sql.UniqueIdentifier, id).query(FILE_LOOKUP_SQL);
     const row = result.recordset && result.recordset[0];
     if (!row) return null;
     const fileName = displayFileName(row.BlobPath);
@@ -74,3 +75,4 @@ module.exports = async function (context, req, deps = defaultDeps) {
 };
 
 module.exports.lookupFile = lookupFile;
+module.exports.FILE_LOOKUP_SQL = FILE_LOOKUP_SQL;
