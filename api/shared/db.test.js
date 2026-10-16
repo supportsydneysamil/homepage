@@ -23,7 +23,7 @@ test('returns null for empty input', () => {
 });
 
 test('schema creates every content table idempotently', () => {
-  for (const table of ['Events', 'Sermons', 'Resources', 'EventImages', 'SermonFiles', 'Applications']) {
+  for (const table of ['Events', 'Sermons', 'Resources', 'EventImages', 'SermonFiles', 'Applications', 'Mokjangs', 'MokjangImages']) {
     assert.ok(SCHEMA_SQL.includes(`dbo.${table}`), `${table} missing from schema`);
     assert.ok(
       SCHEMA_SQL.includes(`OBJECT_ID('dbo.${table}', 'U') IS NULL`),
@@ -139,4 +139,15 @@ test('a read that fails for any other reason is not retried', async () => {
     /login failed/
   );
   assert.strictEqual(attempts, 1);
+});
+
+test('the mokjang table stores no home address or phone number', () => {
+  const start = SCHEMA_SQL.indexOf('CREATE TABLE dbo.Mokjangs (');
+  assert.ok(start >= 0);
+  const block = SCHEMA_SQL.slice(start, SCHEMA_SQL.indexOf(');', start));
+  assert.ok(!/address|phone|street/i.test(block));
+});
+
+test('mokjang photos are removed with their mokjang', () => {
+  assert.ok(SCHEMA_SQL.includes('MokjangId UNIQUEIDENTIFIER NOT NULL REFERENCES dbo.Mokjangs(Id) ON DELETE CASCADE'));
 });
