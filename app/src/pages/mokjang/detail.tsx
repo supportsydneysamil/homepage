@@ -27,7 +27,7 @@ const MokjangDetailPage: NextPage & { meta?: PageMeta } = () => {
   const router = useRouter();
   const slug = parseMokjangSlug(router.query.slug);
   const { items, isLoading } = useContent<ApiMokjang>(() => fetchMokjangs({ slug }), Boolean(slug));
-  const mokjang = items[0];
+  const mokjang = items.find((item) => item.published);
 
   if (!router.isReady || isLoading) {
     return <p className="account-state">{isKo ? '불러오는 중...' : 'Loading...'}</p>;
