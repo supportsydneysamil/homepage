@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { validateEventInput } = require('./index');
+const handler = require('./index');
+const { validateEventInput } = handler;
 const { requireRole } = require('../shared/principal');
 
 const encode = (principal) => Buffer.from(JSON.stringify(principal), 'utf8').toString('base64');
@@ -178,4 +179,84 @@ test('a member cannot write events', () => {
 
 test('an editor can write events', () => {
   assert.strictEqual(requireRole(requestFor(['editor', 'member']), 'editor').error, undefined);
+});
+
+const contextOf = () => ({
+  res: null,
+  log: Object.assign(() => {}, { error: () => {} }),
+});
+
+const unavailable = {
+  status: 404,
+  headers: { 'Cache-Control': 'no-store' },
+  body: {
+    code: 'SECTION_UNAVAILABLE',
+    error: 'This section is unavailable.',
+    errorKo: '현재 이 메뉴를 이용할 수 없습니다.',
+  },
+};
+
+test('GET checks the events section before a list read and stops when blocked', async () => {
+  const order = [];
+  const context = contextOf();
+  await handler(
+    context,
+    { method: 'GET', query: {}, headers: {} },
+    {
+      guardPublicSection: async (req, section) => {
+        order.push(`guard:${section}`);
+        return unavailable;
+      },
+      listEvents: async () => {
+        order.push('list');
+        return [];
+      },
+    }
+  );
+  assert.deepStrictEqual(order, ['guard:events']);
+  assert.deepStrictEqual(context.res, unavailable);
+});
+
+test('GET checks the events section before a detail read', async () => {
+  const order = [];
+  const context = contextOf();
+  await handler(
+    context,
+    { method: 'GET', query: { slug: 'christmas-2026' }, headers: {} },
+    {
+      guardPublicSection: async (req, section) => {
+        order.push(`guard:${section}`);
+        return null;
+      },
+      getReadableEvent: async () => {
+        order.push('detail');
+        return null;
+      },
+    }
+  );
+  assert.deepStrictEqual(order, ['guard:events', 'detail']);
+  assert.strictEqual(context.res.status, 200);
+});
+
+test('an events availability lookup failure returns 500 without reading content', async () => {
+  let guardCalls = 0;
+  let contentReads = 0;
+  const context = contextOf();
+  await handler(
+    context,
+    { method: 'GET', query: {}, headers: {} },
+    {
+      guardPublicSection: async () => {
+        guardCalls += 1;
+        throw new Error('settings unavailable');
+      },
+      listEvents: async () => {
+        contentReads += 1;
+        return [];
+      },
+    }
+  );
+  assert.strictEqual(context.res.status, 500);
+  assert.equal(guardCalls, 1);
+  assert.equal(contentReads, 0);
 });

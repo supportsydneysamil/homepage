@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { validateSermonInput } = require('./index');
+const handler = require('./index');
+const { validateSermonInput } = handler;
 
 test('accepts a complete sermon', () => {
   const result = validateSermonInput({
@@ -99,4 +100,33 @@ test('accepts an optional subtitle', () => {
 
 test('rejects a subtitle that is too long', () => {
   assert.ok(validateSermonInput({ date: '2026-01-04', title: 'T', subtitle: 'x'.repeat(201) }).error);
+});
+
+test('GET checks the sermons section before reading and returns a blocked response unchanged', async () => {
+  const order = [];
+  const blocked = {
+    status: 404,
+    headers: { 'Cache-Control': 'no-store' },
+    body: { code: 'SECTION_UNAVAILABLE', error: 'Unavailable.', errorKo: '이용할 수 없습니다.' },
+  };
+  const context = {
+    res: null,
+    log: Object.assign(() => {}, { error: () => {} }),
+  };
+  await handler(
+    context,
+    { method: 'GET', query: { id: 's1' }, headers: {} },
+    {
+      guardPublicSection: async (req, section) => {
+        order.push(`guard:${section}`);
+        return blocked;
+      },
+      listSermons: async () => {
+        order.push('read');
+        return [];
+      },
+    }
+  );
+  assert.deepStrictEqual(order, ['guard:sermons']);
+  assert.deepStrictEqual(context.res, blocked);
 });

@@ -1,6 +1,7 @@
 const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
 const { isMicrosoftFormUrl } = require('../shared/applications');
+const { guardPublicSection } = require('../shared/sectionAvailability');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -207,18 +208,28 @@ VALUES (
   }
 };
 
-module.exports = async function (context, req) {
+const defaultDeps = { guardPublicSection, listEvents, getReadableEvent };
+
+module.exports = async function (context, req, overrides = {}) {
+  const deps = { ...defaultDeps, ...overrides };
   try {
     if (req.method === 'GET') {
+      const unavailable = await deps.guardPublicSection(req, 'events', {
+        logger: context.log,
+      });
+      if (unavailable) {
+        context.res = unavailable;
+        return;
+      }
       const principal = getClientPrincipal(req);
       const includeDrafts = Boolean(principal && principal.userRoles.includes(ROLES.EDITOR));
       const lookup = lookupFromQuery(req.query);
       if (lookup) {
-        const event = await getReadableEvent(lookup, includeDrafts);
+        const event = await deps.getReadableEvent(lookup, includeDrafts);
         context.res = { status: 200, body: { events: event ? [event] : [] } };
         return;
       }
-      context.res = { status: 200, body: { events: await listEvents(includeDrafts) } };
+      context.res = { status: 200, body: { events: await deps.listEvents(includeDrafts) } };
       return;
     }
 

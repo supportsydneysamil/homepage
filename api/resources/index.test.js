@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { validateResourceInput, validateResourceUpdate, toResourceResponse } = require('./index');
+const handler = require('./index');
+const { validateResourceInput, validateResourceUpdate, toResourceResponse } = handler;
 
 test('defaults category and visibility when they are omitted', () => {
   const result = validateResourceInput({
@@ -209,4 +210,33 @@ test('the response never exposes a storage url', () => {
   assert.strictEqual(response.downloadUrl, '/api/files/download/11111111-1111-1111-1111-111111111111');
   assert.strictEqual(response.blobPath, undefined);
   assert.ok(!JSON.stringify(response).includes('blob.core.windows.net'));
+});
+
+test('GET checks the resources section before reading and returns a blocked response unchanged', async () => {
+  const order = [];
+  const blocked = {
+    status: 404,
+    headers: { 'Cache-Control': 'no-store' },
+    body: { code: 'SECTION_UNAVAILABLE', error: 'Unavailable.', errorKo: '이용할 수 없습니다.' },
+  };
+  const context = {
+    res: null,
+    log: Object.assign(() => {}, { error: () => {} }),
+  };
+  await handler(
+    context,
+    { method: 'GET', query: { id: 'r1' }, headers: {} },
+    {
+      guardPublicSection: async (req, section) => {
+        order.push(`guard:${section}`);
+        return blocked;
+      },
+      listResources: async () => {
+        order.push('read');
+        return [];
+      },
+    }
+  );
+  assert.deepStrictEqual(order, ['guard:resources']);
+  assert.deepStrictEqual(context.res, blocked);
 });

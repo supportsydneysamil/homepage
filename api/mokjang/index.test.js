@@ -200,6 +200,7 @@ const fakeReads = () => {
   const calls = { list: [], single: [] };
   return {
     calls,
+    guardPublicSection: async () => null,
     listMokjangRows: async (includeDrafts) => {
       calls.list.push({ includeDrafts });
       return [{ ...row, ShepherdName: '김목자', IsPublished: 1 }];
@@ -244,6 +245,45 @@ test('a signed-out slug read asks for no drafts and no shepherd names', async ()
   ]);
   assert.deepStrictEqual(context.res.body, { mokjangs: [] });
   assert.strictEqual(context.res.headers['Cache-Control'], 'private, no-store');
+});
+
+test('GET checks the mokjang section before a list read and stops when blocked', async () => {
+  const order = [];
+  const blocked = {
+    status: 404,
+    headers: { 'Cache-Control': 'no-store' },
+    body: { code: 'SECTION_UNAVAILABLE', error: 'Unavailable.', errorKo: '이용할 수 없습니다.' },
+  };
+  const context = contextOf();
+  await handler(context, getRequest(null), {
+    guardPublicSection: async (req, section) => {
+      order.push(`guard:${section}`);
+      return blocked;
+    },
+    listMokjangRows: async () => {
+      order.push('list');
+      return [];
+    },
+  });
+  assert.deepStrictEqual(order, ['guard:mokjang']);
+  assert.deepStrictEqual(context.res, blocked);
+});
+
+test('GET checks the mokjang section before a detail read', async () => {
+  const order = [];
+  const context = contextOf();
+  await handler(context, getRequest(null, { slug: 'chiangmai' }), {
+    guardPublicSection: async (req, section) => {
+      order.push(`guard:${section}`);
+      return null;
+    },
+    getReadableMokjang: async () => {
+      order.push('detail');
+      return null;
+    },
+  });
+  assert.deepStrictEqual(order, ['guard:mokjang', 'detail']);
+  assert.strictEqual(context.res.status, 200);
 });
 
 const COVER_ID = '11111111-2222-3333-4444-555555555555';

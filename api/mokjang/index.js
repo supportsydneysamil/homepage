@@ -1,6 +1,7 @@
 const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
 const { deleteBlob, MOKJANG_FOLDER } = require('../shared/blob');
+const { guardPublicSection } = require('../shared/sectionAvailability');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -286,12 +287,20 @@ const setCover = (pool, mokjangId, coverId, actor) =>
     .input('actor', sql.NVarChar(256), actor)
     .query(SET_COVER_SQL);
 
-const defaultDeps = { listMokjangRows, getReadableMokjang };
+const defaultDeps = { guardPublicSection, listMokjangRows, getReadableMokjang };
 
-module.exports = async function (context, req, deps = defaultDeps) {
+module.exports = async function (context, req, overrides = {}) {
+  const deps = { ...defaultDeps, ...overrides };
   try {
     // Replies differ by who is signed in, so no shared cache may keep them.
     if (req.method === 'GET') {
+      const unavailable = await deps.guardPublicSection(req, 'mokjang', {
+        logger: context.log,
+      });
+      if (unavailable) {
+        context.res = unavailable;
+        return;
+      }
       const principal = getClientPrincipal(req);
       const includeDrafts = Boolean(principal && principal.userRoles.includes(ROLES.EDITOR));
       const includeMembers = canSeeMembers(principal);
