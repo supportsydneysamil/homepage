@@ -1,6 +1,5 @@
 import {
   PUBLIC_SECTION_NAV,
-  type PublicSection,
   type SectionAvailability,
 } from '../../lib/sectionAvailability';
 import SettingsPanel from './SettingsPanel';
@@ -30,7 +29,7 @@ const SectionAvailabilityFields = ({
       >
         <div className="settings-items">
           {PUBLIC_SECTION_NAV.map((item) => {
-            const section = item.href.slice(1) as PublicSection;
+            const section = item.section;
             return (
               <label className="settings-item" key={section}>
                 <span className="settings-toggle">

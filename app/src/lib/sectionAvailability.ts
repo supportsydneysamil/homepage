@@ -10,6 +10,7 @@ export const PUBLIC_SECTION_KEYS = [
 
 export type PublicSection = (typeof PUBLIC_SECTION_KEYS)[number];
 export type SectionAvailability = Record<PublicSection, boolean>;
+export type PublicSectionRenderState = 'available' | 'loading' | 'unavailable';
 
 const availabilityWith = (value: boolean): SectionAvailability =>
   Object.fromEntries(
@@ -47,14 +48,15 @@ export const parseSectionAvailability = (input: unknown): SectionAvailability =>
 };
 
 export const PUBLIC_SECTION_NAV = [
-  { href: '/about', labelEn: 'About', labelKo: '소개' },
-  { href: '/worship', labelEn: 'Worship', labelKo: '예배' },
-  { href: '/mokjang', labelEn: 'House Church', labelKo: '목장' },
-  { href: '/events', labelEn: 'Events', labelKo: '이벤트' },
-  { href: '/sermons', labelEn: 'Sermons', labelKo: '설교' },
-  { href: '/resources', labelEn: 'Resources', labelKo: '자료·신청' },
-  { href: '/contact', labelEn: 'Contact', labelKo: '문의' },
+  { section: 'about', href: '/about', labelEn: 'About', labelKo: '소개' },
+  { section: 'worship', href: '/worship', labelEn: 'Worship', labelKo: '예배' },
+  { section: 'mokjang', href: '/mokjang', labelEn: 'House Church', labelKo: '목장' },
+  { section: 'events', href: '/events', labelEn: 'Events', labelKo: '이벤트' },
+  { section: 'sermons', href: '/sermons', labelEn: 'Sermons', labelKo: '설교' },
+  { section: 'resources', href: '/resources', labelEn: 'Resources', labelKo: '자료·신청' },
+  { section: 'contact', href: '/contact', labelEn: 'Contact', labelKo: '문의' },
 ] as const satisfies ReadonlyArray<{
+  section: PublicSection;
   href: string;
   labelEn: string;
   labelKo: string;
@@ -82,3 +84,14 @@ export const isPublicHrefEnabled = (
   href: string,
   availability: SectionAvailability
 ): boolean => isSectionEnabled(availability, sectionForPath(href));
+
+export const publicSectionRenderState = (
+  pathname: string,
+  availability: SectionAvailability,
+  isLoading: boolean
+): PublicSectionRenderState => {
+  const section = sectionForPath(pathname);
+  if (!section) return 'available';
+  if (isLoading) return 'loading';
+  return availability[section] ? 'available' : 'unavailable';
+};

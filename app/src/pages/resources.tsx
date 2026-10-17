@@ -16,6 +16,8 @@ import { useLanguage } from '../lib/LanguageContext';
 import type { PageMeta } from '../lib/pageMeta';
 import { formatDisplayDate } from '../lib/presentation';
 import { todayStamp } from '../lib/events';
+import { isPublicHrefEnabled } from '../lib/sectionAvailability';
+import { useSiteSettings } from '../lib/ThemeContext';
 import { fetchApplications, fetchResources, useContent, type ApiApplication, type ApiResource } from '../lib/contentApi';
 import {
   RESOURCE_CATEGORIES,
@@ -40,6 +42,7 @@ const Resources: NextPage & {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const router = useRouter();
+  const { sectionAvailability } = useSiteSettings();
   const { items: resources, isLoading, error } = useContent<ApiResource>(fetchResources);
   const applications = useContent<ApiApplication>(fetchApplications);
   const [section, setSection] = useState<'files' | 'apply'>('files');
@@ -69,6 +72,7 @@ const Resources: NextPage & {
   const today = todayStamp();
   const publishedApplications = applications.items.filter((item) => item.published);
   const matchedApplications = filterApplications(publishedApplications, applicationCategory, applicationSearch);
+  const contactEnabled = isPublicHrefEnabled('/contact', sectionAvailability);
 
   const showFrom = (nextCategory: ResourceCategory | 'all', nextSearch: string) => {
     setCategory(nextCategory);
@@ -247,8 +251,8 @@ const Resources: NextPage & {
               ? '확인된 주보와 자료가 준비되는 대로 이곳에 추가하겠습니다. 로그인하시면 더 많은 자료가 보일 수 있습니다.'
               : 'Verified bulletins and resources will appear here soon. Signing in may reveal more.'
           }
-          href="/contact"
-          linkLabel={isKo ? '자료 문의하기' : 'Ask about a resource'}
+          href={contactEnabled ? '/contact' : undefined}
+          linkLabel={contactEnabled ? (isKo ? '자료 문의하기' : 'Ask about a resource') : undefined}
         />
       ) : null}
 

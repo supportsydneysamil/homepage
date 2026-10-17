@@ -8,6 +8,7 @@ import {
   isPublicHrefEnabled,
   isSectionEnabled,
   parseSectionAvailability,
+  publicSectionRenderState,
   sectionForPath,
   type PublicSection,
   type SectionAvailability,
@@ -31,15 +32,20 @@ test('defines the public menu contract in display order', () => {
   assert.deepEqual(DEFAULT_SECTION_AVAILABILITY, all(true));
   assert.deepEqual(CLOSED_SECTION_AVAILABILITY, all(false));
   assert.deepEqual(
-    PUBLIC_SECTION_NAV.map(({ href, labelEn, labelKo }) => ({ href, labelEn, labelKo })),
+    PUBLIC_SECTION_NAV.map(({ section, href, labelEn, labelKo }) => ({
+      section,
+      href,
+      labelEn,
+      labelKo,
+    })),
     [
-      { href: '/about', labelEn: 'About', labelKo: '소개' },
-      { href: '/worship', labelEn: 'Worship', labelKo: '예배' },
-      { href: '/mokjang', labelEn: 'House Church', labelKo: '목장' },
-      { href: '/events', labelEn: 'Events', labelKo: '이벤트' },
-      { href: '/sermons', labelEn: 'Sermons', labelKo: '설교' },
-      { href: '/resources', labelEn: 'Resources', labelKo: '자료·신청' },
-      { href: '/contact', labelEn: 'Contact', labelKo: '문의' },
+      { section: 'about', href: '/about', labelEn: 'About', labelKo: '소개' },
+      { section: 'worship', href: '/worship', labelEn: 'Worship', labelKo: '예배' },
+      { section: 'mokjang', href: '/mokjang', labelEn: 'House Church', labelKo: '목장' },
+      { section: 'events', href: '/events', labelEn: 'Events', labelKo: '이벤트' },
+      { section: 'sermons', href: '/sermons', labelEn: 'Sermons', labelKo: '설교' },
+      { section: 'resources', href: '/resources', labelEn: 'Resources', labelKo: '자료·신청' },
+      { section: 'contact', href: '/contact', labelEn: 'Contact', labelKo: '문의' },
     ]
   );
 });
@@ -97,4 +103,26 @@ test('href checks ignore query and hash and leave uncontrolled links enabled', (
   assert.equal(isPublicHrefEnabled('/events?year=2026#october', availability), false);
   assert.equal(isPublicHrefEnabled('/manage/events?year=2026', availability), true);
   assert.equal(isPublicHrefEnabled('https://example.com/events', availability), true);
+});
+
+test('uncontrolled paths stay available while settings load', () => {
+  assert.equal(publicSectionRenderState('/', all(false), true), 'available');
+  assert.equal(publicSectionRenderState('/manage/settings', all(false), true), 'available');
+  assert.equal(publicSectionRenderState('/unknown', all(false), true), 'available');
+});
+
+test('controlled paths wait for settings before rendering', () => {
+  assert.equal(publicSectionRenderState('/about', all(true), true), 'loading');
+  assert.equal(publicSectionRenderState('/mokjang/detail', all(false), true), 'loading');
+});
+
+test('controlled paths render when their section is enabled', () => {
+  assert.equal(publicSectionRenderState('/events/community-day', all(true), false), 'available');
+});
+
+test('controlled paths are unavailable when their section is disabled', () => {
+  assert.equal(
+    publicSectionRenderState('/contact', { ...all(true), contact: false }, false),
+    'unavailable'
+  );
 });

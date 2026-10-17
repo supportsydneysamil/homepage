@@ -13,6 +13,7 @@ import {
   tileMeeting,
 } from '../../lib/mokjang';
 import type { PageMeta } from '../../lib/pageMeta';
+import { isPublicHrefEnabled } from '../../lib/sectionAvailability';
 import { localize, localizeOr, visibleQuestions, visibleStudies } from '../../lib/siteCopy';
 import { useSiteSettings } from '../../lib/ThemeContext';
 
@@ -21,12 +22,13 @@ const CONNECT_HREF = '/contact?topic=community';
 const MokjangPage: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
-  const { siteCopy } = useSiteSettings();
+  const { siteCopy, sectionAvailability } = useSiteSettings();
   const copy = siteCopy.mokjang;
   const { items, isLoading } = useContent<ApiMokjang>(fetchMokjangs);
   const mokjangs = sortMokjangs(items.filter((item) => item.published));
   const questions = visibleQuestions(copy.faq.items);
   const studies = visibleStudies(copy.study.items);
+  const contactEnabled = isPublicHrefEnabled(CONNECT_HREF, sectionAvailability);
 
   return (
     <article className="site-page mokjang-page">
@@ -36,9 +38,11 @@ const MokjangPage: NextPage & { meta?: PageMeta } = () => {
         description={localize(copy.hero.lead, lang)}
         actions={
           <>
-            <Link className="site-button site-button--primary" href={CONNECT_HREF}>
-              {localize(copy.hero.ctaConnect, lang)} <span aria-hidden="true">→</span>
-            </Link>
+            {contactEnabled ? (
+              <Link className="site-button site-button--primary" href={CONNECT_HREF}>
+                {localize(copy.hero.ctaConnect, lang)} <span aria-hidden="true">→</span>
+              </Link>
+            ) : null}
             <a className="site-button site-button--quiet" href="#mokjang-list">
               {localize(copy.hero.ctaBrowse, lang)} <span aria-hidden="true">↓</span>
             </a>
@@ -97,9 +101,11 @@ const MokjangPage: NextPage & { meta?: PageMeta } = () => {
         ) : (
           <div className="mokjang-empty">
             <p>{localize(copy.list.empty, lang)}</p>
-            <Link href={CONNECT_HREF} className="site-text-link">
-              {localize(copy.cta.button, lang)} <span aria-hidden="true">→</span>
-            </Link>
+            {contactEnabled ? (
+              <Link href={CONNECT_HREF} className="site-text-link">
+                {localize(copy.cta.button, lang)} <span aria-hidden="true">→</span>
+              </Link>
+            ) : null}
           </div>
         )}
       </section>
@@ -144,9 +150,11 @@ const MokjangPage: NextPage & { meta?: PageMeta } = () => {
         <p className="site-kicker">{localize(copy.cta.kicker, lang)}</p>
         <h2>{localize(copy.cta.title, lang)}</h2>
         <p>{localize(copy.cta.body, lang)}</p>
-        <Link className="site-button" href={CONNECT_HREF}>
-          {localize(copy.cta.button, lang)} <span aria-hidden="true">→</span>
-        </Link>
+        {contactEnabled ? (
+          <Link className="site-button" href={CONNECT_HREF}>
+            {localize(copy.cta.button, lang)} <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
       </section>
     </article>
   );
