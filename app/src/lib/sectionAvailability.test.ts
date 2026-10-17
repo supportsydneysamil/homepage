@@ -5,6 +5,8 @@ import {
   PUBLIC_SECTION_NAV,
   DEFAULT_SECTION_AVAILABILITY,
   CLOSED_SECTION_AVAILABILITY,
+  changedSections,
+  hiddenSections,
   homeDataRequests,
   isPublicHrefEnabled,
   isPublicHrefVisible,
@@ -175,5 +177,22 @@ test('public href visibility waits only for controlled section settings', () => 
   assert.equal(
     isPublicHrefVisible('https://example.com/events', all(false), true),
     true
+  );
+});
+
+test('hidden sections follow the menu order', () => {
+  assert.deepEqual(hiddenSections(all(true)), []);
+  assert.deepEqual(
+    hiddenSections({ ...all(true), contact: false, mokjang: false }),
+    ['mokjang', 'contact']
+  );
+});
+
+test('changed sections compare the draft with the published value in menu order', () => {
+  const published = { ...all(true), mokjang: false };
+  assert.deepEqual(changedSections(published, published), []);
+  assert.deepEqual(
+    changedSections({ ...published, sermons: false, mokjang: true }, published),
+    ['mokjang', 'sermons']
   );
 });

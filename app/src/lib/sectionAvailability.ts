@@ -130,3 +130,12 @@ export const publicSectionRenderState = (
   if (isLoading) return 'loading';
   return availability[section] ? 'available' : 'unavailable';
 };
+
+export const hiddenSections = (availability: SectionAvailability): PublicSection[] =>
+  PUBLIC_SECTION_KEYS.filter((section) => !availability[section]);
+
+export const changedSections = (
+  draft: SectionAvailability,
+  published: SectionAvailability
+): PublicSection[] =>
+  PUBLIC_SECTION_KEYS.filter((section) => draft[section] !== published[section]);
