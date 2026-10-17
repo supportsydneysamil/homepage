@@ -11,6 +11,12 @@ export const PUBLIC_SECTION_KEYS = [
 export type PublicSection = (typeof PUBLIC_SECTION_KEYS)[number];
 export type SectionAvailability = Record<PublicSection, boolean>;
 export type PublicSectionRenderState = 'available' | 'loading' | 'unavailable';
+export type HomeDataRequests = {
+  events: boolean;
+  sermons: boolean;
+  resources: boolean;
+  applications: boolean;
+};
 
 const availabilityWith = (value: boolean): SectionAvailability =>
   Object.fromEntries(
@@ -84,6 +90,35 @@ export const isPublicHrefEnabled = (
   href: string,
   availability: SectionAvailability
 ): boolean => isSectionEnabled(availability, sectionForPath(href));
+
+export const isPublicHrefVisible = (
+  href: string,
+  availability: SectionAvailability,
+  isLoading: boolean
+): boolean => {
+  const section = sectionForPath(href);
+  return section === null || (!isLoading && availability[section]);
+};
+
+export const homeDataRequests = (
+  availability: SectionAvailability,
+  isLoading: boolean
+): HomeDataRequests => {
+  if (isLoading) {
+    return {
+      events: false,
+      sermons: false,
+      resources: false,
+      applications: false,
+    };
+  }
+  return {
+    events: availability.events,
+    sermons: availability.sermons,
+    resources: availability.resources,
+    applications: availability.resources,
+  };
+};
 
 export const publicSectionRenderState = (
   pathname: string,

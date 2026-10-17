@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { formatShortDate } from '../../lib/presentation';
 import { useSiteSettings } from '../../lib/ThemeContext';
 import { localize } from '../../lib/siteCopy';
+import { isPublicHrefVisible } from '../../lib/sectionAvailability';
+import { filterWeeklyItemsByAvailability } from '../../lib/weeklyHighlights';
 import { getVisibleWeeklyItems, type Language, type WeeklyItem } from './homeContent';
 
 type WeeklyHighlightsProps = {
@@ -16,9 +18,20 @@ const WeeklyHighlights = ({
   now = new Date(),
 }: WeeklyHighlightsProps) => {
   const isKo = lang === 'ko';
-  const { siteCopy } = useSiteSettings();
+  const { siteCopy, sectionAvailability, isLoading } = useSiteSettings();
   const weekly = siteCopy.home.weekly;
-  const { active } = getVisibleWeeklyItems(items, now);
+  const emptyLinks = [
+    { href: '/events', label: isKo ? '행사 보기' : 'Events' },
+    { href: '/sermons', label: isKo ? '설교 듣기' : 'Sermons' },
+    { href: '/resources', label: isKo ? '자료실' : 'Resources' },
+  ].filter(({ href }) => isPublicHrefVisible(href, sectionAvailability, isLoading));
+
+  if (!emptyLinks.length) return null;
+
+  const { active } = getVisibleWeeklyItems(
+    filterWeeklyItemsByAvailability(items, sectionAvailability),
+    now
+  );
 
   return (
     <section className="home-section home-weekly" id="this-week">
@@ -49,9 +62,9 @@ const WeeklyHighlights = ({
         <div className="weekly-empty">
           <p>{localize(weekly.empty, lang)}</p>
           <div className="weekly-empty__links">
-            <Link href="/events">{isKo ? '행사 보기' : 'Events'}</Link>
-            <Link href="/sermons">{isKo ? '설교 듣기' : 'Sermons'}</Link>
-            <Link href="/resources">{isKo ? '자료실' : 'Resources'}</Link>
+            {emptyLinks.map((link) => (
+              <Link href={link.href} key={link.href}>{link.label}</Link>
+            ))}
           </div>
         </div>
       )}

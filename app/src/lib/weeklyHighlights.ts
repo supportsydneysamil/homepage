@@ -1,6 +1,10 @@
 import type { ApiEvent, ApiResource, ApiSermon } from './contentApi';
 import type { WeeklyItem } from '../components/home/homeContent';
 import { eventDetailPath } from './events';
+import {
+  isPublicHrefEnabled,
+  type SectionAvailability,
+} from './sectionAvailability';
 
 const addDays = (stamp: string, days: number) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(stamp);
@@ -10,6 +14,12 @@ const addDays = (stamp: string, days: number) => {
 };
 
 const stillCurrent = (expiresAt: string, today: string) => expiresAt >= today;
+
+export const filterWeeklyItemsByAvailability = (
+  items: WeeklyItem[],
+  availability: SectionAvailability
+): WeeklyItem[] =>
+  items.filter((item) => isPublicHrefEnabled(item.url, availability));
 
 export const weeklyItemsFromContent = ({
   events,

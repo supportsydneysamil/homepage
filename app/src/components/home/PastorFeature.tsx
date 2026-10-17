@@ -5,9 +5,17 @@ import { useSiteSettings } from '../../lib/ThemeContext';
 import { DEFAULT_PASTOR_IMAGE } from '../../lib/siteSettings';
 import { phoneHref } from '../../lib/churchInfo';
 import { localize } from '../../lib/siteCopy';
+import { isPublicHrefVisible } from '../../lib/sectionAvailability';
 
 const PastorFeature = ({ lang }: { lang: Language }) => {
-  const { pastorImageUrl, imagePresentation, churchInfo, siteCopy } = useSiteSettings();
+  const {
+    pastorImageUrl,
+    imagePresentation,
+    churchInfo,
+    siteCopy,
+    sectionAvailability,
+    isLoading,
+  } = useSiteSettings();
   const pastor = siteCopy.home.pastor;
   const name = lang === 'ko' ? churchInfo.pastorNameKo : churchInfo.pastorNameEn;
 
@@ -34,10 +42,12 @@ const PastorFeature = ({ lang }: { lang: Language }) => {
           <a href={phoneHref(churchInfo.phone)}>{churchInfo.phone}</a>
           <a href={`mailto:${churchInfo.email}`}>{churchInfo.email}</a>
         </div>
-        <Link href="/contact" className="home-button home-button--quiet">
-          {localize(pastor.contactCta, lang)}
-          <span aria-hidden="true">→</span>
-        </Link>
+        {isPublicHrefVisible('/contact', sectionAvailability, isLoading) ? (
+          <Link href="/contact" className="home-button home-button--quiet">
+            {localize(pastor.contactCta, lang)}
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
       </div>
     </section>
   );

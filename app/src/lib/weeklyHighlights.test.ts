@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert';
+import type { WeeklyItem } from '../components/home/homeContent';
 import type { ApiEvent, ApiResource, ApiSermon } from './contentApi';
-import { weeklyItemsFromContent } from './weeklyHighlights';
+import { DEFAULT_SECTION_AVAILABILITY } from './sectionAvailability';
+import {
+  filterWeeklyItemsByAvailability,
+  weeklyItemsFromContent,
+} from './weeklyHighlights';
 
 const event = (overrides: Partial<ApiEvent>): ApiEvent => ({
   id: 'e1',
@@ -71,4 +76,41 @@ test('ignores unpublished events and expired sermons', () => {
     today: '2026-09-23',
   });
   assert.deepStrictEqual(items, []);
+});
+
+test('filters weekly items by the section targeted by each URL', () => {
+  const item = (
+    id: string,
+    type: WeeklyItem['type'],
+    url: string
+  ): WeeklyItem => ({
+    id,
+    type,
+    titleEn: id,
+    titleKo: id,
+    summaryEn: id,
+    summaryKo: id,
+    date: '2026-09-23',
+    url,
+    expiresAt: '2026-09-30',
+  });
+  const items = [
+    item('event', 'event', '/events/detail?slug=picnic'),
+    item('sermon', 'sermon', '/sermons'),
+    item('bulletin', 'bulletin', '/resources#bulletins'),
+    item('external', 'sermon', 'https://example.com/watch'),
+  ];
+
+  assert.deepStrictEqual(
+    filterWeeklyItemsByAvailability(
+      items,
+      {
+        ...DEFAULT_SECTION_AVAILABILITY,
+        events: false,
+        resources: false,
+      }
+    )
+      .map(({ id }) => id),
+    ['sermon', 'external']
+  );
 });

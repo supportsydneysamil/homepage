@@ -5,7 +5,9 @@ import {
   PUBLIC_SECTION_NAV,
   DEFAULT_SECTION_AVAILABILITY,
   CLOSED_SECTION_AVAILABILITY,
+  homeDataRequests,
   isPublicHrefEnabled,
+  isPublicHrefVisible,
   isSectionEnabled,
   parseSectionAvailability,
   publicSectionRenderState,
@@ -124,5 +126,54 @@ test('controlled paths are unavailable when their section is disabled', () => {
   assert.equal(
     publicSectionRenderState('/contact', { ...all(true), contact: false }, false),
     'unavailable'
+  );
+});
+
+test('home data requests wait for settings and follow section availability', () => {
+  assert.deepEqual(homeDataRequests(all(true), true), {
+    events: false,
+    sermons: false,
+    resources: false,
+    applications: false,
+  });
+  assert.deepEqual(homeDataRequests(all(true), false), {
+    events: true,
+    sermons: true,
+    resources: true,
+    applications: true,
+  });
+  assert.deepEqual(
+    homeDataRequests(
+      {
+        ...all(true),
+        events: false,
+        resources: false,
+      },
+      false
+    ),
+    {
+      events: false,
+      sermons: true,
+      resources: false,
+      applications: false,
+    }
+  );
+});
+
+test('public href visibility waits only for controlled section settings', () => {
+  assert.equal(isPublicHrefVisible('/events', all(true), true), false);
+  assert.equal(
+    isPublicHrefVisible(
+      '/events/detail?slug=picnic#details',
+      { ...all(true), events: false },
+      false
+    ),
+    false
+  );
+  assert.equal(isPublicHrefVisible('/sermons', all(true), false), true);
+  assert.equal(isPublicHrefVisible('/manage/events', all(false), true), true);
+  assert.equal(
+    isPublicHrefVisible('https://example.com/events', all(false), true),
+    true
   );
 });

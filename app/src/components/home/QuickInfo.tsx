@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Language } from './homeContent';
 import { useSiteSettings } from '../../lib/ThemeContext';
 import { localize } from '../../lib/siteCopy';
+import { isPublicHrefVisible } from '../../lib/sectionAvailability';
 
 const ArrowIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -11,13 +12,15 @@ const ArrowIcon = () => (
 
 const QuickInfo = ({ lang }: { lang: Language }) => {
   const isKo = lang === 'ko';
-  const { siteCopy } = useSiteSettings();
+  const { siteCopy, sectionAvailability, isLoading } = useSiteSettings();
   const quick = siteCopy.home.quick;
   const links = [
     { href: '/sermons', title: quick.sermons, hint: quick.sermonsHint },
     { href: '/events', title: quick.events, hint: quick.eventsHint },
     { href: '/resources', title: quick.resources, hint: quick.resourcesHint },
-  ];
+  ].filter(({ href }) => isPublicHrefVisible(href, sectionAvailability, isLoading));
+
+  if (!links.length) return null;
 
   return (
     <nav className="home-quick-info" aria-label={isKo ? '바로가기' : 'Shortcuts'}>

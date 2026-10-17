@@ -17,22 +17,34 @@ import { useLanguage } from '../lib/LanguageContext';
 import { HOME_DESCRIPTION, type PageMeta } from '../lib/pageMeta';
 import { churchJsonLd, serializeJsonLd } from '../lib/structuredData';
 import { useSiteSettings } from '../lib/ThemeContext';
-import { weeklyItemsFromContent } from '../lib/weeklyHighlights';
+import { homeDataRequests } from '../lib/sectionAvailability';
+import {
+  filterWeeklyItemsByAvailability,
+  weeklyItemsFromContent,
+} from '../lib/weeklyHighlights';
 
 const Home: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
-  const { churchInfo, logoImageUrl } = useSiteSettings();
+  const { churchInfo, logoImageUrl, sectionAvailability, isLoading } = useSiteSettings();
   const [items, setItems] = useState<WeeklyItem[]>([]);
   const [applications, setApplications] = useState<ApiApplication[]>([]);
+  const requests = homeDataRequests(sectionAvailability, isLoading);
 
   useEffect(() => {
     let cancelled = false;
+    setItems((current) => filterWeeklyItemsByAvailability(current, sectionAvailability));
+    if (!requests.applications) setApplications([]);
+    if (!requests.events && !requests.sermons && !requests.resources && !requests.applications) {
+      return () => {
+        cancelled = true;
+      };
+    }
     const load = async () => {
       const [events, sermons, resources, forms] = await Promise.all([
-        fetchEvents().catch(() => []),
-        fetchSermons().catch(() => []),
-        fetchResources().catch(() => []),
-        fetchApplications().catch(() => []),
+        requests.events ? fetchEvents().catch(() => []) : [],
+        requests.sermons ? fetchSermons().catch(() => []) : [],
+        requests.resources ? fetchResources().catch(() => []) : [],
+        requests.applications ? fetchApplications().catch(() => []) : [],
       ]);
       if (!cancelled) {
         setItems(weeklyItemsFromContent({ events, sermons, resources, today: todayStamp() }));
@@ -43,7 +55,7 @@ const Home: NextPage & { meta?: PageMeta } = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [requests.applications, requests.events, requests.resources, requests.sermons]);
 
   return (
     <div className="home-page">

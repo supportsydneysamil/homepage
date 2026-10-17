@@ -4,14 +4,18 @@ import type { ApiApplication } from '../../lib/contentApi';
 import { todayStamp } from '../../lib/events';
 import { localize } from '../../lib/siteCopy';
 import { useSiteSettings } from '../../lib/ThemeContext';
+import { isPublicHrefVisible } from '../../lib/sectionAvailability';
 import type { Language } from './homeContent';
 
 const OpenApplications = ({ items, lang }: { items: ApiApplication[]; lang: Language }) => {
   const isKo = lang === 'ko';
-  const { siteCopy } = useSiteSettings();
+  const { siteCopy, sectionAvailability, isLoading } = useSiteSettings();
   const copy = siteCopy.home.applications;
   const highlighted = highlightedApplications(items, todayStamp());
-  if (!highlighted.length) return null;
+  if (
+    !isPublicHrefVisible('/resources', sectionAvailability, isLoading) ||
+    !highlighted.length
+  ) return null;
 
   return (
     <section className="home-section home-next-steps" aria-labelledby="open-applications-title">
