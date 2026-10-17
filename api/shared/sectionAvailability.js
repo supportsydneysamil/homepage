@@ -114,7 +114,7 @@ const sectionUnavailableResponse = () => ({
 });
 
 const guardPublicSection = async (req, section, options = {}) => {
-  if (isManagementRequest(req)) return null;
+  if (options.allowManagement !== false && isManagementRequest(req)) return null;
 
   const readAvailability =
     options.readAvailability || readCurrentSectionAvailability;

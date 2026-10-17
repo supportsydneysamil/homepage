@@ -204,6 +204,23 @@ test('editors and admins bypass a disabled section without reading settings', as
   }
 });
 
+test('allowManagement false blocks an admin and reads the current setting', async () => {
+  let reads = 0;
+  const expected = sectionUnavailableResponse();
+  const response = await callGuard(requestFor(['admin']), 'contact', {
+    allowManagement: false,
+    readAvailability: async () => {
+      reads += 1;
+      return {
+        value: { ...all(true), contact: false },
+        malformed: false,
+      };
+    },
+  });
+  assert.deepEqual(response, expected);
+  assert.equal(reads, 1);
+});
+
 test('malformed stored availability logs briefly and fails closed', async () => {
   const errors = [];
   const response = await callGuard(requestFor(null), 'events', {

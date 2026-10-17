@@ -2,17 +2,18 @@ const { sql, getPool, withSchema } = require('../shared/db');
 const { getClientPrincipal } = require('../shared/principal');
 const { canSee, DEFAULT_VISIBILITY } = require('../shared/library');
 const { createReadSas, displayFileName, readDisposition } = require('../shared/blob');
+const { guardPublicSection } = require('../shared/sectionAvailability');
 
 // Event and house church photos are shown on public pages, so they are public.
 // Sermon attachments have no visibility column and stay at the member level.
 const FILE_LOOKUP_SQL = `
-SELECT BlobPath, Visibility, ContentType FROM dbo.Resources WHERE Id = @id
+SELECT BlobPath, Visibility, ContentType, 'resources' AS Section FROM dbo.Resources WHERE Id = @id
 UNION ALL
-SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.SermonFiles WHERE Id = @id
+SELECT BlobPath, '${DEFAULT_VISIBILITY}' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType, 'sermons' AS Section FROM dbo.SermonFiles WHERE Id = @id
 UNION ALL
-SELECT BlobPath, 'public' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.EventImages WHERE Id = @id
+SELECT BlobPath, 'public' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType, 'events' AS Section FROM dbo.EventImages WHERE Id = @id
 UNION ALL
-SELECT BlobPath, 'public' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType FROM dbo.MokjangImages WHERE Id = @id;
+SELECT BlobPath, 'public' AS Visibility, CAST(NULL AS nvarchar(150)) AS ContentType, 'mokjang' AS Section FROM dbo.MokjangImages WHERE Id = @id;
 `;
 
 const lookupFile = async (id) =>
@@ -25,21 +26,20 @@ const lookupFile = async (id) =>
     return {
       blobPath: row.BlobPath,
       visibility: row.Visibility,
+      section: row.Section,
       contentDisposition: row.ContentType && fileName ? readDisposition(fileName, row.ContentType) : undefined,
     };
   });
 
-const defaultDeps = { lookupFile, createReadSas };
+const defaultDeps = { lookupFile, guardPublicSection, createReadSas };
 
-module.exports = async function (context, req, deps = defaultDeps) {
+module.exports = async function (context, req, overrides = {}) {
+  const deps = { ...defaultDeps, ...overrides };
   const id = String((req.params && req.params.id) || '').trim();
   if (!id) {
     context.res = { status: 400, body: { error: 'File id is required.' } };
     return;
   }
-
-  const principal = getClientPrincipal(req);
-  const userRoles = principal ? principal.userRoles : [];
 
   try {
     const file = await deps.lookupFile(id);
@@ -48,6 +48,16 @@ module.exports = async function (context, req, deps = defaultDeps) {
       return;
     }
 
+    const unavailable = await deps.guardPublicSection(req, file.section, {
+      logger: context.log,
+    });
+    if (unavailable) {
+      context.res = unavailable;
+      return;
+    }
+
+    const principal = getClientPrincipal(req);
+    const userRoles = principal ? principal.userRoles : [];
     if (!canSee(file.visibility, userRoles)) {
       context.res = principal
         ? {

@@ -1,6 +1,8 @@
 const { EmailClient } = require('@azure/communication-email');
+const { guardPublicSection } = require('../shared/sectionAvailability');
 
 const getEnv = (name) => process.env[name] || '';
+const createEmailClient = (connectionString) => new EmailClient(connectionString);
 
 const parseBody = (req) => {
   if (req.body && typeof req.body === 'object') return req.body;
@@ -50,9 +52,27 @@ const buildContactEmail = ({ name, email, phone, message, topic, share }) => {
   return { subject, text };
 };
 
-module.exports = async function (context, req) {
+const defaultDeps = { guardPublicSection, createEmailClient };
+
+module.exports = async function (context, req, overrides = {}) {
+  const deps = { ...defaultDeps, ...overrides };
   if (req.method && req.method.toUpperCase() !== 'POST') {
     context.res = { status: 405, body: { error: 'Method not allowed.' } };
+    return;
+  }
+
+  try {
+    const unavailable = await deps.guardPublicSection(req, 'contact', {
+      allowManagement: false,
+      logger: context.log,
+    });
+    if (unavailable) {
+      context.res = unavailable;
+      return;
+    }
+  } catch (error) {
+    context.log.error('contact availability error:', (error && error.message) || error);
+    context.res = { status: 500, body: { error: 'Unable to process contact request.' } };
     return;
   }
 
@@ -89,7 +109,7 @@ module.exports = async function (context, req) {
   });
 
   try {
-    const client = new EmailClient(connectionString);
+    const client = deps.createEmailClient(connectionString);
     const poller = await client.beginSend({
       senderAddress: fromEmail,
       replyTo: [{ address: email, displayName: name }],
