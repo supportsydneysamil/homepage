@@ -5,6 +5,7 @@ import {
   audienceLabel,
   clockLabel,
   contactPrefill,
+  coverFirst,
   dayLabel,
   detailMeeting,
   initialOf,
@@ -172,4 +173,20 @@ test('an empty form still sends every field', () => {
   assert.strictEqual(payload.language, 'ko');
   assert.strictEqual(payload.kidsWelcome, false);
   assert.strictEqual(payload.published, true);
+});
+
+test('the chosen cover moves to the front of the photo list', () => {
+  const photos = ['/api/files/download/a', '/api/files/download/b', '/api/files/download/c'];
+  assert.deepStrictEqual(coverFirst(photos, '/api/files/download/c'), [
+    '/api/files/download/c',
+    '/api/files/download/a',
+    '/api/files/download/b',
+  ]);
+  assert.deepStrictEqual(coverFirst(photos, null), photos);
+  assert.deepStrictEqual(coverFirst(photos, '/api/files/download/removed'), photos);
+});
+
+test('the chosen cover id travels with the form payload', () => {
+  assert.strictEqual(mokjangPayloadFromForm({}, [], 'img-1').coverImageId, 'img-1');
+  assert.strictEqual(mokjangPayloadFromForm({}, []).coverImageId, '');
 });

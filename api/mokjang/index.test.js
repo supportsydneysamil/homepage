@@ -245,3 +245,22 @@ test('a signed-out slug read asks for no drafts and no shepherd names', async ()
   assert.deepStrictEqual(context.res.body, { mokjangs: [] });
   assert.strictEqual(context.res.headers['Cache-Control'], 'private, no-store');
 });
+
+const COVER_ID = '11111111-2222-3333-4444-555555555555';
+
+test('accepts a cover photo id and treats an empty one as none', () => {
+  assert.strictEqual(validateMokjangInput({ ...complete, coverImageId: ` ${COVER_ID} ` }).value.coverImageId, COVER_ID);
+  assert.strictEqual(validateMokjangInput({ ...complete, coverImageId: '' }).value.coverImageId, null);
+  assert.strictEqual(validateMokjangInput(complete).value.coverImageId, null);
+});
+
+test('rejects a cover photo id that is not a photo id', () => {
+  const result = validateMokjangInput({ ...complete, coverImageId: '/api/files/download/abc' });
+  assert.strictEqual(result.errorKo, '대표 사진 정보가 올바르지 않습니다.');
+});
+
+test('moves the chosen cover ahead of the other photos of the same 목장 only', () => {
+  const { SET_COVER_SQL } = handler;
+  assert.match(SET_COVER_SQL, /SET SortOrder = \(SELECT MIN\(SortOrder\) - 1 FROM dbo\.MokjangImages WHERE MokjangId = @mokjangId\)/);
+  assert.match(SET_COVER_SQL, /WHERE Id = @coverId AND MokjangId = @mokjangId/);
+});

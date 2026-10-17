@@ -79,6 +79,8 @@ const render = (overrides: Partial<ComponentProps<typeof MokjangManager>> = {}) 
       onConfirmDelete: noop,
       onCancelDelete: noop,
       onRemovePhoto: noop,
+      coverPending: false,
+      onChooseCover: noop,
       ...overrides,
     })
   );
@@ -103,4 +105,27 @@ test('the editor shows the current photos and the saved shepherd name', () => {
   assert.match(html, /등록된 사진 1장/);
   assert.match(html, /src="\/api\/files\/download\/a"/);
   assert.match(html, /value="김목자"/);
+});
+
+test('the first photo is marked as the cover and the others can become it', () => {
+  const chosen: string[] = [];
+  const html = render({
+    showEditor: true,
+    editing: mokjang,
+    photos: ['/api/files/download/a', '/api/files/download/b', '/api/files/download/c'],
+    onChooseCover: (image: string) => chosen.push(image),
+  });
+  assert.strictEqual((html.match(/class="manage-gallery__cover"/g) || []).length, 1);
+  assert.strictEqual((html.match(/대표 사진으로/g) || []).length, 2);
+  assert.doesNotMatch(html, /저장하면 대표 사진이 바뀝니다/);
+});
+
+test('a cover chosen but not yet saved is announced', () => {
+  const html = render({
+    showEditor: true,
+    editing: mokjang,
+    photos: ['/api/files/download/b', '/api/files/download/a'],
+    coverPending: true,
+  });
+  assert.match(html, /저장하면 대표 사진이 바뀝니다/);
 });
