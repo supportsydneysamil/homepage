@@ -3,6 +3,10 @@ import {
   parseImagePresentation,
   type SiteImagePresentation,
 } from './imagePresentation';
+import {
+  parseSectionAvailability,
+  type SectionAvailability,
+} from './sectionAvailability';
 import { parseSiteCopy, type SiteCopy } from './siteCopy';
 
 export const DEFAULT_HERO_IMAGE = '/church-hero.jpg';
@@ -19,6 +23,7 @@ export type SiteSettings = {
   imagePresentation: SiteImagePresentation;
   churchInfo: ChurchInfo;
   siteCopy: SiteCopy;
+  sectionAvailability: SectionAvailability;
 };
 
 export type SiteSettingsPayload = {
@@ -29,6 +34,7 @@ export type SiteSettingsPayload = {
   imagePresentation: SiteImagePresentation;
   churchInfo: ChurchInfo;
   siteCopy: SiteCopy;
+  sectionAvailability: SectionAvailability;
 };
 
 type PendingImage = 'keep' | 'reset' | { uploadedPath: string };
@@ -49,6 +55,7 @@ export const parseSiteSettings = (input: unknown): SiteSettings => {
     imagePresentation: parseImagePresentation(data.imagePresentation),
     churchInfo: parseChurchInfo(data.churchInfo),
     siteCopy: parseSiteCopy(data.siteCopy),
+    sectionAvailability: parseSectionAvailability(data.sectionAvailability),
   };
 };
 
@@ -90,7 +97,10 @@ export const putSiteSettings = async (
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        sectionAvailability: parseSectionAvailability(payload.sectionAvailability),
+      }),
     });
     if (!res.ok) {
       const detail = await res.text();

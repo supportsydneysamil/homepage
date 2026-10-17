@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { DEFAULT_CHURCH_INFO } from './churchInfo';
 import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
+import {
+  CLOSED_SECTION_AVAILABILITY,
+  DEFAULT_SECTION_AVAILABILITY,
+} from './sectionAvailability';
 import { DEFAULT_SITE_COPY } from './siteCopy';
 import {
   DEFAULT_HERO_IMAGE,
@@ -25,8 +29,19 @@ test('null api urls become built-in paths', () => {
   assert.strictEqual(settings.logoImagePath, null);
   assert.strictEqual(settings.logoImageUrl, '');
   assert.deepStrictEqual(settings.imagePresentation, DEFAULT_IMAGE_PRESENTATION);
+  assert.deepStrictEqual(settings.sectionAvailability, DEFAULT_SECTION_AVAILABILITY);
   assert.strictEqual(settings.churchInfo.email, 'info@sydneysamil.org');
   assert.ok(settings.siteCopy.about.values.length);
+});
+
+test('malformed section availability from the api fails closed', () => {
+  const settings = parseSiteSettings({
+    themeId: 'church',
+    sectionAvailability: { events: 'false' },
+  });
+  assert.deepStrictEqual(settings.sectionAvailability, CLOSED_SECTION_AVAILABILITY);
+  assert.strictEqual(settings.churchInfo.email, 'info@sydneysamil.org');
+  assert.ok(settings.siteCopy.home.hero.lead.en);
 });
 
 test('uploaded urls win over defaults', () => {
@@ -60,8 +75,10 @@ test('a broken remote image falls back once', () => {
 
 test('putSiteSettings returns parsed settings when fetch succeeds', async () => {
   const original = globalThis.fetch;
-  globalThis.fetch = async () =>
-    ({
+  let sentBody = '';
+  globalThis.fetch = async (_input, init) => {
+    sentBody = String(init?.body || '');
+    return {
       ok: true,
       json: async () => ({
         themeId: 'light',
@@ -71,8 +88,10 @@ test('putSiteSettings returns parsed settings when fetch succeeds', async () => 
         heroImageUrl: 'https://example.test/site/a.jpg',
         pastorImageUrl: null,
         logoImageUrl: 'https://example.test/site/logo.png',
+        sectionAvailability: { ...DEFAULT_SECTION_AVAILABILITY, contact: false },
       }),
-    }) as Response;
+    } as Response;
+  };
   try {
     const result = await putSiteSettings({
       themeId: 'light',
@@ -82,11 +101,17 @@ test('putSiteSettings returns parsed settings when fetch succeeds', async () => 
       imagePresentation: DEFAULT_IMAGE_PRESENTATION,
       churchInfo: DEFAULT_CHURCH_INFO,
       siteCopy: DEFAULT_SITE_COPY,
+      sectionAvailability: { ...DEFAULT_SECTION_AVAILABILITY, contact: false },
     });
     assert.strictEqual(result.ok, true);
+    assert.deepStrictEqual(
+      JSON.parse(sentBody).sectionAvailability,
+      { ...DEFAULT_SECTION_AVAILABILITY, contact: false }
+    );
     if (result.ok) {
       assert.strictEqual(result.settings.heroImagePath, 'site/a.jpg');
       assert.strictEqual(result.settings.logoImagePath, 'site/logo.png');
+      assert.strictEqual(result.settings.sectionAvailability.contact, false);
       assert.ok(result.settings.churchInfo.email);
       assert.ok(result.settings.siteCopy.home.hero.lead.en);
     }
