@@ -4,6 +4,7 @@ import { type ThemeId, useSiteSettings } from '../../lib/ThemeContext';
 import { useLanguage } from '../../lib/LanguageContext';
 import AppearanceFields from './AppearanceFields';
 import ChurchInfoFields from './ChurchInfoFields';
+import SectionAvailabilityFields from './SectionAvailabilityFields';
 import { SettingsValidationProvider } from './SettingsValidationContext';
 import SiteCopyFields from './SiteCopyFields';
 import { parseChurchInfo, type ChurchInfo } from '../../lib/churchInfo';
@@ -14,6 +15,10 @@ import {
   type SiteImagePresentation,
 } from '../../lib/imagePresentation';
 import { parseSiteCopy, type SiteCopy } from '../../lib/siteCopy';
+import {
+  parseSectionAvailability,
+  type SectionAvailability,
+} from '../../lib/sectionAvailability';
 import { dirtySettingsTabs } from '../../lib/settingsDraft';
 import {
   settingsValidationMessage,
@@ -52,6 +57,7 @@ const SettingsWorkspace = () => {
     imagePresentation,
     churchInfo,
     siteCopy,
+    sectionAvailability,
     saveSettings,
     setPreviewTheme,
   } = useSiteSettings();
@@ -67,6 +73,10 @@ const SettingsWorkspace = () => {
   const [logoReset, setLogoReset] = useState(false);
   const [draftChurchInfo, setDraftChurchInfo] = useState<ChurchInfo>(churchInfo);
   const [draftSiteCopy, setDraftSiteCopy] = useState<SiteCopy>(siteCopy);
+  const [draftSectionAvailability, setDraftSectionAvailability] =
+    useState<SectionAvailability>(
+      parseSectionAvailability(sectionAvailability)
+    );
   const [draftImagePresentation, setDraftImagePresentation] =
     useState<SiteImagePresentation>(imagePresentation);
   const [status, setStatus] = useState<{
@@ -92,6 +102,12 @@ const SettingsWorkspace = () => {
   useEffect(() => {
     setDraftSiteCopy(parseSiteCopy(siteCopy));
   }, [siteCopy]);
+
+  useEffect(() => {
+    setDraftSectionAvailability(
+      parseSectionAvailability(sectionAvailability)
+    );
+  }, [sectionAvailability]);
 
   useEffect(() => {
     setDraftImagePresentation(parseImagePresentation(imagePresentation));
@@ -136,6 +152,8 @@ const SettingsWorkspace = () => {
         ),
         currentImagePresentation: imagePresentation,
         draftImagePresentation,
+        currentSectionAvailability: sectionAvailability,
+        draftSectionAvailability,
       }),
     [
       themeId,
@@ -155,6 +173,8 @@ const SettingsWorkspace = () => {
       pastorImagePath,
       imagePresentation,
       draftImagePresentation,
+      sectionAvailability,
+      draftSectionAvailability,
     ]
   );
   const isDirty = dirtyTabs.length > 0;
@@ -209,11 +229,12 @@ const SettingsWorkspace = () => {
         appearance: isKo ? '디자인' : 'Appearance',
         church: isKo ? '교회 정보' : 'Church information',
         copy: isKo ? '페이지 문구' : 'Site copy',
+        sections: isKo ? '메뉴 공개' : 'Menu visibility',
       } as Record<SettingsTab, string>,
       tabsLabel: isKo ? '설정 영역' : 'Settings sections',
       saveHint: isKo
-        ? '세 탭의 변경 사항이 함께 저장됩니다.'
-        : 'Saving applies changes from all three tabs.',
+        ? '네 탭의 변경 사항이 함께 저장됩니다.'
+        : 'Saving applies changes from all four tabs.',
       noChanges: isKo ? '저장할 변경 사항이 없습니다.' : 'No unsaved changes.',
       unsavedChanges: isKo ? '저장 전 변경' : 'Unsaved changes',
       discard: isKo ? '전체 편집 취소' : 'Discard All Changes',
@@ -233,6 +254,10 @@ const SettingsWorkspace = () => {
       copyDescription: isKo
         ? '레이아웃은 그대로 두고 한/영 문장만 수정합니다. HTML은 입력하지 마세요.'
         : 'Edit Korean and English sentences. Layout stays fixed. Do not enter HTML.',
+      sectionsTitle: isKo ? '메뉴 공개' : 'Menu visibility',
+      sectionsDescription: isKo
+        ? '방문자에게 공개할 페이지와 관련 공개 데이터를 선택합니다.'
+        : 'Choose which pages and related public data are available to visitors.',
       themeTitle: isKo ? '홈페이지 테마' : 'Website Theme',
       appearanceTitle: isKo ? '디자인' : 'Appearance',
       appearanceDescription: isKo
@@ -324,6 +349,9 @@ const SettingsWorkspace = () => {
     setPreviewTheme(null);
     setDraftChurchInfo(parseChurchInfo(churchInfo));
     setDraftSiteCopy(parseSiteCopy(siteCopy));
+    setDraftSectionAvailability(
+      parseSectionAvailability(sectionAvailability)
+    );
     setDraftImagePresentation(parseImagePresentation(imagePresentation));
     clearPendingPhotos();
     setShowValidation(false);
@@ -367,6 +395,9 @@ const SettingsWorkspace = () => {
         imagePresentation: parseImagePresentation(draftImagePresentation),
         churchInfo: parseChurchInfo(draftChurchInfo),
         siteCopy: parseSiteCopy(draftSiteCopy),
+        sectionAvailability: parseSectionAvailability(
+          draftSectionAvailability
+        ),
       });
 
       if (result.ok) {
@@ -544,6 +575,23 @@ const SettingsWorkspace = () => {
                 selectPhoto(event, setLogoFile, setLogoPreviewUrl, setLogoReset),
               onReset: () => resetPhoto(setLogoFile, setLogoPreviewUrl, setLogoReset),
             }}
+          />
+        </section>
+      ) : null}
+
+      {tab === 'sections' ? (
+        <section className="settings-section">
+          <div className="settings-section__heading">
+            <h2>{labels.sectionsTitle}</h2>
+            <p className="muted">{labels.sectionsDescription}</p>
+          </div>
+          <SectionAvailabilityFields
+            value={draftSectionAvailability}
+            onChange={(next) => {
+              setDraftSectionAvailability(next);
+              setStatus(null);
+            }}
+            isKo={isKo}
           />
         </section>
       ) : null}

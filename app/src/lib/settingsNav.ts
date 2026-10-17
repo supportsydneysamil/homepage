@@ -1,4 +1,4 @@
-export const SETTINGS_TABS = ['appearance', 'church', 'copy'] as const;
+export const SETTINGS_TABS = ['appearance', 'church', 'copy', 'sections'] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 

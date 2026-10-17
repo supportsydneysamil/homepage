@@ -42,8 +42,8 @@ const SiteSettingsPage: NextPage & { meta?: PageMeta } = () => {
         title={title}
         description={
           isKo
-            ? '테마, 사진, 교회 정보, 페이지 문구를 한 곳에서 바꾸고 사이트 전체에 적용합니다.'
-            : 'Update theme, photos, church facts, and page copy, then apply them across the site.'
+            ? '테마, 사진, 교회 정보, 페이지 문구, 메뉴 공개를 한 곳에서 바꾸고 사이트 전체에 적용합니다.'
+            : 'Update theme, photos, church facts, page copy, and menu visibility, then apply them across the site.'
         }
       />
       <SettingsWorkspace />
