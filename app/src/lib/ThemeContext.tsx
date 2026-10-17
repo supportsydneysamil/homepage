@@ -77,6 +77,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
 ];
 
 export type ResolvedSiteSettings = Omit<SiteSettings, 'themeId'> & { themeId: ThemeId };
+export type SiteSettingsLoadStatus = 'loading' | 'ready' | 'error';
 type SiteSettingsSaveInput = Omit<SiteSettingsPayload, 'sectionAvailability'> &
   Partial<Pick<SiteSettingsPayload, 'sectionAvailability'>>;
 
@@ -86,6 +87,7 @@ type SiteSettingsContextValue = ResolvedSiteSettings & {
   // that unsaved-change detection compares against.
   previewThemeId: ThemeId | null;
   activeThemeId: ThemeId;
+  settingsStatus: SiteSettingsLoadStatus;
   isLoading: boolean;
   setPreviewTheme: (nextThemeId: ThemeId | null) => void;
   saveTheme: (nextThemeId: ThemeId) => Promise<{ ok: boolean; message?: string }>;
@@ -134,6 +136,9 @@ export const settingsAfterFetchFailure = (): ResolvedSiteSettings => ({
   sectionAvailability: { ...CLOSED_SECTION_AVAILABILITY },
 });
 
+export const canSaveSiteSettings = (status: SiteSettingsLoadStatus): boolean =>
+  status === 'ready';
+
 export const settingsPayloadForTheme = (
   settings: ResolvedSiteSettings,
   themeId: ThemeId
@@ -157,17 +162,20 @@ const applyThemeClass = (themeId: ThemeId) => {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<ResolvedSiteSettings>(DEFAULT_SETTINGS);
   const [previewThemeId, setPreviewThemeId] = useState<ThemeId | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [settingsStatus, setSettingsStatus] =
+    useState<SiteSettingsLoadStatus>('loading');
+  const isLoading = settingsStatus === 'loading';
   const activeThemeId = resolveActiveTheme(settings.themeId, previewThemeId);
   useLivingTheme(activeThemeId === 'living');
 
   const refreshTheme = async () => {
+    setSettingsStatus('loading');
     try {
       setSettings(normalizeSettings(await fetchSiteSettings()));
+      setSettingsStatus('ready');
     } catch (error) {
       setSettings(settingsAfterFetchFailure());
-    } finally {
-      setIsLoading(false);
+      setSettingsStatus('error');
     }
   };
 
@@ -184,6 +192,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const saveSettings: SiteSettingsContextValue['saveSettings'] = async (payload) => {
+    if (!canSaveSiteSettings(settingsStatus)) {
+      return { ok: false, message: 'Site settings are not ready to save.' };
+    }
     const result = await putSiteSettings({
       ...payload,
       sectionAvailability: payload.sectionAvailability ?? settings.sectionAvailability,
@@ -208,13 +219,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       ...settings,
       previewThemeId,
       activeThemeId,
+      settingsStatus,
       isLoading,
       setPreviewTheme,
       saveTheme,
       saveSettings,
       refreshTheme,
     }),
-    [settings, previewThemeId, activeThemeId, isLoading]
+    [settings, previewThemeId, activeThemeId, settingsStatus, isLoading]
   );
 
   return <SiteSettingsContext.Provider value={value}>{children}</SiteSettingsContext.Provider>;

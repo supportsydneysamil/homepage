@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CLOSED_SECTION_AVAILABILITY } from './sectionAvailability';
 import {
+  canSaveSiteSettings,
   resolveActiveTheme,
   settingsAfterFetchFailure,
   settingsPayloadForTheme,
@@ -35,4 +36,16 @@ test('a theme-only save carries the current section availability', () => {
   const payload = settingsPayloadForTheme(settings, 'light');
   assert.equal(payload.themeId, 'light');
   assert.deepEqual(payload.sectionAvailability, CLOSED_SECTION_AVAILABILITY);
+});
+
+test('settings cannot be saved while loading', () => {
+  assert.equal(canSaveSiteSettings('loading'), false);
+});
+
+test('settings can be saved after a successful load', () => {
+  assert.equal(canSaveSiteSettings('ready'), true);
+});
+
+test('fallback settings cannot be saved after a load error', () => {
+  assert.equal(canSaveSiteSettings('error'), false);
 });

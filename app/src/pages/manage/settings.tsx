@@ -4,11 +4,13 @@ import SettingsWorkspace from '../../components/settings/SettingsWorkspace';
 import { useLanguage } from '../../lib/LanguageContext';
 import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
+import { useSiteSettings } from '../../lib/ThemeContext';
 import { useRoles } from '../../lib/useRoles';
 
 const SiteSettingsPage: NextPage & { meta?: PageMeta } = () => {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { isAdmin, isLoading: isRoleLoading } = useRoles();
+  const { settingsStatus, refreshTheme } = useSiteSettings();
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
 
@@ -30,6 +32,32 @@ const SiteSettingsPage: NextPage & { meta?: PageMeta } = () => {
           <p className="error-text">
             {isKo ? '관리자 권한이 필요합니다.' : 'Administrator role is required.'}
           </p>
+        </div>
+      </section>
+    );
+  }
+
+  if (settingsStatus === 'loading') {
+    return (
+      <p className="account-state">
+        {isKo ? '사이트 설정을 불러오는 중...' : 'Loading site settings...'}
+      </p>
+    );
+  }
+
+  if (settingsStatus === 'error') {
+    return (
+      <section className="site-page settings-page">
+        <div className="site-empty-state settings-card">
+          <h1>{title}</h1>
+          <p className="error-text" role="alert">
+            {isKo
+              ? '사이트 설정을 불러오지 못했습니다.'
+              : 'Could not load site settings.'}
+          </p>
+          <button type="button" className="button" onClick={() => void refreshTheme()}>
+            {isKo ? '다시 시도' : 'Retry'}
+          </button>
         </div>
       </section>
     );
