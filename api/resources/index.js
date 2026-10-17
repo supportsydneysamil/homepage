@@ -2,6 +2,7 @@ const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
 const { deleteBlob, displayFileName } = require('../shared/blob');
 const { normalizeCategory, normalizeVisibility, visibleLevelsFor } = require('../shared/library');
+const { guardPublicSection } = require('../shared/sectionAvailability');
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -122,14 +123,24 @@ ORDER BY COALESCE(ResourceDate, CAST(CreatedAt AS DATE)) DESC, CreatedAt DESC
     return (result.recordset || []).map(toResourceResponse);
   });
 
-module.exports = async function (context, req) {
+const defaultDeps = { guardPublicSection, listResources };
+
+module.exports = async function (context, req, overrides = {}) {
+  const deps = { ...defaultDeps, ...overrides };
   try {
     if (req.method === 'GET') {
+      const unavailable = await deps.guardPublicSection(req, 'resources', {
+        logger: context.log,
+      });
+      if (unavailable) {
+        context.res = unavailable;
+        return;
+      }
       const principal = getClientPrincipal(req);
       const id = String((req.query && req.query.id) || '').trim();
       context.res = {
         status: 200,
-        body: { resources: await listResources(principal ? principal.userRoles : [], id) },
+        body: { resources: await deps.listResources(principal ? principal.userRoles : [], id) },
       };
       return;
     }

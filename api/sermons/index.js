@@ -1,6 +1,7 @@
 const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, ROLES } = require('../shared/principal');
 const { isMediaUrl, ALLOWED_MEDIA_CONTENT_TYPES } = require('../shared/blob');
+const { guardPublicSection } = require('../shared/sectionAvailability');
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const YOUTUBE_HOSTS = ['www.youtube.com', 'youtube.com', 'youtu.be'];
@@ -71,11 +72,21 @@ const listSermons = async (id) =>
     return (result.recordset || []).map(mapRow);
   });
 
-module.exports = async function (context, req) {
+const defaultDeps = { guardPublicSection, listSermons };
+
+module.exports = async function (context, req, overrides = {}) {
+  const deps = { ...defaultDeps, ...overrides };
   try {
     if (req.method === 'GET') {
+      const unavailable = await deps.guardPublicSection(req, 'sermons', {
+        logger: context.log,
+      });
+      if (unavailable) {
+        context.res = unavailable;
+        return;
+      }
       const id = String((req.query && req.query.id) || '').trim();
-      context.res = { status: 200, body: { sermons: await listSermons(id) } };
+      context.res = { status: 200, body: { sermons: await deps.listSermons(id) } };
       return;
     }
 

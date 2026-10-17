@@ -5,12 +5,14 @@ import { useLanguage } from '../lib/LanguageContext';
 import { useSiteSettings } from '../lib/ThemeContext';
 import { directionsUrl, formatFullAddress } from '../lib/churchInfo';
 import type { PageMeta } from '../lib/pageMeta';
+import { isPublicHrefEnabled } from '../lib/sectionAvailability';
 import { localize } from '../lib/siteCopy';
 
 const Worship: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
-  const { churchInfo, siteCopy } = useSiteSettings();
+  const { churchInfo, siteCopy, sectionAvailability } = useSiteSettings();
   const worship = siteCopy.worship;
+  const contactEnabled = isPublicHrefEnabled('/contact', sectionAvailability);
 
   return (
     <article className="site-page worship-page">
@@ -28,9 +30,11 @@ const Worship: NextPage & { meta?: PageMeta } = () => {
             >
               {localize(worship.directions, lang)} <span aria-hidden="true">→</span>
             </a>
-            <Link className="site-button site-button--quiet" href="/contact">
-              {localize(worship.askVisit, lang)}
-            </Link>
+            {contactEnabled ? (
+              <Link className="site-button site-button--quiet" href="/contact">
+                {localize(worship.askVisit, lang)}
+              </Link>
+            ) : null}
           </>
         }
       />

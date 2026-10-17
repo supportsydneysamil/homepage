@@ -3,6 +3,10 @@ import assert from 'node:assert';
 import { DEFAULT_CHURCH_INFO } from './churchInfo';
 import { parseChurchInfo } from './churchInfo';
 import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
+import {
+  DEFAULT_SECTION_AVAILABILITY,
+  parseSectionAvailability,
+} from './sectionAvailability';
 import { DEFAULT_SITE_COPY } from './siteCopy';
 import { parseSiteCopy } from './siteCopy';
 import { dirtySettingsTabs } from './settingsDraft';
@@ -18,6 +22,8 @@ const baseline = {
   photosChanged: false,
   currentImagePresentation: DEFAULT_IMAGE_PRESENTATION,
   draftImagePresentation: DEFAULT_IMAGE_PRESENTATION,
+  currentSectionAvailability: DEFAULT_SECTION_AVAILABILITY,
+  draftSectionAvailability: DEFAULT_SECTION_AVAILABILITY,
 };
 
 test('an unchanged settings draft has no dirty tabs', () => {
@@ -27,6 +33,9 @@ test('an unchanged settings draft has no dirty tabs', () => {
       ...baseline,
       draftChurchInfo: parseChurchInfo(DEFAULT_CHURCH_INFO),
       draftSiteCopy: parseSiteCopy(DEFAULT_SITE_COPY),
+      draftSectionAvailability: parseSectionAvailability(
+        DEFAULT_SECTION_AVAILABILITY
+      ),
     }),
     []
   );
@@ -43,9 +52,10 @@ test('theme and logo changes belong to Appearance once', () => {
   );
 });
 
-test('church facts and page content report their own dirty tabs', () => {
+test('all changed settings report dirty tabs in tab order', () => {
   const tabs = dirtySettingsTabs({
     ...baseline,
+    selectedThemeId: 'light',
     draftChurchInfo: { ...DEFAULT_CHURCH_INFO, phone: '0400 000 000' },
     draftSiteCopy: {
       ...DEFAULT_SITE_COPY,
@@ -54,8 +64,12 @@ test('church facts and page content report their own dirty tabs', () => {
         tagline: { ko: '새 문구', en: 'New copy' },
       },
     },
+    draftSectionAvailability: {
+      ...DEFAULT_SECTION_AVAILABILITY,
+      sermons: false,
+    },
   });
-  assert.deepStrictEqual(tabs, ['church', 'copy']);
+  assert.deepStrictEqual(tabs, ['appearance', 'church', 'copy', 'sections']);
 });
 
 test('photo files and composition changes belong to Site copy', () => {
@@ -69,5 +83,18 @@ test('photo files and composition changes belong to Site copy', () => {
       },
     }),
     ['copy']
+  );
+});
+
+test('one disabled public section belongs to Menu visibility', () => {
+  assert.deepStrictEqual(
+    dirtySettingsTabs({
+      ...baseline,
+      draftSectionAvailability: {
+        ...DEFAULT_SECTION_AVAILABILITY,
+        contact: false,
+      },
+    }),
+    ['sections']
   );
 });

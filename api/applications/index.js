@@ -2,6 +2,7 @@ const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
 const { visibleLevelsFor } = require('../shared/library');
 const { validateApplicationInput } = require('../shared/applications');
+const { guardPublicSection } = require('../shared/sectionAvailability');
 
 const toIsoDate = (value) => {
   if (!value) return '';
@@ -62,16 +63,26 @@ const bindApplication = (request, value, actor) =>
     .input('highlightOnHome', sql.Bit, value.highlightOnHome)
     .input('actor', sql.NVarChar(256), actor);
 
-module.exports = async function (context, req) {
+const defaultDeps = { guardPublicSection, listApplications };
+
+module.exports = async function (context, req, overrides = {}) {
+  const deps = { ...defaultDeps, ...overrides };
   try {
     if (req.method === 'GET') {
+      const unavailable = await deps.guardPublicSection(req, 'resources', {
+        logger: context.log,
+      });
+      if (unavailable) {
+        context.res = unavailable;
+        return;
+      }
       const principal = getClientPrincipal(req);
       const roles = principal ? principal.userRoles : [];
       const includeDrafts = roles.includes(ROLES.EDITOR);
       const id = String((req.query && req.query.id) || '').trim();
       context.res = {
         status: 200,
-        body: { applications: await listApplications(roles, includeDrafts, id) },
+        body: { applications: await deps.listApplications(roles, includeDrafts, id) },
       };
       return;
     }

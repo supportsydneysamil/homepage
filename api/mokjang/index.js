@@ -1,9 +1,11 @@
 const { sql, getPool, ensureSchema, withSchema } = require('../shared/db');
 const { requireRole, actorOf, getClientPrincipal, ROLES } = require('../shared/principal');
 const { deleteBlob, MOKJANG_FOLDER } = require('../shared/blob');
+const { guardPublicSection } = require('../shared/sectionAvailability');
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const AUDIENCES = ['family', 'young', 'senior', 'all'];
 const LANGUAGES = ['ko', 'en', 'both'];
@@ -92,6 +94,11 @@ const validateMokjangInput = (body) => {
     return fail('Photos must be uploaded files inside the mokjang folder.', '사진은 목장 폴더에 올린 파일이어야 합니다.');
   }
 
+  const coverImageId = text(input.coverImageId);
+  if (coverImageId && !GUID_PATTERN.test(coverImageId)) {
+    return fail('Cover photo id is not valid.', '대표 사진 정보가 올바르지 않습니다.');
+  }
+
   return {
     value: {
       slug,
@@ -105,6 +112,7 @@ const validateMokjangInput = (body) => {
       kidsWelcome: input.kidsWelcome === true || input.kidsWelcome === 'true',
       published: parsePublished(input.published),
       imageBlobPaths,
+      coverImageId: coverImageId || null,
     },
   };
 };
@@ -264,12 +272,35 @@ VALUES (
   }
 };
 
-const defaultDeps = { listMokjangRows, getReadableMokjang };
+const SET_COVER_SQL = `
+UPDATE dbo.MokjangImages
+SET SortOrder = (SELECT MIN(SortOrder) - 1 FROM dbo.MokjangImages WHERE MokjangId = @mokjangId),
+    UpdatedBy = @actor, UpdatedAt = SYSUTCDATETIME()
+WHERE Id = @coverId AND MokjangId = @mokjangId;
+`;
 
-module.exports = async function (context, req, deps = defaultDeps) {
+const setCover = (pool, mokjangId, coverId, actor) =>
+  pool
+    .request()
+    .input('mokjangId', sql.UniqueIdentifier, mokjangId)
+    .input('coverId', sql.UniqueIdentifier, coverId)
+    .input('actor', sql.NVarChar(256), actor)
+    .query(SET_COVER_SQL);
+
+const defaultDeps = { guardPublicSection, listMokjangRows, getReadableMokjang };
+
+module.exports = async function (context, req, overrides = {}) {
+  const deps = { ...defaultDeps, ...overrides };
   try {
     // Replies differ by who is signed in, so no shared cache may keep them.
     if (req.method === 'GET') {
+      const unavailable = await deps.guardPublicSection(req, 'mokjang', {
+        logger: context.log,
+      });
+      if (unavailable) {
+        context.res = unavailable;
+        return;
+      }
       const principal = getClientPrincipal(req);
       const includeDrafts = Boolean(principal && principal.userRoles.includes(ROLES.EDITOR));
       const includeMembers = canSeeMembers(principal);
@@ -334,6 +365,7 @@ module.exports = async function (context, req, deps = defaultDeps) {
       }
 
       await addImages(pool, id, parsed.value.imageBlobPaths, actor);
+      if (parsed.value.coverImageId) await setCover(pool, id, parsed.value.coverImageId, actor);
       context.res = {
         status: req.method === 'POST' ? 201 : 200,
         body: { mokjang: await getReadableMokjang({ id }, true, canSeeMembers(auth.principal)) },
@@ -379,3 +411,4 @@ module.exports.canSeeMembers = canSeeMembers;
 module.exports.isMokjangVisible = isMokjangVisible;
 module.exports.lookupFromQuery = lookupFromQuery;
 module.exports.isDuplicateKeyError = isDuplicateKeyError;
+module.exports.SET_COVER_SQL = SET_COVER_SQL;

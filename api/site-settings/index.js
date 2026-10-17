@@ -3,6 +3,12 @@ const { requireRole, actorOf, ROLES } = require('../shared/principal');
 const { deleteBlob, publicUrlFor, SITE_FOLDER } = require('../shared/blob');
 const { isMicrosoftFormUrl } = require('../shared/applications');
 const { socialLinksError } = require('../shared/social');
+const {
+  DEFAULT_SECTION_AVAILABILITY,
+  normalizeSectionAvailability,
+  parseStoredSectionAvailability,
+  validateSectionAvailabilityInput,
+} = require('../shared/sectionAvailability');
 
 const SUPPORTED_THEMES = ['dark', 'light', 'church', 'modern-sky', 'modern-sand', 'living'];
 const DEFAULT_THEME = 'church';
@@ -40,13 +46,16 @@ const getCurrentSettings = async () =>
       .request()
       .input('settingKey', sql.NVarChar(100), DEFAULT_SETTING_KEY)
       .query(`
-SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, ImagePresentationJson, UpdatedAt, UpdatedBy
+SELECT TOP 1 ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, ImagePresentationJson, SectionAvailabilityJson, UpdatedAt, UpdatedBy
 FROM dbo.SiteSettings
 WHERE SettingKey = @settingKey
 `);
 
     const row = result.recordset && result.recordset[0];
     if (row) {
+      const parsedSectionAvailability = parseStoredSectionAvailability(
+        row.SectionAvailabilityJson
+      );
       return {
         themeId: row.ThemeId,
         heroImagePath: row.HeroImagePath || null,
@@ -55,6 +64,8 @@ WHERE SettingKey = @settingKey
         imagePresentation: parseStoredJson(row.ImagePresentationJson),
         churchInfo: parseStoredJson(row.ChurchInfoJson),
         siteCopy: parseStoredJson(row.SiteCopyJson),
+        sectionAvailability: parsedSectionAvailability.value,
+        sectionAvailabilityMalformed: parsedSectionAvailability.malformed,
         updatedAt: row.UpdatedAt ? new Date(row.UpdatedAt).toISOString() : null,
         updatedBy: row.UpdatedBy || null,
       };
@@ -74,6 +85,8 @@ WHERE SettingKey = @settingKey
       imagePresentation: null,
       churchInfo: null,
       siteCopy: null,
+      sectionAvailability: { ...DEFAULT_SECTION_AVAILABILITY },
+      sectionAvailabilityMalformed: false,
       updatedAt: null,
       updatedBy: null,
     };
@@ -92,6 +105,7 @@ const saveSettings = async (settings, updatedBy) => {
     .input('churchInfoJson', sql.NVarChar(sql.MAX), settings.churchInfoJson)
     .input('siteCopyJson', sql.NVarChar(sql.MAX), settings.siteCopyJson)
     .input('imagePresentationJson', sql.NVarChar(sql.MAX), settings.imagePresentationJson)
+    .input('sectionAvailabilityJson', sql.NVarChar(sql.MAX), settings.sectionAvailabilityJson)
     .input('updatedBy', sql.NVarChar(256), updatedBy)
     .query(`
 MERGE dbo.SiteSettings AS target
@@ -105,6 +119,7 @@ USING (
     @churchInfoJson AS ChurchInfoJson,
     @siteCopyJson AS SiteCopyJson,
     @imagePresentationJson AS ImagePresentationJson,
+    @sectionAvailabilityJson AS SectionAvailabilityJson,
     @updatedBy AS UpdatedBy
 ) AS src
 ON target.SettingKey = src.SettingKey
@@ -117,10 +132,11 @@ WHEN MATCHED THEN
     ChurchInfoJson = src.ChurchInfoJson,
     SiteCopyJson = src.SiteCopyJson,
     ImagePresentationJson = src.ImagePresentationJson,
+    SectionAvailabilityJson = src.SectionAvailabilityJson,
     UpdatedBy = src.UpdatedBy,
     UpdatedAt = SYSUTCDATETIME()
 WHEN NOT MATCHED THEN
-  INSERT (SettingKey, ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, ImagePresentationJson, UpdatedBy, UpdatedAt)
+  INSERT (SettingKey, ThemeId, HeroImagePath, PastorImagePath, LogoImagePath, ChurchInfoJson, SiteCopyJson, ImagePresentationJson, SectionAvailabilityJson, UpdatedBy, UpdatedAt)
   VALUES (
     src.SettingKey,
     src.ThemeId,
@@ -130,6 +146,7 @@ WHEN NOT MATCHED THEN
     src.ChurchInfoJson,
     src.SiteCopyJson,
     src.ImagePresentationJson,
+    src.SectionAvailabilityJson,
     src.UpdatedBy,
     SYSUTCDATETIME()
   );
@@ -174,6 +191,7 @@ const withUrls = (settings, urlFor) => ({
   imagePresentation: settings.imagePresentation || null,
   churchInfo: settings.churchInfo || null,
   siteCopy: settings.siteCopy || null,
+  sectionAvailability: normalizeSectionAvailability(settings.sectionAvailability),
   updatedAt: settings.updatedAt || null,
   updatedBy: settings.updatedBy || null,
 });
@@ -187,6 +205,9 @@ module.exports = async function (context, req, overrides = {}) {
   try {
     if (req.method === 'GET') {
       const settings = await deps.getCurrentSettings();
+      if (settings.sectionAvailabilityMalformed) {
+        context.log.error('site-settings contains malformed SectionAvailabilityJson');
+      }
       context.res = { status: 200, body: withUrls(settings, deps.publicUrlFor) };
       return;
     }
@@ -247,7 +268,16 @@ module.exports = async function (context, req, overrides = {}) {
       return;
     }
 
+    const sectionAvailability = validateSectionAvailabilityInput(body.sectionAvailability);
+    if (sectionAvailability.error) {
+      context.res = { status: 400, body: { error: sectionAvailability.error } };
+      return;
+    }
+
     const previous = await deps.getCurrentSettings();
+    if (previous.sectionAvailabilityMalformed) {
+      context.log.error('site-settings contains malformed SectionAvailabilityJson');
+    }
     const previousPaths = new Set([
       previous.heroImagePath,
       previous.pastorImagePath,
@@ -261,6 +291,9 @@ module.exports = async function (context, req, overrides = {}) {
     const nextImagePresentation = imagePresentation.omitted
       ? previous.imagePresentation || null
       : imagePresentation.value;
+    const nextSectionAvailability = sectionAvailability.omitted
+      ? normalizeSectionAvailability(previous.sectionAvailability)
+      : sectionAvailability.value;
     const saved = await deps.saveSettings(
       {
         themeId: nextThemeId,
@@ -270,6 +303,7 @@ module.exports = async function (context, req, overrides = {}) {
         churchInfoJson: toJson(nextChurchInfo),
         siteCopyJson: toJson(nextSiteCopy),
         imagePresentationJson: toJson(nextImagePresentation),
+        sectionAvailabilityJson: toJson(nextSectionAvailability),
       },
       actorOf(auth.principal)
     );

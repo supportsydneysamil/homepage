@@ -1,5 +1,6 @@
 import type { ChurchInfo } from './churchInfo';
 import type { SiteImagePresentation } from './imagePresentation';
+import type { SectionAvailability } from './sectionAvailability';
 import type { SiteCopy } from './siteCopy';
 import type { SettingsTab } from './settingsNav';
 
@@ -14,6 +15,8 @@ type DirtySettingsInput = {
   photosChanged: boolean;
   currentImagePresentation: SiteImagePresentation;
   draftImagePresentation: SiteImagePresentation;
+  currentSectionAvailability: SectionAvailability;
+  draftSectionAvailability: SectionAvailability;
 };
 
 const canonicalize = (value: unknown): unknown => {
@@ -46,6 +49,14 @@ export const dirtySettingsTabs = (input: DirtySettingsInput): SettingsTab[] => {
     !sameValue(input.draftImagePresentation, input.currentImagePresentation)
   ) {
     tabs.push('copy');
+  }
+  if (
+    !sameValue(
+      input.draftSectionAvailability,
+      input.currentSectionAvailability
+    )
+  ) {
+    tabs.push('sections');
   }
   return tabs;
 };

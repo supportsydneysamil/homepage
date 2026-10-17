@@ -71,6 +71,15 @@ test('site settings gain church info and site copy json columns', () => {
   assert.ok(SCHEMA_SQL.includes('ImagePresentationJson NVARCHAR(MAX) NULL'));
 });
 
+test('site settings gain section availability idempotently', () => {
+  assert.ok(SCHEMA_SQL.includes("COL_LENGTH('dbo.SiteSettings', 'SectionAvailabilityJson') IS NULL"));
+  assert.ok(
+    SCHEMA_SQL.includes(
+      'ALTER TABLE dbo.SiteSettings ADD SectionAvailabilityJson NVARCHAR(MAX) NULL'
+    )
+  );
+});
+
 test('content tables record who changed them', () => {
   assert.ok(SCHEMA_SQL.includes('CreatedBy'));
   assert.ok(SCHEMA_SQL.includes('UpdatedBy'));

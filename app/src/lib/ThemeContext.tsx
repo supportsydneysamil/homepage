@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { DEFAULT_CHURCH_INFO } from './churchInfo';
 import { DEFAULT_IMAGE_PRESENTATION } from './imagePresentation';
+import { CLOSED_SECTION_AVAILABILITY } from './sectionAvailability';
 import { DEFAULT_SITE_COPY } from './siteCopy';
 import { useLivingTheme } from './useLivingTheme';
 import {
@@ -75,7 +76,10 @@ export const THEME_OPTIONS: ThemeOption[] = [
   },
 ];
 
-type ResolvedSiteSettings = Omit<SiteSettings, 'themeId'> & { themeId: ThemeId };
+export type ResolvedSiteSettings = Omit<SiteSettings, 'themeId'> & { themeId: ThemeId };
+export type SiteSettingsLoadStatus = 'loading' | 'ready' | 'error';
+type SiteSettingsSaveInput = Omit<SiteSettingsPayload, 'sectionAvailability'> &
+  Partial<Pick<SiteSettingsPayload, 'sectionAvailability'>>;
 
 type SiteSettingsContextValue = ResolvedSiteSettings & {
   themeId: ThemeId;
@@ -83,11 +87,12 @@ type SiteSettingsContextValue = ResolvedSiteSettings & {
   // that unsaved-change detection compares against.
   previewThemeId: ThemeId | null;
   activeThemeId: ThemeId;
+  settingsStatus: SiteSettingsLoadStatus;
   isLoading: boolean;
   setPreviewTheme: (nextThemeId: ThemeId | null) => void;
   saveTheme: (nextThemeId: ThemeId) => Promise<{ ok: boolean; message?: string }>;
   saveSettings: (
-    payload: SiteSettingsPayload
+    payload: SiteSettingsSaveInput
   ) => Promise<
     { ok: true; settings: ResolvedSiteSettings } | { ok: false; message: string }
   >;
@@ -123,7 +128,30 @@ const DEFAULT_SETTINGS: ResolvedSiteSettings = {
   imagePresentation: DEFAULT_IMAGE_PRESENTATION,
   churchInfo: DEFAULT_CHURCH_INFO,
   siteCopy: DEFAULT_SITE_COPY,
+  sectionAvailability: { ...CLOSED_SECTION_AVAILABILITY },
 };
+
+export const settingsAfterFetchFailure = (): ResolvedSiteSettings => ({
+  ...DEFAULT_SETTINGS,
+  sectionAvailability: { ...CLOSED_SECTION_AVAILABILITY },
+});
+
+export const canSaveSiteSettings = (status: SiteSettingsLoadStatus): boolean =>
+  status === 'ready';
+
+export const settingsPayloadForTheme = (
+  settings: ResolvedSiteSettings,
+  themeId: ThemeId
+): SiteSettingsPayload => ({
+  themeId: normalizeTheme(themeId),
+  heroImagePath: settings.heroImagePath,
+  pastorImagePath: settings.pastorImagePath,
+  logoImagePath: settings.logoImagePath,
+  imagePresentation: settings.imagePresentation,
+  churchInfo: settings.churchInfo,
+  siteCopy: settings.siteCopy,
+  sectionAvailability: settings.sectionAvailability,
+});
 
 const applyThemeClass = (themeId: ThemeId) => {
   if (typeof document === 'undefined') return;
@@ -134,17 +162,20 @@ const applyThemeClass = (themeId: ThemeId) => {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<ResolvedSiteSettings>(DEFAULT_SETTINGS);
   const [previewThemeId, setPreviewThemeId] = useState<ThemeId | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [settingsStatus, setSettingsStatus] =
+    useState<SiteSettingsLoadStatus>('loading');
+  const isLoading = settingsStatus === 'loading';
   const activeThemeId = resolveActiveTheme(settings.themeId, previewThemeId);
   useLivingTheme(activeThemeId === 'living');
 
   const refreshTheme = async () => {
+    setSettingsStatus('loading');
     try {
       setSettings(normalizeSettings(await fetchSiteSettings()));
+      setSettingsStatus('ready');
     } catch (error) {
-      setSettings(DEFAULT_SETTINGS);
-    } finally {
-      setIsLoading(false);
+      setSettings(settingsAfterFetchFailure());
+      setSettingsStatus('error');
     }
   };
 
@@ -161,7 +192,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const saveSettings: SiteSettingsContextValue['saveSettings'] = async (payload) => {
-    const result = await putSiteSettings(payload);
+    if (!canSaveSiteSettings(settingsStatus)) {
+      return { ok: false, message: 'Site settings are not ready to save.' };
+    }
+    const result = await putSiteSettings({
+      ...payload,
+      sectionAvailability: payload.sectionAvailability ?? settings.sectionAvailability,
+    });
     if (!result.ok) return result;
     const next = normalizeSettings(result.settings);
     setSettings(next);
@@ -170,15 +207,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const saveTheme = async (nextThemeId: ThemeId) => {
-    const result = await saveSettings({
-      themeId: normalizeTheme(nextThemeId),
-      heroImagePath: settings.heroImagePath,
-      pastorImagePath: settings.pastorImagePath,
-      logoImagePath: settings.logoImagePath,
-      imagePresentation: settings.imagePresentation,
-      churchInfo: settings.churchInfo,
-      siteCopy: settings.siteCopy,
-    });
+    const result = await saveSettings(settingsPayloadForTheme(settings, nextThemeId));
     if (!result.ok) {
       return { ok: false, message: result.message };
     }
@@ -190,13 +219,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       ...settings,
       previewThemeId,
       activeThemeId,
+      settingsStatus,
       isLoading,
       setPreviewTheme,
       saveTheme,
       saveSettings,
       refreshTheme,
     }),
-    [settings, previewThemeId, activeThemeId, isLoading]
+    [settings, previewThemeId, activeThemeId, settingsStatus, isLoading]
   );
 
   return <SiteSettingsContext.Provider value={value}>{children}</SiteSettingsContext.Provider>;

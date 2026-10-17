@@ -38,7 +38,7 @@ Out of scope:
 - 목자 editing their own 목장
 - Grouping by 초원 (groups of 목장) and manual ordering
 - A 목장 news board
-- Reordering photos
+- Reordering photos (only choosing the cover is supported)
 
 ## Screens
 
@@ -61,7 +61,7 @@ When no 목장 is published or the list fails to load, the tile area shows “�
 `app/src/pages/mokjang/detail.tsx`. Like event details, it finds the 목장 by the `slug` query value. The site is a static export, so addresses such as `/mokjang/chiangmai` are not used.
 
 - “← 목장 목록” (`/mokjang#mokjang-list`)
-- Cover photo (16:6)
+- Cover photo (16:6). The cover and gallery use the full page width (1200px); the header, info table, members box, story, and contact box are 880px wide.
 - Kicker “목장”, the 목장 name, and the one-line introduction
 - Info table: meeting (day time · suburb), audience, language, children welcome (only when ticked), supported mission field (only when set)
 - Members-only box: “교인에게만 보여요” with the 목자 name and the 목녀·목부 name. Not rendered when the names are absent from the response.
@@ -112,7 +112,7 @@ Add two tables to `SCHEMA_SQL` in `api/shared/db.js`.
 | `IsPublished` | `BIT` | Default 1 |
 | `CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt` | | As in other tables |
 
-`dbo.MokjangImages` has the same shape as `dbo.EventImages`. `MokjangId` references `dbo.Mokjangs(Id)` with `ON DELETE CASCADE`. The cover is the photo with the lowest `SortOrder`, which is the first one uploaded. To change the cover, delete it and upload again.
+`dbo.MokjangImages` has the same shape as `dbo.EventImages`. `MokjangId` references `dbo.Mokjangs(Id)` with `ON DELETE CASCADE`. The cover is the photo with the lowest `SortOrder`. It starts as the first photo uploaded; when an editor picks another photo, `PUT` carries `coverImageId` and the API sets that photo’s `SortOrder` to one below the lowest in that 목장. Photos of other 목장 are never touched.
 
 There are no columns for a home address or phone number.
 
@@ -162,7 +162,7 @@ Form groups:
 1. Basics: 목장 name (ko/en), slug, one-line introduction (ko/en), suburb, meeting day, meeting time
 2. Gathering: audience, language, children welcome, supported mission field (ko/en)
 3. 목장 story (ko/en)
-4. Photos: upload several, delete one at a time, with the note “목장 식구들이 공개에 동의한 사진만 올려 주세요. 아이 얼굴은 특히 주의해 주세요. 가장 먼저 올린 사진이 대표 사진이 됩니다.”
+4. Photos: upload several, delete one at a time with the × on each photo, select a photo to make it the cover (photos keep their place; the cover gets an outline and a “대표” tag; applied on save, Cancel keeps the current cover), with the note “목장 식구들이 공개에 동의한 사진만 올려 주세요. 아이 얼굴은 특히 주의해 주세요. 처음 올린 사진이 대표 사진이 되고, 저장한 뒤 사진 목록에서 바꿀 수 있습니다.”
 5. Members only: 목자, 목녀·목부, with the note “로그인한 교인에게만 보입니다.”
 6. Published / Draft
 

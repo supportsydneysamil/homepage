@@ -4,11 +4,13 @@ import SettingsWorkspace from '../../components/settings/SettingsWorkspace';
 import { useLanguage } from '../../lib/LanguageContext';
 import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
+import { useSiteSettings } from '../../lib/ThemeContext';
 import { useRoles } from '../../lib/useRoles';
 
 const SiteSettingsPage: NextPage & { meta?: PageMeta } = () => {
   const { isAuthenticated, isLoading } = useRequireAuth();
   const { isAdmin, isLoading: isRoleLoading } = useRoles();
+  const { settingsStatus, refreshTheme } = useSiteSettings();
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
 
@@ -35,6 +37,32 @@ const SiteSettingsPage: NextPage & { meta?: PageMeta } = () => {
     );
   }
 
+  if (settingsStatus === 'loading') {
+    return (
+      <p className="account-state">
+        {isKo ? '사이트 설정을 불러오는 중...' : 'Loading site settings...'}
+      </p>
+    );
+  }
+
+  if (settingsStatus === 'error') {
+    return (
+      <section className="site-page settings-page">
+        <div className="site-empty-state settings-card">
+          <h1>{title}</h1>
+          <p className="error-text" role="alert">
+            {isKo
+              ? '사이트 설정을 불러오지 못했습니다.'
+              : 'Could not load site settings.'}
+          </p>
+          <button type="button" className="button" onClick={() => void refreshTheme()}>
+            {isKo ? '다시 시도' : 'Retry'}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <article className="site-page manage-page">
       <PageHero
@@ -42,8 +70,8 @@ const SiteSettingsPage: NextPage & { meta?: PageMeta } = () => {
         title={title}
         description={
           isKo
-            ? '테마, 사진, 교회 정보, 페이지 문구를 한 곳에서 바꾸고 사이트 전체에 적용합니다.'
-            : 'Update theme, photos, church facts, and page copy, then apply them across the site.'
+            ? '테마, 사진, 교회 정보, 페이지 문구, 메뉴 공개를 한 곳에서 바꾸고 사이트 전체에 적용합니다.'
+            : 'Update theme, photos, church facts, page copy, and menu visibility, then apply them across the site.'
         }
       />
       <SettingsWorkspace />

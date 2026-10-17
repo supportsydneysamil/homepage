@@ -51,10 +51,14 @@ test('the analytics beacon appears only when a token was set at build time', () 
   if (token) assert.ok(home.includes(`data-cf-beacon="{&quot;token&quot;:&quot;${token}&quot;}"`));
 });
 
-test('the house church pages export with their own Korean titles', () => {
+test('controlled house church exports wait for the client availability check', () => {
   const page = read('mokjang.html');
   assert.match(page, /<title[^>]*>목장 \| 시드니 삼일교회<\/title>/);
-  assert.ok(page.includes('집에서 만나는 작은 교회'));
-  assert.ok(page.includes('id="mokjang-list"'));
-  assert.match(read('mokjang/detail.html'), /<title[^>]*>목장 \| 시드니 삼일교회<\/title>/);
+  assert.ok(page.includes('페이지 공개 여부를 확인하는 중...'));
+  assert.ok(!page.includes('집에서 만나는 작은 교회'));
+  assert.ok(!page.includes('id="mokjang-list"'));
+
+  const detail = read('mokjang/detail.html');
+  assert.match(detail, /<title[^>]*>목장 \| 시드니 삼일교회<\/title>/);
+  assert.ok(detail.includes('페이지 공개 여부를 확인하는 중...'));
 });

@@ -7,13 +7,13 @@ import ContentForm, { type FormField } from '../../components/manage/ContentForm
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
 import MokjangManager from '../../components/manage/MokjangManager';
-import { mokjangPayloadFromForm, parseMokjangSlug, sortMokjangs, suggestMokjangSlug } from '../../lib/mokjang';
+import { currentCover, mokjangPayloadFromForm, parseMokjangSlug, sortMokjangs, suggestMokjangSlug } from '../../lib/mokjang';
 import { useLanguage } from '../../lib/LanguageContext';
 import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
 import { useRoles } from '../../lib/useRoles';
 import { fileNameFromUrl, formatDisplayDate } from '../../lib/presentation';
-import { eventImageIdsFromUrls, todayStamp, withoutPendingImages } from '../../lib/events';
+import { eventImageIdFromUrl, eventImageIdsFromUrls, todayStamp, withoutPendingImages } from '../../lib/events';
 import { MANAGE_TABS, buildManageHref, parseManageQuery, type ManageTab } from '../../lib/manageNav';
 import { revealOffset } from '../../lib/manageScroll';
 import {
@@ -190,8 +190,10 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
 
   const [isAdding, setIsAdding] = useState(false);
   const [pendingRemovedPhotos, setPendingRemovedPhotos] = useState<string[]>([]);
+  const [pendingCoverPhoto, setPendingCoverPhoto] = useState<string | null>(null);
   useEffect(() => {
     setPendingRemovedPhotos([]);
+    setPendingCoverPhoto(null);
   }, [editId, tab]);
   // Each tab remembers where its editor was reading, so saving does not
   // throw them back to the newest page.
@@ -428,6 +430,11 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const editingPhotos = withoutPendingImages(editingEvent?.images, pendingRemovedPhotos);
   const editingMokjang = editingMokjangLookup.item;
   const editingMokjangPhotos = withoutPendingImages(editingMokjang?.images, pendingRemovedPhotos);
+  const editingMokjangCover = currentCover(editingMokjangPhotos, pendingCoverPhoto);
+  const isCoverPending =
+    pendingCoverPhoto !== null &&
+    editingMokjangCover === pendingCoverPhoto &&
+    editingMokjang?.images[0] !== pendingCoverPhoto;
 
   const today = todayStamp();
 
@@ -531,6 +538,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
 
   const onRemovePhoto = (imageUrl: string) => {
     setPendingRemovedPhotos((previous) => (previous.includes(imageUrl) ? previous : [...previous, imageUrl]));
+    setPendingCoverPhoto((current) => (current === imageUrl ? null : current));
     if (status?.scope === 'gallery') setStatus(null);
   };
 
@@ -560,13 +568,15 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
       );
     }
     const uploaded = await Promise.all(prepared.map((file) => uploadFile(file, 'mokjang')));
-    const payload = mokjangPayloadFromForm(values, uploaded.map((item) => item.blobPath));
+    const coverImageId = isCoverPending && pendingCoverPhoto ? eventImageIdFromUrl(pendingCoverPhoto) : '';
+    const payload = mokjangPayloadFromForm(values, uploaded.map((item) => item.blobPath), coverImageId);
     const savedId = editingMokjang
       ? await sendContent('/api/mokjang', 'PUT', { id: editingMokjang.id, ...payload }, isKo)
       : await sendContent('/api/mokjang', 'POST', payload, isKo);
     const removedIds = eventImageIdsFromUrls(pendingRemovedPhotos);
     await Promise.all(removedIds.map((id) => deleteContent('/api/mokjang/images', id, isKo)));
     setPendingRemovedPhotos([]);
+    setPendingCoverPhoto(null);
     revealMokjang(await mokjangs.reload(), savedId);
     goTo('mokjang');
     flashRow(savedId, labels.saved);
@@ -1171,6 +1181,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
           onEdit={(id) => goTo('mokjang', id)}
           onCancel={() => {
             setPendingRemovedPhotos([]);
+            setPendingCoverPhoto(null);
             goTo('mokjang');
           }}
           onSubmit={onSaveMokjang}
@@ -1179,6 +1190,9 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
           onConfirmDelete={(id) => onDelete('/api/mokjang', id, mokjangs.reload)}
           onCancelDelete={() => setPendingDeleteId(null)}
           onRemovePhoto={onRemovePhoto}
+          coverPhoto={editingMokjangCover}
+          coverPending={isCoverPending}
+          onChooseCover={setPendingCoverPhoto}
         />
       ) : null}
 

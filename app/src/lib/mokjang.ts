@@ -163,7 +163,11 @@ export const mokjangFormValues = (mokjang: ApiMokjang | null): Record<string, st
       }
     : { ...MOKJANG_FORM_DEFAULTS };
 
-export const mokjangPayloadFromForm = (values: Record<string, string>, imageBlobPaths: string[]) => {
+export const mokjangPayloadFromForm = (
+  values: Record<string, string>,
+  imageBlobPaths: string[],
+  coverImageId = ''
+) => {
   const text = (key: string) => values[key] ?? '';
   return {
     nameKo: text('nameKo'),
@@ -185,5 +189,9 @@ export const mokjangPayloadFromForm = (values: Record<string, string>, imageBlob
     partnerName: text('partnerName'),
     published: values.published !== 'false',
     imageBlobPaths,
+    coverImageId,
   };
 };
+
+export const currentCover = (images: string[], chosen: string | null) =>
+  chosen && images.includes(chosen) ? chosen : images[0] ?? null;

@@ -8,7 +8,13 @@ import BrandMark from './BrandMark';
 
 const Footer = () => {
   const { lang } = useLanguage();
-  const { logoImageUrl, churchInfo, siteCopy } = useSiteSettings();
+  const {
+    logoImageUrl,
+    churchInfo,
+    siteCopy,
+    sectionAvailability,
+    isLoading,
+  } = useSiteSettings();
   const footer = siteCopy.footer;
   const social = socialLinkList(churchInfo.social);
 
@@ -38,10 +44,18 @@ const Footer = () => {
         </div>
         <div>
           <span>{localize(footer.explore, lang)}</span>
-          <Link href="/about">{localize(footer.about, lang)}</Link>
-          <Link href="/worship">{localize(footer.worship, lang)}</Link>
-          <Link href="/mokjang">{localize(footer.mokjang, lang)}</Link>
-          <Link href="/sermons">{localize(footer.sermons, lang)}</Link>
+          {!isLoading && sectionAvailability.about ? (
+            <Link href="/about">{localize(footer.about, lang)}</Link>
+          ) : null}
+          {!isLoading && sectionAvailability.worship ? (
+            <Link href="/worship">{localize(footer.worship, lang)}</Link>
+          ) : null}
+          {!isLoading && sectionAvailability.mokjang ? (
+            <Link href="/mokjang">{localize(footer.mokjang, lang)}</Link>
+          ) : null}
+          {!isLoading && sectionAvailability.sermons ? (
+            <Link href="/sermons">{localize(footer.sermons, lang)}</Link>
+          ) : null}
         </div>
         {social.length ? (
           <div>
@@ -59,10 +73,12 @@ const Footer = () => {
         <small suppressHydrationWarning>
           &copy; {new Date().getFullYear()} {churchInfo.churchNameEn}
         </small>
-        <Link href="/contact" className="footer__visit">
-          {localize(footer.meetUs, lang)}
-          <span aria-hidden="true">→</span>
-        </Link>
+        {!isLoading && sectionAvailability.contact ? (
+          <Link href="/contact" className="footer__visit">
+            {localize(footer.meetUs, lang)}
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
       </div>
     </footer>
   );

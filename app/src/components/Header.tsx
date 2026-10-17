@@ -2,26 +2,23 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '../lib/LanguageContext';
+import { PUBLIC_SECTION_NAV } from '../lib/sectionAvailability';
 import { useRoles } from '../lib/useRoles';
 import { useSiteSettings } from '../lib/ThemeContext';
 import AuthButton from './AuthButton';
 import BrandMark from './BrandMark';
 
-const navItems = [
-  { href: '/', labelEn: 'Home', labelKo: '홈' },
-  { href: '/about', labelEn: 'About', labelKo: '소개' },
-  { href: '/worship', labelEn: 'Worship', labelKo: '예배' },
-  { href: '/mokjang', labelEn: 'House Church', labelKo: '목장' },
-  { href: '/events', labelEn: 'Events', labelKo: '이벤트' },
-  { href: '/sermons', labelEn: 'Sermons', labelKo: '설교' },
-  { href: '/resources', labelEn: 'Resources', labelKo: '자료·신청' },
-  { href: '/contact', labelEn: 'Contact', labelKo: '문의' },
-];
+const HOME_NAV_ITEM = { href: '/', labelEn: 'Home', labelKo: '홈' };
 
 const Header = () => {
   const { lang, toggleLang } = useLanguage();
   const { isEditor, isAdmin } = useRoles();
-  const { logoImageUrl, churchInfo } = useSiteSettings();
+  const {
+    logoImageUrl,
+    churchInfo,
+    sectionAvailability,
+    isLoading,
+  } = useSiteSettings();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isOpsOpen, setIsOpsOpen] = useState(false);
@@ -65,6 +62,12 @@ const Header = () => {
     { href: '/manage', labelEn: 'Content management', labelKo: '자료 관리', exact: true },
     ...(isAdmin
       ? [{ href: '/manage/settings', labelEn: 'Site settings', labelKo: '사이트 설정', exact: false }]
+      : []),
+  ];
+  const navItems = [
+    HOME_NAV_ITEM,
+    ...(!isLoading
+      ? PUBLIC_SECTION_NAV.filter((item) => sectionAvailability[item.section])
       : []),
   ];
 

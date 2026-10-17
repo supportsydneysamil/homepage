@@ -1,8 +1,10 @@
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { memo, ReactNode } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import ScrollActivity from './ScrollActivity';
+import SectionUnavailable from './SectionUnavailable';
 import { useLanguage } from '../lib/LanguageContext';
 import type { Lang } from '../lib/language';
 import {
@@ -13,7 +15,8 @@ import {
   pageDescription,
   type PageMeta,
 } from '../lib/pageMeta';
-import { useTheme } from '../lib/ThemeContext';
+import { publicSectionRenderState } from '../lib/sectionAvailability';
+import { useSiteSettings } from '../lib/ThemeContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -47,8 +50,24 @@ const PageHead = memo(({ meta, lang }: { meta?: PageMeta; lang: Lang }) => {
 });
 
 const Layout = ({ children, meta }: LayoutProps) => {
-  const { activeThemeId } = useTheme();
+  const router = useRouter();
+  const { activeThemeId, sectionAvailability, isLoading } = useSiteSettings();
   const { lang } = useLanguage();
+  const renderState = publicSectionRenderState(
+    router.pathname,
+    sectionAvailability,
+    isLoading
+  );
+  const content =
+    renderState === 'loading' ? (
+      <p className="account-state" role="status">
+        {lang === 'ko' ? '페이지 공개 여부를 확인하는 중...' : 'Checking page availability...'}
+      </p>
+    ) : renderState === 'unavailable' ? (
+      <SectionUnavailable />
+    ) : (
+      children
+    );
 
   return (
     <>
@@ -56,7 +75,7 @@ const Layout = ({ children, meta }: LayoutProps) => {
       <div className={`layout theme-${activeThemeId}`} lang={lang}>
         <ScrollActivity />
         <Header />
-        <main className="content">{children}</main>
+        <main className="content">{content}</main>
         <Footer />
       </div>
     </>

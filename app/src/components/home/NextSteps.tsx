@@ -2,10 +2,16 @@ import Link from 'next/link';
 import type { Language } from './homeContent';
 import { useSiteSettings } from '../../lib/ThemeContext';
 import { localize } from '../../lib/siteCopy';
+import { isPublicHrefVisible } from '../../lib/sectionAvailability';
 
 const NextSteps = ({ lang }: { lang: Language }) => {
-  const { siteCopy } = useSiteSettings();
+  const { siteCopy, sectionAvailability, isLoading } = useSiteSettings();
   const nextSteps = siteCopy.home.nextSteps;
+  const items = nextSteps.items.filter(({ href }) =>
+    isPublicHrefVisible(href, sectionAvailability, isLoading)
+  );
+
+  if (!items.length) return null;
 
   return (
     <section className="home-section home-next-steps">
@@ -18,7 +24,7 @@ const NextSteps = ({ lang }: { lang: Language }) => {
       </div>
 
       <div className="home-next-steps__grid">
-        {nextSteps.items.map((step, index) => (
+        {items.map((step, index) => (
           <article className="home-next-step" key={step.href}>
             <span className="home-next-step__number">0{index + 1}</span>
             <h3>{localize(step.title, lang)}</h3>

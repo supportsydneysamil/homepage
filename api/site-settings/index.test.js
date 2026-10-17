@@ -4,10 +4,16 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const handler = require('./index');
 const { SUPPORTED_THEMES } = handler;
+const {
+  PUBLIC_SECTION_KEYS,
+  DEFAULT_SECTION_AVAILABILITY,
+} = require('../shared/sectionAvailability');
 
 const source = readFileSync(path.join(__dirname, 'index.js'), 'utf8');
 const encode = (principal) => Buffer.from(JSON.stringify(principal), 'utf8').toString('base64');
 const contextOf = () => ({ res: null, log: Object.assign(() => {}, { error: () => {} }) });
+const allSections = (value) =>
+  Object.fromEntries(PUBLIC_SECTION_KEYS.map((section) => [section, value]));
 const adminReq = (method, body) => ({
   method,
   headers: {
@@ -63,6 +69,121 @@ test('public get returns null image settings by default', async () => {
   assert.strictEqual(context.res.body.pastorImageUrl, null);
   assert.strictEqual(context.res.body.logoImagePath, null);
   assert.strictEqual(context.res.body.logoImageUrl, null);
+});
+
+test('public get returns all seven normalized section availability values', async () => {
+  const context = contextOf();
+  await handler(
+    context,
+    { method: 'GET', headers: {} },
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        sectionAvailability: { events: false, ignored: true },
+      }),
+      publicUrlFor: () => null,
+    }
+  );
+  assert.strictEqual(context.res.status, 200);
+  assert.deepStrictEqual(context.res.body.sectionAvailability, {
+    ...DEFAULT_SECTION_AVAILABILITY,
+    events: false,
+  });
+});
+
+test('an admin can round-trip known section availability values', async () => {
+  const context = contextOf();
+  const saved = [];
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: null,
+      pastorImagePath: null,
+      logoImagePath: null,
+      sectionAvailability: { events: false, unknown: false },
+    }),
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        sectionAvailability: allSections(true),
+      }),
+      saveSettings: async (next) => {
+        saved.push(next);
+        return {
+          ...next,
+          sectionAvailability: JSON.parse(next.sectionAvailabilityJson),
+        };
+      },
+      deleteBlob: async () => {},
+      publicUrlFor: () => null,
+    }
+  );
+  assert.strictEqual(context.res.status, 200);
+  assert.deepStrictEqual(JSON.parse(saved[0].sectionAvailabilityJson), {
+    ...DEFAULT_SECTION_AVAILABILITY,
+    events: false,
+  });
+  assert.deepStrictEqual(context.res.body.sectionAvailability, {
+    ...DEFAULT_SECTION_AVAILABILITY,
+    events: false,
+  });
+});
+
+test('a PUT that omits section availability preserves the stored value', async () => {
+  const context = contextOf();
+  const saved = [];
+  const previousAvailability = { ...allSections(true), sermons: false };
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'light',
+      heroImagePath: null,
+      pastorImagePath: null,
+      logoImagePath: null,
+    }),
+    {
+      getCurrentSettings: async () => ({
+        themeId: 'church',
+        sectionAvailability: previousAvailability,
+      }),
+      saveSettings: async (next) => {
+        saved.push(next);
+        return {
+          ...next,
+          sectionAvailability: JSON.parse(next.sectionAvailabilityJson),
+        };
+      },
+      deleteBlob: async () => {},
+      publicUrlFor: () => null,
+    }
+  );
+  assert.strictEqual(context.res.status, 200);
+  assert.deepStrictEqual(JSON.parse(saved[0].sectionAvailabilityJson), previousAvailability);
+});
+
+test('a PUT with a non-boolean controlled value returns 400 without saving', async () => {
+  const context = contextOf();
+  let saves = 0;
+  await handler(
+    context,
+    adminReq('PUT', {
+      themeId: 'church',
+      heroImagePath: null,
+      pastorImagePath: null,
+      logoImagePath: null,
+      sectionAvailability: { contact: 'false' },
+    }),
+    {
+      getCurrentSettings: async () => ({ sectionAvailability: allSections(true) }),
+      saveSettings: async () => {
+        saves += 1;
+      },
+      deleteBlob: async () => {},
+    }
+  );
+  assert.strictEqual(context.res.status, 400);
+  assert.strictEqual(saves, 0);
 });
 
 test('an admin can save site image paths and receive public urls', async () => {

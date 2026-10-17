@@ -18,6 +18,8 @@ import {
   pickText,
 } from '../../lib/mokjang';
 import { documentTitle, type PageMeta } from '../../lib/pageMeta';
+import { isPublicHrefEnabled } from '../../lib/sectionAvailability';
+import { useSiteSettings } from '../../lib/ThemeContext';
 
 const LIST_HREF = '/mokjang#mokjang-list';
 
@@ -25,6 +27,7 @@ const MokjangDetailPage: NextPage & { meta?: PageMeta } = () => {
   const { lang } = useLanguage();
   const isKo = lang === 'ko';
   const router = useRouter();
+  const { sectionAvailability } = useSiteSettings();
   const slug = parseMokjangSlug(router.query.slug);
   const { items, isLoading } = useContent<ApiMokjang>(() => fetchMokjangs({ slug }), Boolean(slug));
   const mokjang = items.find((item) => item.published);
@@ -55,6 +58,8 @@ const MokjangDetailPage: NextPage & { meta?: PageMeta } = () => {
   const mission = pickText(mokjang.missionKo, mokjang.missionEn, lang);
   const story = pickText(mokjang.storyKo, mokjang.storyEn, lang);
   const gallery = mokjang.images.slice(1);
+  const contactHref = mokjangContactHref(mokjang.slug);
+  const contactEnabled = isPublicHrefEnabled(contactHref, sectionAvailability);
   const leaders = [
     mokjang.shepherdName ? `${isKo ? '목자' : 'Shepherd'} ${mokjang.shepherdName}` : '',
     mokjang.partnerName ? `${isKo ? '목녀·목부' : 'Co-shepherd'} ${mokjang.partnerName}` : '',
@@ -138,9 +143,11 @@ const MokjangDetailPage: NextPage & { meta?: PageMeta } = () => {
 
       <div className="mokjang-detail__cta">
         <p>{isKo ? '이 목장이 궁금하신가요?' : 'Curious about this house church?'}</p>
-        <Link className="site-button site-button--primary" href={mokjangContactHref(mokjang.slug)}>
-          {isKo ? '이 목장 문의' : 'Ask about this house church'} <span aria-hidden="true">→</span>
-        </Link>
+        {contactEnabled ? (
+          <Link className="site-button site-button--primary" href={contactHref}>
+            {isKo ? '이 목장 문의' : 'Ask about this house church'} <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
       </div>
     </article>
   );

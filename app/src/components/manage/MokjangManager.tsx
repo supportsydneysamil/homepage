@@ -65,6 +65,9 @@ type MokjangManagerProps = {
   onConfirmDelete: (id: string) => void;
   onCancelDelete: () => void;
   onRemovePhoto: (imageUrl: string) => void;
+  coverPhoto: string | null;
+  coverPending: boolean;
+  onChooseCover: (imageUrl: string) => void;
 };
 
 const MokjangManager = ({
@@ -89,6 +92,9 @@ const MokjangManager = ({
   onConfirmDelete,
   onCancelDelete,
   onRemovePhoto,
+  coverPhoto,
+  coverPending,
+  onChooseCover,
 }: MokjangManagerProps) => {
   const isKo = lang === 'ko';
   const text = {
@@ -98,8 +104,16 @@ const MokjangManager = ({
     search: isKo ? '이름 · 지역으로 검색' : 'Search name or suburb',
     filter: isKo ? '공개 상태' : 'Status',
     photoHint: isKo
-      ? 'JPG, PNG, WebP 파일을 여러 장 고를 수 있습니다. 목장 식구들이 공개에 동의한 사진만 올려 주세요. 아이 얼굴은 특히 주의해 주세요. 가장 먼저 올린 사진이 대표 사진이 됩니다.'
-      : 'Pick one or more JPG, PNG, or WebP files. Only upload photos the members agreed to share, and take special care with children’s faces. The first photo uploaded becomes the cover.',
+      ? 'JPG, PNG, WebP 파일을 여러 장 고를 수 있습니다. 목장 식구들이 공개에 동의한 사진만 올려 주세요. 아이 얼굴은 특히 주의해 주세요. 처음 올린 사진이 대표 사진이 되고, 저장한 뒤 사진 목록에서 바꿀 수 있습니다.'
+      : 'Pick one or more JPG, PNG, or WebP files. Only upload photos the members agreed to share, and take special care with children’s faces. The first photo uploaded becomes the cover; you can change it in the photo list after saving.',
+    cover: isKo ? '대표' : 'Cover',
+    coverHint: isKo ? '사진을 누르면 대표 사진이 됩니다.' : 'Select a photo to make it the cover.',
+    makeCover: isKo ? '눌러서 대표 사진으로' : 'Make this the cover',
+    photoNumber: (number: number) => (isKo ? `사진 ${number}` : `Photo ${number}`),
+    removePhoto: isKo ? '사진 삭제' : 'Remove photo',
+    coverPending: isKo
+      ? '저장하면 대표 사진이 바뀝니다. 취소하면 그대로 남습니다.'
+      : 'The cover changes when you save. Cancel keeps the current one.',
     membersOnly: isKo ? '로그인한 교인에게만 보입니다.' : 'Shown only to signed-in members.',
     englishOptional: isKo ? '비워 두면 영어 화면에도 한국어가 나옵니다.' : 'Leave empty to show the Korean text in English too.',
   };
@@ -207,23 +221,46 @@ const MokjangManager = ({
           {pendingRemovedCount ? <p className="muted">{labels.photoPending(pendingRemovedCount)}</p> : null}
 
           {photos.length ? (
-            <div className="manage-gallery">
-              <span className="muted">{labels.photoCurrent(photos.length)}</span>
+            <fieldset className="manage-gallery manage-gallery--cover">
+              <legend className="muted">{labels.photoCurrent(photos.length)}</legend>
+              <p className="muted">{text.coverHint}</p>
+              {coverPending ? <p className="manage-gallery__note">{text.coverPending}</p> : null}
               <ul>
-                {photos.map((image) => (
-                  <li key={image}>
-                    <img src={image} alt="" />
-                    <button
-                      type="button"
-                      className="manage-button manage-button--ghost"
-                      onClick={() => onRemovePhoto(image)}
-                    >
-                      {labels.remove}
-                    </button>
-                  </li>
-                ))}
+                {photos.map((image, index) => {
+                  const isCover = image === coverPhoto;
+                  return (
+                    <li key={image} className={isCover ? 'manage-cover manage-cover--current' : 'manage-cover'}>
+                      <label>
+                        <input
+                          type="radio"
+                          name="mokjang-cover"
+                          className="visually-hidden"
+                          aria-label={text.photoNumber(index + 1)}
+                          checked={isCover}
+                          onChange={() => onChooseCover(image)}
+                        />
+                        <img src={image} alt="" />
+                        {isCover ? (
+                          <span className="manage-cover__tag">{text.cover}</span>
+                        ) : (
+                          <span className="manage-cover__hint" aria-hidden="true">
+                            {text.makeCover}
+                          </span>
+                        )}
+                      </label>
+                      <button
+                        type="button"
+                        className="manage-cover__remove"
+                        aria-label={text.removePhoto}
+                        onClick={() => onRemovePhoto(image)}
+                      >
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
-            </div>
+            </fieldset>
           ) : null}
 
           <ContentForm
