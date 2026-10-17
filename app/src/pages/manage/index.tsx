@@ -7,7 +7,7 @@ import ContentForm, { type FormField } from '../../components/manage/ContentForm
 import ManageList from '../../components/manage/ManageList';
 import ManageToolbar, { type ManageFilterOption } from '../../components/manage/ManageToolbar';
 import MokjangManager from '../../components/manage/MokjangManager';
-import { coverFirst, mokjangPayloadFromForm, parseMokjangSlug, sortMokjangs, suggestMokjangSlug } from '../../lib/mokjang';
+import { currentCover, mokjangPayloadFromForm, parseMokjangSlug, sortMokjangs, suggestMokjangSlug } from '../../lib/mokjang';
 import { useLanguage } from '../../lib/LanguageContext';
 import type { PageMeta } from '../../lib/pageMeta';
 import { useRequireAuth } from '../../lib/swaAuth';
@@ -429,13 +429,11 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
   const editingApplication = editingApplicationLookup.item;
   const editingPhotos = withoutPendingImages(editingEvent?.images, pendingRemovedPhotos);
   const editingMokjang = editingMokjangLookup.item;
-  const editingMokjangPhotos = coverFirst(
-    withoutPendingImages(editingMokjang?.images, pendingRemovedPhotos),
-    pendingCoverPhoto
-  );
+  const editingMokjangPhotos = withoutPendingImages(editingMokjang?.images, pendingRemovedPhotos);
+  const editingMokjangCover = currentCover(editingMokjangPhotos, pendingCoverPhoto);
   const isCoverPending =
     pendingCoverPhoto !== null &&
-    editingMokjangPhotos[0] === pendingCoverPhoto &&
+    editingMokjangCover === pendingCoverPhoto &&
     editingMokjang?.images[0] !== pendingCoverPhoto;
 
   const today = todayStamp();
@@ -1192,6 +1190,7 @@ const ManagePage: NextPage & { meta?: PageMeta } = () => {
           onConfirmDelete={(id) => onDelete('/api/mokjang', id, mokjangs.reload)}
           onCancelDelete={() => setPendingDeleteId(null)}
           onRemovePhoto={onRemovePhoto}
+          coverPhoto={editingMokjangCover}
           coverPending={isCoverPending}
           onChooseCover={setPendingCoverPhoto}
         />

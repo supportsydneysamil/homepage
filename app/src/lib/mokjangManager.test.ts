@@ -79,6 +79,7 @@ const render = (overrides: Partial<ComponentProps<typeof MokjangManager>> = {}) 
       onConfirmDelete: noop,
       onCancelDelete: noop,
       onRemovePhoto: noop,
+      coverPhoto: null,
       coverPending: false,
       onChooseCover: noop,
       ...overrides,
@@ -107,16 +108,20 @@ test('the editor shows the current photos and the saved shepherd name', () => {
   assert.match(html, /value="김목자"/);
 });
 
-test('the first photo is marked as the cover and the others can become it', () => {
-  const chosen: string[] = [];
+test('photos stay in place, the cover is marked, and every photo can be picked or removed', () => {
   const html = render({
     showEditor: true,
     editing: mokjang,
     photos: ['/api/files/download/a', '/api/files/download/b', '/api/files/download/c'],
-    onChooseCover: (image: string) => chosen.push(image),
+    coverPhoto: '/api/files/download/b',
   });
-  assert.strictEqual((html.match(/class="manage-gallery__cover"/g) || []).length, 1);
-  assert.strictEqual((html.match(/대표 사진으로/g) || []).length, 2);
+  assert.match(html, /사진을 누르면 대표 사진이 됩니다/);
+  assert.strictEqual((html.match(/type="radio"/g) || []).length, 3);
+  assert.strictEqual((html.match(/checked=""/g) || []).length, 1);
+  assert.match(html, /class="manage-cover manage-cover--current"><label><input type="radio"[^>]*checked=""[^>]*\/><img src="\/api\/files\/download\/b"/);
+  assert.strictEqual((html.match(/class="manage-cover__tag"/g) || []).length, 1);
+  assert.strictEqual((html.match(/aria-label="사진 삭제"/g) || []).length, 3);
+  assert.ok(html.indexOf('download/a') < html.indexOf('download/b'));
   assert.doesNotMatch(html, /저장하면 대표 사진이 바뀝니다/);
 });
 
@@ -124,7 +129,8 @@ test('a cover chosen but not yet saved is announced', () => {
   const html = render({
     showEditor: true,
     editing: mokjang,
-    photos: ['/api/files/download/b', '/api/files/download/a'],
+    photos: ['/api/files/download/a', '/api/files/download/b'],
+    coverPhoto: '/api/files/download/b',
     coverPending: true,
   });
   assert.match(html, /저장하면 대표 사진이 바뀝니다/);

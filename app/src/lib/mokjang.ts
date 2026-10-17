@@ -193,5 +193,5 @@ export const mokjangPayloadFromForm = (
   };
 };
 
-export const coverFirst = (images: string[], cover: string | null) =>
-  cover && images.includes(cover) ? [cover, ...images.filter((image) => image !== cover)] : images;
+export const currentCover = (images: string[], chosen: string | null) =>
+  chosen && images.includes(chosen) ? chosen : images[0] ?? null;

@@ -5,7 +5,7 @@ import {
   audienceLabel,
   clockLabel,
   contactPrefill,
-  coverFirst,
+  currentCover,
   dayLabel,
   detailMeeting,
   initialOf,
@@ -175,15 +175,12 @@ test('an empty form still sends every field', () => {
   assert.strictEqual(payload.published, true);
 });
 
-test('the chosen cover moves to the front of the photo list', () => {
+test('the cover is the chosen photo while it is still listed, otherwise the first photo', () => {
   const photos = ['/api/files/download/a', '/api/files/download/b', '/api/files/download/c'];
-  assert.deepStrictEqual(coverFirst(photos, '/api/files/download/c'), [
-    '/api/files/download/c',
-    '/api/files/download/a',
-    '/api/files/download/b',
-  ]);
-  assert.deepStrictEqual(coverFirst(photos, null), photos);
-  assert.deepStrictEqual(coverFirst(photos, '/api/files/download/removed'), photos);
+  assert.strictEqual(currentCover(photos, '/api/files/download/c'), '/api/files/download/c');
+  assert.strictEqual(currentCover(photos, null), '/api/files/download/a');
+  assert.strictEqual(currentCover(photos, '/api/files/download/removed'), '/api/files/download/a');
+  assert.strictEqual(currentCover([], null), null);
 });
 
 test('the chosen cover id travels with the form payload', () => {

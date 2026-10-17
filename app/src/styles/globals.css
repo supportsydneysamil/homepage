@@ -5690,14 +5690,112 @@ body {
   object-fit: cover;
 }
 
-.manage-gallery__cover {
-  justify-self: start;
-  padding: 0.2rem 0.65rem;
+.manage-gallery--cover {
+  min-width: 0;
+  margin: 0 0 1.2rem;
+  padding: 0;
+  border: 0;
+}
+
+.manage-gallery--cover legend {
+  padding: 0;
+}
+
+.manage-gallery--cover > p {
+  margin: 0.2rem 0 0;
+}
+
+.manage-gallery__note {
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.6rem;
+  background: var(--site-surface);
+  color: var(--site-accent);
+  font-size: 0.85rem;
+}
+
+.manage-cover {
+  position: relative;
+}
+
+.manage-cover label {
+  position: relative;
+  display: block;
+  border-radius: 0.8rem;
+  outline: 3px solid transparent;
+  outline-offset: 2px;
+  cursor: pointer;
+}
+
+.manage-cover img {
+  display: block;
+}
+
+.manage-cover--current label {
+  outline-color: var(--site-accent);
+}
+
+.manage-cover label:focus-within {
+  box-shadow: 0 0 0 4px var(--site-accent-soft);
+}
+
+.manage-cover__tag {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.15rem 0.55rem;
   border-radius: 999px;
   background: var(--site-accent);
   color: var(--site-canvas);
-  font-size: 0.75rem;
-  font-weight: 750;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.manage-cover__hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0.5rem;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--site-ink) 45%, transparent);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.manage-cover label:hover .manage-cover__hint,
+.manage-cover label:focus-within .manage-cover__hint {
+  opacity: 1;
+}
+
+.manage-cover__remove {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, #ffffff 92%, transparent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  color: var(--site-ink);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.manage-cover__remove:hover,
+.manage-cover__remove:focus-visible {
+  background: #ffffff;
+  color: #a3402a;
 }
 
 .manage-form {

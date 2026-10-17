@@ -162,7 +162,7 @@ Form groups:
 1. Basics: 목장 name (ko/en), slug, one-line introduction (ko/en), suburb, meeting day, meeting time
 2. Gathering: audience, language, children welcome, supported mission field (ko/en)
 3. 목장 story (ko/en)
-4. Photos: upload several, delete one at a time, choose “대표 사진으로” (applied on save, Cancel keeps the current cover), with the note “목장 식구들이 공개에 동의한 사진만 올려 주세요. 아이 얼굴은 특히 주의해 주세요. 처음 올린 사진이 대표 사진이 되고, 저장한 뒤 사진 목록에서 바꿀 수 있습니다.”
+4. Photos: upload several, delete one at a time with the × on each photo, select a photo to make it the cover (photos keep their place; the cover gets an outline and a “대표” tag; applied on save, Cancel keeps the current cover), with the note “목장 식구들이 공개에 동의한 사진만 올려 주세요. 아이 얼굴은 특히 주의해 주세요. 처음 올린 사진이 대표 사진이 되고, 저장한 뒤 사진 목록에서 바꿀 수 있습니다.”
 5. Members only: 목자, 목녀·목부, with the note “로그인한 교인에게만 보입니다.”
 6. Published / Draft
 
